@@ -10,3 +10,11 @@ manifest.json
 .env*
 .vercel/
 *.tsbuildinfo
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+screenshots-*/
+.superdesign/
+__pycache__/
+*.pyc

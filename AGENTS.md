@@ -18,6 +18,7 @@ O objetivo imediato é uma demonstração confiável no desktop e no tablet, nã
 4. `DATA_SCHEMA.md`: contrato de intercâmbio.
 5. `ROADMAP.md`: prioridade e critérios de aceite.
 6. `CRAFTBOT_ANALYSIS.md`: referência externa e limites de reutilização.
+7. `DESIGN_SYSTEM.md`, `UI_ARCHITECTURE.md`, `UX_RESEARCH.md` e `DESIGN_TOOLCHAIN.md`: identidade visual, contratos de UI, ergonomia e ferramentas de design/validação local (`ui-ux-pro-max`, `@base-ui/react`, `lucide-react`, `react-resizable-panels`, `vaul`, `cmdk`, `playwright` + `@axe-core/playwright`).
 
 Depois, inspecionar `git status`, árvore de arquivos, dependências e scripts existentes. Não assumir que o projeto já foi inicializado. Em conflito, a instrução explícita mais recente do responsável prevalece; registrar a mudança nos documentos pertinentes. Não alterar o contrato silenciosamente.
 
@@ -46,7 +47,7 @@ A divisão é organizacional, não restrição de capacidade. O agente que receb
 - Usar geometria de teste sintética. Não inventar medidas ou conexões reais da Casa Gerassi.
 - Não introduzir autenticação, banco de dados, IA, Rhino Compute, IFC ou backend de processamento no MVP sem necessidade aprovada.
 - Não otimizar por fusão indiscriminada: manter seleção individual e correspondência de IDs. Liberar recursos GPU, URLs temporárias e listeners ao trocar o modelo.
-- Interface em português inicialmente, textos centralizados para futura internacionalização. Tema neutro com azul claro como acento; usabilidade touch e teclado, contraste legível, sem animações que bloqueiem tarefas.
+- Interface em português inicialmente, textos centralizados para futura internacionalização. Tema neutro com azul claro como acento; usabilidade touch e teclado, contraste legível, sem animações que bloqueiem tarefas. Primitivos de UI seguem `@base-ui/react` + CSS puro com `light-dark()` (alinhados ao portfólio; não misturar Radix UI com Base UI nem introduzir dependências redundantes).
 - Não copiar código, imagens ou dados externos sem verificar licença e origem. Para código MIT reutilizado, conservar avisos e registrar procedência e commit.
 
 ## 5. Fluxo de execução

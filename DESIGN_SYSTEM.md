@@ -1,8 +1,8 @@
 # GeoGenViewer — design system
 
-**Revisão:** 0.1 · 25/11/2026  
+**Revisão:** 0.2 · 25/11/2026 (Sprint 02.1 — alinhamento ao portfólio [febragga/portfolio](https://github.com/febragga/portfolio))  
 **Responsável:** Antigravity (Product Design & Frontend Engineering)  
-**Base técnica observada:** Next.js `16.4.6` · React `19.3.0` · Tailwind CSS `4.3.3` (`@tailwindcss/turbopack`) · `Geist` e `Geist_Mono` configuradas em [layout.tsx](file:///C:/Site-GeoGenViewer/geogenviewer/app/layout.tsx) e [globals.css](file:///C:/Site-GeoGenViewer/geogenviewer/app/globals.css).
+**Base técnica implementada:** Next.js `16.4.6` · React `19.3.0` · CSS puro com `light-dark()` + `<meta name="color-scheme">` em [layout.tsx](file:///C:/Site-GeoGenViewer/geogenviewer/app/layout.tsx) e [globals.css](file:///C:/Site-GeoGenViewer/geogenviewer/app/globals.css) · Primitivos `@base-ui/react` + ícones `lucide-react`.
 
 ---
 
@@ -22,36 +22,38 @@ O GeoGenViewer adota uma linguagem visual **técnica, neutra e silenciosa**, pro
 
 ## 2. Sistema de cores e tokens semânticos
 
-Os tokens são definidos via CSS Custom Properties em `globals.css` e expostos ao Tailwind v4 com `@theme inline`, evitando valores hardcoded nos componentes.
+Os tokens são definidos via CSS Custom Properties em `geogenviewer/app/globals.css` utilizando `light-dark()` vinculado a `<meta name="color-scheme" content="light dark">` (com alternância manual persistida em `localStorage` sob `geogen-color-scheme`), mantendo paridade visual com o portfólio de Fernando Braga (`#0C0D0E` / `#17191A` / `#202223` / `#B5DAF2` em Dark e prancha técnica `#EDF0F3` em Light).
 
-### 2.1 Paleta de marca e destaque (Azul-claro / Azul-acinzentado)
+### 2.1 Paleta de marca e destaque (Azul-gelo / Azul-aço)
 
-- **Tema Claro — Acento Técnico (Steel / Cerulean Slate):**
-  - `--gg-accent`: `#256F96` (contraste >= 5.2:1 sobre `#FFFFFF` e `#F6F7F9`)
-  - `--gg-accent-hover`: `#1D5A7A`
-  - `--gg-accent-soft`: `rgba(37, 111, 150, 0.10)` (fundo de item selecionado na árvore)
-  - `--gg-accent-border`: `rgba(37, 111, 150, 0.40)`
-- **Tema Escuro — Acento Luminoso Controlado (Ice / Steel Blue):**
-  - `--gg-accent`: `#5BAAD4` (contraste >= 6.4:1 sobre `#12151A` e `#181C22`)
-  - `--gg-accent-hover`: `#74BBE0`
-  - `--gg-accent-soft`: `rgba(91, 170, 212, 0.14)`
-  - `--gg-accent-border`: `rgba(91, 170, 212, 0.45)`
+- **Tema Claro — Acento Técnico (Steel Blue calibrado WCAG AA):**
+  - `--gg-accent`: `#1D5F82` (contraste >= 5.2:1 sobre `#F8F9FB`, `#EDF0F3` e superfícies de badge)
+  - `--gg-accent-hover`: `#154A66`
+  - `--gg-accent-ink`: `#FFFFFF`
+  - `--gg-accent-soft`: `rgba(29, 95, 130, 0.10)`
+  - `--gg-accent-border`: `rgba(29, 95, 130, 0.44)`
+- **Tema Escuro — Acento Azul-gelo (Portfolio Ice Blue):**
+  - `--gg-accent`: `#B5DAF2` (idêntico a `--color-accent` em `febragga/portfolio`)
+  - `--gg-accent-hover`: `#89C8FA` (idêntico a `--color-accent-interactive`)
+  - `--gg-accent-ink`: `#0C0D0E`
+  - `--gg-accent-soft`: `rgba(181, 218, 242, 0.13)`
+  - `--gg-accent-border`: `rgba(181, 218, 242, 0.42)`
 
 ### 2.2 Superfícies, bordas e texto
 
-| Token | Tema Claro (`data-theme="light"`) | Tema Escuro (`data-theme="dark"`) | Uso semântico |
+| Token | Tema Claro | Tema Escuro | Uso semântico |
 |---|---|---|---|
-| `--gg-bg-app` | `#F4F5F7` | `#0F1216` | Fundo base da aplicação e viewport fallback |
-| `--gg-bg-viewport` | `#ECEFF3` | `#14181F` | Fundo do canvas WebGL (sólido limpo) |
-| `--gg-bg-panel` | `#FFFFFF` | `#181C23` | Topbar, painéis laterais ancorados, timeline |
-| `--gg-bg-elevated` | `#FFFFFF` | `#1F242D` | Toolbars flutuantes, popovers, modais, bottom sheets |
-| `--gg-bg-subtle` | `#F1F3F6` | `#222832` | Inputs, badges neutros, cabeçalhos de seção, hover leve |
-| `--gg-bg-active` | `#E6EBF1` | `#2A313E` | Hover pressionado / controle ativo neutro |
-| `--gg-border-subtle` | `#E2E6EC` | `#272D37` | Divisórias de painel, separadores internos |
-| `--gg-border-strong` | `#CBD2DC` | `#37404F` | Bordas de inputs, botões secundários, foco neutro |
-| `--gg-text-primary` | `#11161D` | `#EEF2F6` | Títulos, valores de medida, itens ativos |
-| `--gg-text-secondary` | `#4B5563` | `#A1ACB9` | Rótulos de propriedades, subtítulos, ícones padrão |
-| `--gg-text-muted` | `#6B7280` | `#748091` | Placeholders, atalhos `kbd`, metadados auxiliares |
+| `--gg-bg-app` | `#E6EAF0` | `#0C0D0E` | Fundo base da aplicação |
+| `--gg-bg-viewport` | `#EDF0F3` | `#101214` | Fundo do canvas WebGL (prancha clara / estúdio grafite) |
+| `--gg-bg-panel` | `#F8F9FB` | `#17191A` | Topbar, painéis laterais e modais |
+| `--gg-bg-elevated` | `rgba(255, 255, 255, 0.96)` | `rgba(23, 25, 26, 0.96)` | Toolbars flutuantes e badge de eixos |
+| `--gg-bg-subtle` | `#EDF0F3` | `#202223` | Inputs, badges neutros, hover leve |
+| `--gg-bg-active` | `#DFE5ED` | `#2A2D2F` | Estado ativo / hover pressionado |
+| `--gg-border-subtle` | `#D3DAE3` | `#343637` | Divisórias `1px` de painéis e seções |
+| `--gg-border-strong` | `#B4BFCE` | `rgba(241, 241, 238, 0.24)` | Bordas de controles, separadores e popups |
+| `--gg-text-primary` | `#111315` | `#F1F1EE` | Títulos, valores de medida, itens ativos |
+| `--gg-text-secondary` | `#3F4752` | `#B4B8B7` | Rótulos de propriedades, subtítulos, ícones padrão |
+| `--gg-text-muted` | `#525B66` | `#949897` | Metadados auxiliares (calibrado >= 4.5:1 AA) |
 
 ### 2.3 Estados semânticos e cena 3D
 

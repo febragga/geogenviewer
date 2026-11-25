@@ -1,8 +1,8 @@
 # GeoGenViewer — arquitetura de interface (UI)
 
-**Revisão:** 0.1 · 25/11/2026  
+**Revisão:** 0.2 · 25/11/2026 (Sprint 02.1 — atualizado após implementação e auditoria Playwright/axe-core)  
 **Responsável:** Antigravity (Product Design & Frontend Engineering)  
-**Alinhamento:** [ARCHITECTURE.md](file:///C:/Site-GeoGenViewer/ARCHITECTURE.md) · [ROADMAP.md](file:///C:/Site-GeoGenViewer/ROADMAP.md) · [DATA_SCHEMA.md](file:///C:/Site-GeoGenViewer/DATA_SCHEMA.md)
+**Alinhamento:** [ARCHITECTURE.md](file:///C:/Site-GeoGenViewer/ARCHITECTURE.md) · [ROADMAP.md](file:///C:/Site-GeoGenViewer/ROADMAP.md) · [DATA_SCHEMA.md](file:///C:/Site-GeoGenViewer/DATA_SCHEMA.md) · [DESIGN_TOOLCHAIN.md](file:///C:/Site-GeoGenViewer/DESIGN_TOOLCHAIN.md)
 
 ---
 
@@ -113,19 +113,22 @@ Regras específicas para Smartphone:
 
 ---
 
-## 4. Especificação dos componentes da v0.1
+## 4. Especificação dos componentes implementados (v0.1 · Sprint 02.1)
 
-Os componentes de interface da v0.1 devem ser organizados em `geogenviewer/features/viewer/components/` (ver nota de estrutura na Seção 6), mantendo regras de negócio e Three.js totalmente fora dos componentes visuais.
+Os componentes de interface vivem em `geogenviewer/src/features/viewer/components/`, mantendo regras geométricas e Three.js isoladas em `scene/viewport.tsx` e `lib/geogen/importers/glb.ts`.
 
-| Componente | Responsabilidade | Estados obrigatórios |
+| Componente / Arquivo | Responsabilidade e bibliotecas usadas | Estados obrigatórios |
 |---|---|---|
-| `ViewerShell` | Orquestra layout responsivo (`h-dvh`, Topbar + área principal do Viewport), registra atalhos globais (`F`, `R`, `G`) fora de inputs e gerencia `drag-and-drop` global de arquivo `.glb`. | `idle`, `dragging-file`, `loading`, `ready`, `error` |
-| `ViewerTopbar` | Marca GeoGenViewer, título do arquivo atual, badge de modo (`Básico GLB`), botão `Abrir GLB` (input oculto `.glb`), toggle de tema (`Claro`/`Escuro`) e botão de ajuda rápida. | Sem arquivo, arquivo carregado, carregando (botão abrir substitui carga atual com cancelamento seguro) |
-| `ViewportEmptyState` | Exibido sobre o viewport quando `status === 'idle'`. Dropzone clara, botão grande `Selecionar arquivo GLB`, aviso explícito de privacidade ("Processamento 100% local no navegador; nenhum dado é enviado") e instruções de formatos suportados na v0.1. | Padrão, `drag-over` (borda azul-clara destacada) |
-| `ViewportStatusOverlay` | Barra discreta de carregamento (`status === 'loading'`), botão `Cancelar` e painel de erro acionável (`status === 'error'` ou `webgl-lost`) com botão `Tentar outro arquivo` ou `Recarregar contexto`. | `loading` (indeterminado ou %), `error` (mensagem legível + caminho/causa), `webgl-lost` |
-| `ViewportToolbar` | Barra flutuante inferior com alternância de modo de ponteiro (`Órbita` / `Pan`), `Enquadrar (F)`, `Resetar vista (R)` e `Grade/Eixos (G)`. | Ativo/inativo, desabilitado quando nenhum modelo estiver carregado (exceto Grade se visível no vazio) |
-| `OrientationBadge` / `ScaleReferenceHint` | Indicador discreto no canto do viewport informando eixos (`Y↑` espaço glTF), unidade da cena (`m` / `mm` de exibição quando conhecido) e presença da grade/cubo de referência. | Visível com modelo carregado |
-| `ControlsHelpPopover` | Popover/modal acessível explicando gestos de mouse e toque (1 dedo / 2 dedos) e atalhos de teclado da v0.1. | Aberto / fechado (`Esc` fecha) |
+| `Viewer` (`viewer.tsx`) | Orquestra `100dvh`, `Tooltip.Provider` (`@base-ui/react`), `Group`/`Panel`/`Separator` (`react-resizable-panels`) no desktop (`>= 1024px`), drawers com scrim no tablet (`768–1023px`), drag-and-drop GLB, resumo de cena (`SceneSummary`) e atalhos (`Ctrl+K`, `F`, `R`, `[`, `]`, `Esc`). | `idle`, `dragging-file`, `loading`, `ready`, `error`, `webgl-lost`, `focusMode` |
+| `ViewerTopbar` (`viewer-topbar.tsx`) | Marca GeoGenViewer, título do modelo ativo, badge `GLB Básico`, toggles de painéis, gatilho `⌘K`, `Abrir GLB`, `Carregar demonstração`, `Modo foco`, `Controles`, `ThemeToggle` e menu overflow `@base-ui/react/menu` em `< 640px`. | Sem arquivo, arquivo carregado, carregando |
+| `ViewerToolbar` (`viewer-toolbar.tsx`) | Barra flutuante inferior com `ActionTooltip`, navegação ativa (`Orbitar`, `Deslocar`, `Aproximar`, `Afastar`, `Enquadrar`, `Redefinir`) e ferramentas futuras explicitamente desabilitadas (`Explodir v0.4`, `Corte v0.6`, `Medir v0.6`). | Ativo/inativo, desabilitado em `lost` |
+| `LeftHierarchyPanel` / `RightPropertiesPanel` / `MobileBottomSheet` (`viewer-panels.tsx`) | Painéis retráteis preparados para `v0.2`/`v0.4` exibindo nós raiz reais do GLB e métricas/AABB reais com nota de proveniência; Bottom Sheet deslizante via `vaul` em `< 768px`. | Vazio, carregado (somente leitura na v0.1) |
+| `CommandPalette` (`command-palette.tsx`) | Paleta `Ctrl+K` / `⌘K` construída com `cmdk` + `@base-ui/react/dialog` cobrindo exclusivamente ações reais da v0.1. | Aberto / fechado, busca com vazio |
+| `ControlsDialog` (`controls-dialog.tsx`) | `<dialog>` nativo (`showModal()`) com `overscroll-behavior: contain` explicando mouse, touch e teclado. | Aberto / fechado |
+| `ThemeToggle` (`theme-toggle.tsx`) | Toggle Claro/Escuro sincronizado com `meta[name="color-scheme"]`, `localStorage` e evento `storage` entre abas. | Sistema / Claro / Escuro |
+| `OrientationBadge` (`.gg-axes`) | Indicador `X Y Z` posicionado no canto superior direito do viewport (`top: 12px; right: 12px`, deslocado para baixo no `focusMode`) sem colidir com a toolbar inferior. | Visível com modelo carregado |
+
+Para regressão visual e de acessibilidade, o repositório preserva o script `geogenviewer/scripts/verify-ui.mjs` (`npm --prefix geogenviewer run test:ui`), que audita `/`, `/viewer`, desktop, tablet (paisagem/retrato) e smartphone em temas claro e escuro via Playwright + `@axe-core/playwright`.
 
 ---
 
