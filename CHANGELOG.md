@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.0] · 26/11/2026 — Knolling, catálogo e documentação
+
+- Organização de ocorrências e tipos em cinco modos, três planos CAD, orientação configurável e transição reversível.
+- Catálogo virtualizado, filtros, miniaturas no renderer existente e seleção por revisão e ocorrência.
+- Callouts ancorados, listagem de peças, fichas técnicas e manual imprimível baseado em montagem autorada.
+- Exportações PNG, CSV e JSON, restauração vinculada ao hash e fixture sintética com duas revisões.
+
 ## [0.7.0] · 26/11/2026 — Comparação de revisões e fabricação
 
 - Workspaces Comparar e Quantitativos com navegação em uma viewport e suporte a dois pacotes locais.

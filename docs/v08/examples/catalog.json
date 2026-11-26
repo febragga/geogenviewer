@@ -1,0 +1,219 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "catalog",
+  "identity": {
+    "projectId": "catalog-lab",
+    "revisionId": "rev-01",
+    "sha256": "aa3046d9d562c3bdd7b8326776f233b62b4bcb37c43d07e8cd07ac3d6ebdb259"
+  },
+  "settings": {
+    "layout": {
+      "plane": "XY",
+      "mode": "shelf",
+      "orientation": "preserve",
+      "group": "category",
+      "sort": "name",
+      "spacingM": 0.013,
+      "groupSpacingM": 0.0468,
+      "widthM": 0.65,
+      "marginM": 0.0208,
+      "columns": 5,
+      "alignment": "center",
+      "direction": "forward",
+      "overrides": {
+        "viga-principal-a": {
+          "rotation": 0,
+          "fixed": [
+            0.0208,
+            0.0208
+          ]
+        }
+      }
+    },
+    "scope": "category",
+    "scopeValue": "beam",
+    "labels": true,
+    "quantities": true,
+    "groups": true,
+    "types": {
+      "overrides": {},
+      "confirmed": [],
+      "blocks": false
+    },
+    "callouts": [
+      {
+        "id": "d19f8eea-3701-48ac-b07f-32ef57e3b873",
+        "elementId": "viga-principal-a",
+        "kind": "custom",
+        "text": "V-01 · referência da viga",
+        "anchor": [
+          0,
+          0,
+          0
+        ],
+        "offset": [
+          16,
+          -22
+        ],
+        "leader": "dot",
+        "visible": true
+      }
+    ],
+    "catalog": {
+      "view": "cards",
+      "density": "compact",
+      "query": "Viga principal A",
+      "scope": "all",
+      "scopeValue": "",
+      "filterStatus": "all",
+      "group": "category",
+      "columns": [
+        "part",
+        "type",
+        "material",
+        "volume"
+      ],
+      "property": "",
+      "propertyValue": "",
+      "prototype": "",
+      "thumbnail": "technical"
+    },
+    "sheet": {
+      "template": "assembly",
+      "title": "",
+      "subtitle": "",
+      "page": "A4",
+      "orientation": "landscape",
+      "marginMm": 12,
+      "background": "#ffffff",
+      "brand": "",
+      "notes": "",
+      "frames": [
+        "axonometric",
+        "front",
+        "top",
+        "left"
+      ],
+      "fields": [
+        "identity",
+        "dimensions",
+        "fabrication",
+        "measurements",
+        "assembly",
+        "parts",
+        "callouts"
+      ],
+      "measurementIds": [],
+      "labels": false,
+      "leaders": true,
+      "legend": false,
+      "titleInCapture": false,
+      "grid": false,
+      "axes": false,
+      "measurements": true,
+      "identifiers": false,
+      "scale": true,
+      "transparent": false,
+      "density": "comfortable",
+      "stage": "during",
+      "progress": 0.5
+    }
+  },
+  "generatedAt": "2026-11-26T12:46:43.456Z",
+  "report": {
+    "parts": [
+      {
+        "id": "viga-principal-a",
+        "name": "Viga principal A",
+        "part": "V-01",
+        "type": "V-01",
+        "quantity": 1,
+        "category": "beam",
+        "layer": "Estrutura::Peças principais",
+        "material": "print-a",
+        "visual": [
+          "Terracota visual"
+        ],
+        "dimensions": {
+          "lengthM": 0.48,
+          "widthM": 0.035,
+          "thicknessM": 0.035,
+          "source": "authored"
+        },
+        "area": {
+          "value": 0.06964999880492687,
+          "source": "mesh",
+          "method": "area-triangles"
+        },
+        "volume": {
+          "value": 0.0005879999918639659,
+          "source": "mesh",
+          "method": "volume-closed-mesh"
+        },
+        "status": "unchanged",
+        "fabrication": {
+          "id": "viga-principal-a",
+          "material": "print-a",
+          "originalMaterial": "print-a",
+          "density": {
+            "value": 1200,
+            "source": "cad",
+            "detail": "print-a"
+          },
+          "rate": {
+            "value": 56,
+            "currency": "BRL",
+            "source": "cad",
+            "detail": "print-a"
+          },
+          "volume": {
+            "value": 0.0005879999918639659,
+            "source": "mesh",
+            "method": "volume-closed-mesh"
+          },
+          "mass": {
+            "solid": {
+              "value": 0.7055999902367591,
+              "source": "cad",
+              "detail": "volume-closed-mesh × print-a"
+            },
+            "slicer": {
+              "value": 0.096,
+              "source": "cad",
+              "detail": "GeoGen:Fabrication:SlicerMassKg"
+            },
+            "measured": null,
+            "estimate": null
+          },
+          "costs": [
+            {
+              "value": 39.51359945325851,
+              "source": "cad",
+              "currency": "BRL",
+              "method": "solid",
+              "detail": "volume-closed-mesh × print-a × print-a"
+            },
+            {
+              "value": 5.376,
+              "source": "cad",
+              "currency": "BRL",
+              "method": "slicer",
+              "detail": "GeoGen:Fabrication:SlicerMassKg × print-a"
+            }
+          ],
+          "time": {
+            "machine": null,
+            "production": null,
+            "recorded": null
+          }
+        },
+        "prototype": "prot-01",
+        "note": null,
+        "label": "V-01 · referência da viga",
+        "members": [
+          "viga-principal-a"
+        ]
+      }
+    ]
+  }
+}

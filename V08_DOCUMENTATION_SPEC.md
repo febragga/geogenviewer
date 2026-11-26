@@ -1,0 +1,9 @@
+# V0.8 — fichas e montagem
+
+Os modelos de ficha são peça, tipo, etapa de montagem, disposição de knolling, inspeção e comparação. A composição combina vistas alinhadas aos eixos do projeto ou da peça, atributos existentes, proveniência, registros de inspeção selecionados e a lista de peças. Para inspeção e knolling, a vista ativa pode incluir clipping, medidas, escala e callouts. Vistas isoladas compartilham a geometria importada e as direções da V0.5.
+
+O usuário escolhe página A4 ou A3, orientação, margens, fundo, título, subtítulo, marca, campos e densidade. O PNG usa proporções da página. Quando o conteúdo ultrapassa a região de texto, a imagem indica a continuação na versão imprimível ou no JSON. A escala gráfica ortográfica representa a projeção. A impressão depende da configuração da impressora e do navegador.
+
+Fichas de montagem usam a timeline autorada da V0.5 para identificar a etapa, as dependências e o instante antes, durante ou depois. Durante a inserção, o deslocamento é reconstruído pela fração da etapa. As fichas usam os componentes anteriores e ativos, e informam componentes de etapas posteriores. O manual imprimível inclui o projeto, índice, inventário, knolling geral e fichas ilustradas para as primeiras 20 etapas. O JSON conserva toda a sequência e as fichas geradas. Etapas adicionais podem ser geradas individualmente pelo seletor. A impressão multipágina usa a paginação nativa do navegador.
+
+O schema independente `documentation-v1.schema.json` atende `knolling.json`, `catalog.json` e `documentation.json`. Os três guardam preferências leves, ajustes, callouts e referências, nunca malhas. Leitura confirma versão, tamanho, valores, SHA-256, projeto, revisão e IDs. Named Views de knolling incluem o documento auxiliar e são sinalizadas no seletor. Uma vista de repouso continua associada ao modo em que foi criada.

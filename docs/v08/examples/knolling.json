@@ -1,0 +1,155 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "knolling",
+  "identity": {
+    "projectId": "catalog-lab",
+    "revisionId": "rev-01",
+    "sha256": "aa3046d9d562c3bdd7b8326776f233b62b4bcb37c43d07e8cd07ac3d6ebdb259"
+  },
+  "settings": {
+    "layout": {
+      "plane": "XY",
+      "mode": "shelf",
+      "orientation": "preserve",
+      "group": "category",
+      "sort": "name",
+      "spacingM": 0.013,
+      "groupSpacingM": 0.0468,
+      "widthM": 0.65,
+      "marginM": 0.0208,
+      "columns": 5,
+      "alignment": "center",
+      "direction": "forward",
+      "overrides": {
+        "viga-principal-a": {
+          "rotation": 0,
+          "fixed": [
+            0.0208,
+            0.0208
+          ]
+        }
+      }
+    },
+    "scope": "category",
+    "scopeValue": "beam",
+    "labels": true,
+    "quantities": true,
+    "groups": true,
+    "types": {
+      "overrides": {},
+      "confirmed": [],
+      "blocks": false
+    },
+    "callouts": [
+      {
+        "id": "d19f8eea-3701-48ac-b07f-32ef57e3b873",
+        "elementId": "viga-principal-a",
+        "kind": "custom",
+        "text": "V-01 · referência da viga",
+        "anchor": [
+          0,
+          0,
+          0
+        ],
+        "offset": [
+          16,
+          -22
+        ],
+        "leader": "dot",
+        "visible": true
+      }
+    ],
+    "catalog": {
+      "view": "cards",
+      "density": "compact",
+      "query": "",
+      "scope": "all",
+      "scopeValue": "",
+      "filterStatus": "all",
+      "group": "category",
+      "columns": [
+        "part",
+        "type",
+        "material",
+        "volume"
+      ],
+      "property": "",
+      "propertyValue": "",
+      "prototype": "",
+      "thumbnail": "axonometric"
+    },
+    "sheet": {
+      "template": "component",
+      "title": "",
+      "subtitle": "",
+      "page": "A4",
+      "orientation": "landscape",
+      "marginMm": 12,
+      "background": "#ffffff",
+      "brand": "",
+      "notes": "",
+      "frames": [
+        "axonometric",
+        "front",
+        "top",
+        "left"
+      ],
+      "fields": [
+        "identity",
+        "dimensions",
+        "fabrication",
+        "measurements",
+        "assembly",
+        "parts",
+        "callouts"
+      ],
+      "measurementIds": [],
+      "labels": false,
+      "leaders": true,
+      "legend": false,
+      "titleInCapture": false,
+      "grid": false,
+      "axes": false,
+      "measurements": true,
+      "identifiers": false,
+      "scale": true,
+      "transparent": false,
+      "density": "comfortable",
+      "stage": "after",
+      "progress": 0.5
+    }
+  },
+  "generatedAt": "2026-11-26T12:46:28.384Z",
+  "report": {
+    "placements": [
+      {
+        "id": "viga-principal-a",
+        "x": 0.0208,
+        "y": 0.0208,
+        "w": 0.47999998927116394,
+        "h": 0.03500000014901161,
+        "fixed": true,
+        "quantity": 1
+      },
+      {
+        "id": "viga-principal-b",
+        "x": 0.0208,
+        "y": 0.2580999964982271,
+        "w": 0.47999998927116394,
+        "h": 0.03500000014901161,
+        "fixed": false,
+        "quantity": 1
+      },
+      {
+        "id": "viga-secundaria",
+        "x": 0.513799989271164,
+        "y": 0.1156000001490116,
+        "w": 0.0250000003725291,
+        "h": 0.3199999928474426,
+        "fixed": false,
+        "quantity": 1
+      }
+    ],
+    "units": "m"
+  }
+}

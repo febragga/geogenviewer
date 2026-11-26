@@ -206,3 +206,13 @@ O Canvas e o renderer são compartilhados. Na comparação, uma segunda cena rea
 A análise ocorre em motores independentes de React. O cache de assinatura e métricas referencia geometrias importadas via `WeakMap`. O diff usa snapshots e lotes cooperativos com cancelamento quando os parâmetros mudam. Os quantitativos produzem registros por ocorrência e os documentos de análise restauram decisões leves por SHA-256, com schemas versionados. A implementação usa as dependências existentes.
 
 [Auditoria V0.7](V07_REVISION_ANALYTICS_AUDIT.md) · [Relatório de implementação](V07_IMPLEMENTATION_REPORT.md)
+
+## V0.8 — Knolling, catálogo e documentação
+
+Os motores de documentação recebem ocorrências de repouso, seu índice de malhas e os resultados V0.7. O layout calcula posições e rotações absolutas em um plano CAD. O runtime aplica matrizes temporárias apenas no modo Knolling e restaura as matrizes locais ao sair. Usar diretamente os offsets da vista explodida foi descartado porque a grade e a orientação mudam o referencial e precisam preservar os filhos.
+
+O catálogo usa virtualização, índice por importação e a mesma seleção semântica do visualizador. Miniaturas e vistas técnicas são renderizadas em fila no renderer da viewport. As geometrias continuam compartilhadas. A composição raster para fichas e callouts usa Canvas 2D. Criar viewports WebGL por card aumentaria o número de contextos e o custo de descarte.
+
+`documentation-v1.schema.json` versiona preferências, callouts e ajustes de layout para os três tipos de exportação. A identidade de documento compara projeto, revisão e SHA-256. Named Views de knolling adicionam o documento auxiliar como extensão opcional; registros V0.5–V0.7 continuam no mesmo domínio de preferência.
+
+[Auditoria V0.8](V08_KNOLLING_CATALOG_AUDIT.md) · [Documentação](V08_DOCUMENTATION_SPEC.md)

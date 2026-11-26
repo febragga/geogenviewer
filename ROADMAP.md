@@ -18,7 +18,7 @@ Entregar um visualizador capaz de demonstrar o protótipo da Casa Gerassi em tab
 | v0.5 | Experiência do viewer, gestão de vistas e montagem | P1 | Implementado localmente |
 | v0.6 | Corte, medições e documentação técnica | P1 | Implementado localmente |
 | v0.7 | Protótipos, comparações e quantitativos | P2 | Implementado e consolidado na `main` (`v0.7.0`). Ver [relatório](V07_IMPLEMENTATION_REPORT.md). |
-| v0.8 | Knolling, catálogo e documentação | P2 | A fazer |
+| v0.8 | Knolling, catálogo e documentação | P2 | Branch de feature. Ver [relatório](V08_IMPLEMENTATION_REPORT.md). |
 | v0.9 | Desempenho, robustez e acessibilidade | P1 | A fazer |
 | v1.0 | Publicação estável e validação | P1 | A fazer |
 | v2.x | Parametrização e novos adaptadores | Futuro | Backlog |
@@ -88,6 +88,10 @@ A sprint amplia o marco de montagem anterior com gestão de vistas, filtros e mo
 - Exportações locais, restauração por identidade, testes e benchmark das fixtures sintéticas. [Relatório de implementação](V07_IMPLEMENTATION_REPORT.md).
 
 ### v0.8 — Knolling, catálogo e documentação
+
+- Disposição determinística e reversível com escopo, agrupamento, orientação e fixações.
+- Catálogo virtualizado por ocorrência e tipo, miniaturas, callouts e listas de peças.
+- Fichas técnicas, montagem imprimível e exportações locais vinculadas à revisão. [Relatório V0.8](V08_IMPLEMENTATION_REPORT.md).
 - [ ] Comparação de duas versões com correspondência de IDs e câmera sincronizada.
 - [ ] Quantitativos por instância, material e classe; volume/peso/custo apenas quando dados suficientes.
 - [ ] Knolling: disposição organizada sem sobreposição visual, agrupamento por tipos, retorno à montagem.
