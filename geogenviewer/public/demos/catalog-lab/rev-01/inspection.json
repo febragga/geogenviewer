@@ -1,0 +1,232 @@
+{
+  "schemaVersion": "1.0.0",
+  "model": {
+    "projectId": "catalog-lab",
+    "revisionId": "rev-01",
+    "fileName": "model.glb",
+    "bytes": 21936,
+    "sha256": "aa3046d9d562c3bdd7b8326776f233b62b4bcb37c43d07e8cd07ac3d6ebdb259"
+  },
+  "sections": {
+    "shared": true,
+    "views": [
+      {
+        "planes": [
+          {
+            "id": "X",
+            "axis": "X",
+            "name": "Plano X",
+            "enabled": false,
+            "positionM": 0.05,
+            "flipped": false,
+            "gizmo": true,
+            "gizmoOpacity": 0.65
+          },
+          {
+            "id": "Y",
+            "axis": "Y",
+            "name": "Plano Y",
+            "enabled": false,
+            "positionM": 0.05,
+            "flipped": false,
+            "gizmo": true,
+            "gizmoOpacity": 0.65
+          },
+          {
+            "id": "Z",
+            "axis": "Z",
+            "name": "Plano Z",
+            "enabled": false,
+            "positionM": 0.05,
+            "flipped": false,
+            "gizmo": true,
+            "gizmoOpacity": 0.65
+          }
+        ],
+        "mode": "outline",
+        "fill": true,
+        "fillColor": "#b6c9d5",
+        "outlineColor": "#466a82",
+        "opacity": 1,
+        "lineWidth": 1.5
+      },
+      {
+        "planes": [
+          {
+            "id": "X",
+            "axis": "X",
+            "name": "Plano X",
+            "enabled": false,
+            "positionM": 0.05,
+            "flipped": false,
+            "gizmo": true,
+            "gizmoOpacity": 0.65
+          },
+          {
+            "id": "Y",
+            "axis": "Y",
+            "name": "Plano Y",
+            "enabled": false,
+            "positionM": 0.05,
+            "flipped": false,
+            "gizmo": true,
+            "gizmoOpacity": 0.65
+          },
+          {
+            "id": "Z",
+            "axis": "Z",
+            "name": "Plano Z",
+            "enabled": false,
+            "positionM": 0.05,
+            "flipped": false,
+            "gizmo": true,
+            "gizmoOpacity": 0.65
+          }
+        ],
+        "mode": "outline",
+        "fill": true,
+        "fillColor": "#b6c9d5",
+        "outlineColor": "#466a82",
+        "opacity": 1,
+        "lineWidth": 1.5
+      },
+      {
+        "planes": [
+          {
+            "id": "X",
+            "axis": "X",
+            "name": "Plano X",
+            "enabled": false,
+            "positionM": 0.05,
+            "flipped": false,
+            "gizmo": true,
+            "gizmoOpacity": 0.65
+          },
+          {
+            "id": "Y",
+            "axis": "Y",
+            "name": "Plano Y",
+            "enabled": false,
+            "positionM": 0.05,
+            "flipped": false,
+            "gizmo": true,
+            "gizmoOpacity": 0.65
+          },
+          {
+            "id": "Z",
+            "axis": "Z",
+            "name": "Plano Z",
+            "enabled": false,
+            "positionM": 0.05,
+            "flipped": false,
+            "gizmo": true,
+            "gizmoOpacity": 0.65
+          }
+        ],
+        "mode": "outline",
+        "fill": true,
+        "fillColor": "#b6c9d5",
+        "outlineColor": "#466a82",
+        "opacity": 1,
+        "lineWidth": 1.5
+      },
+      {
+        "planes": [
+          {
+            "id": "X",
+            "axis": "X",
+            "name": "Plano X",
+            "enabled": false,
+            "positionM": 0.05,
+            "flipped": false,
+            "gizmo": true,
+            "gizmoOpacity": 0.65
+          },
+          {
+            "id": "Y",
+            "axis": "Y",
+            "name": "Plano Y",
+            "enabled": false,
+            "positionM": 0.05,
+            "flipped": false,
+            "gizmo": true,
+            "gizmoOpacity": 0.65
+          },
+          {
+            "id": "Z",
+            "axis": "Z",
+            "name": "Plano Z",
+            "enabled": false,
+            "positionM": 0.05,
+            "flipped": false,
+            "gizmo": true,
+            "gizmoOpacity": 0.65
+          }
+        ],
+        "mode": "outline",
+        "fill": true,
+        "fillColor": "#b6c9d5",
+        "outlineColor": "#466a82",
+        "opacity": 1,
+        "lineWidth": 1.5
+      }
+    ]
+  },
+  "snap": {
+    "modes": [
+      "surface",
+      "vertex",
+      "edge",
+      "midpoint"
+    ],
+    "pixels": 12
+  },
+  "capture": {
+    "width": 1920,
+    "background": "white",
+    "color": "#f1f5f9",
+    "measurements": true,
+    "identifiers": false,
+    "gizmos": false,
+    "grid": false,
+    "axes": false,
+    "selection": false,
+    "scale": true
+  },
+  "measurements": [
+    {
+      "id": "comprimento-viga",
+      "name": "Comprimento na malha da viga principal",
+      "kind": "distance",
+      "pose": "rest",
+      "valueM": 0.48,
+      "anchors": [
+        {
+          "elementId": "viga-principal-a",
+          "localM": [
+            -0.24,
+            0,
+            0
+          ],
+          "nodePath": [],
+          "instanceId": null,
+          "snap": "surface"
+        },
+        {
+          "elementId": "viga-principal-a",
+          "localM": [
+            0.24,
+            0,
+            0
+          ],
+          "nodePath": [],
+          "instanceId": null,
+          "snap": "surface"
+        }
+      ],
+      "visible": true,
+      "provenance": "mesh",
+      "capturedIn": "inspect"
+    }
+  ]
+}

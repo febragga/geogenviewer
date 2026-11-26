@@ -1,0 +1,523 @@
+{
+  "schemaVersion": "1.0.0",
+  "project": {
+    "id": "catalog-lab",
+    "title": "Laboratório sintético de catálogo",
+    "revisionId": "rev-02",
+    "prototypeId": "prot-02",
+    "geometryKind": "physicalModel",
+    "scaleDenominator": 50,
+    "displayUnit": "mm"
+  },
+  "source": {
+    "application": "GeoGenViewer Synthetic Generator",
+    "sourceUnit": "mm",
+    "sourceUpAxis": "Z",
+    "sourceOrigin": [
+      0,
+      0,
+      0
+    ],
+    "metersPerSourceUnit": 0.001
+  },
+  "geometry": {
+    "file": "model.glb",
+    "format": "glb",
+    "coordinateSystem": "RH_Y_UP",
+    "unit": "m",
+    "nodeMatchStrategy": "extras",
+    "sha256": "1c7e51743b21e558d6d3d54bcee8aa563f7b709dffcd9e161fc9ac7507bfeef2"
+  },
+  "layers": [
+    {
+      "id": "estrutura",
+      "name": "Estrutura",
+      "fullPath": "Estrutura",
+      "parentId": null
+    },
+    {
+      "id": "primaria",
+      "name": "Peças principais",
+      "fullPath": "Estrutura::Peças principais",
+      "parentId": "estrutura"
+    },
+    {
+      "id": "secundaria",
+      "name": "Peças secundárias",
+      "fullPath": "Estrutura::Peças secundárias",
+      "parentId": "estrutura"
+    },
+    {
+      "id": "conexoes",
+      "name": "Conexões",
+      "parentId": null
+    }
+  ],
+  "groups": [
+    {
+      "id": "estrutura",
+      "name": "Estrutura",
+      "parentId": null
+    },
+    {
+      "id": "revisao",
+      "name": "Revisão",
+      "parentId": null
+    }
+  ],
+  "materials": [
+    {
+      "id": "render-blue",
+      "name": "Azul visual"
+    },
+    {
+      "id": "render-earth",
+      "name": "Terracota visual"
+    },
+    {
+      "id": "print-a",
+      "name": "Material físico sintético A",
+      "densityKgM3": 1200,
+      "costPerKg": {
+        "amount": 56,
+        "currency": "BRL"
+      }
+    },
+    {
+      "id": "print-b",
+      "name": "Material físico sintético B",
+      "densityKgM3": 1450
+    },
+    {
+      "id": "print-c",
+      "name": "Material sem densidade"
+    }
+  ],
+  "blocks": [
+    {
+      "id": "pilar",
+      "name": "Pilar sintético"
+    }
+  ],
+  "elements": [
+    {
+      "id": "base",
+      "name": "Base",
+      "category": "foundation",
+      "layerId": "primaria",
+      "groupIds": [
+        "estrutura",
+        "revisao"
+      ],
+      "materialId": "render-blue",
+      "geometryType": "mesh",
+      "isClosed": true,
+      "sourceObjectId": "source-base",
+      "blockDefinitionId": null,
+      "properties": {
+        "GeoGen:PartId": "B-01",
+        "GeoGen:TypeCode": "BASE"
+      },
+      "fabrication": {
+        "material": "print-a",
+        "toleranceMm": 0.2
+      }
+    },
+    {
+      "id": "pilar-1",
+      "name": "Pilar 1",
+      "category": "column",
+      "layerId": "primaria",
+      "groupIds": [
+        "estrutura"
+      ],
+      "materialId": "render-blue",
+      "geometryType": "blockInstance",
+      "isClosed": true,
+      "sourceObjectId": "source-pilar-1",
+      "blockDefinitionId": "pilar",
+      "properties": {
+        "GeoGen:PartId": "P-01",
+        "GeoGen:TypeCode": "PILAR"
+      },
+      "fabrication": {
+        "material": "print-a",
+        "toleranceMm": 0.2
+      }
+    },
+    {
+      "id": "pilar-2",
+      "name": "Pilar 2",
+      "category": "column",
+      "layerId": "primaria",
+      "groupIds": [
+        "estrutura"
+      ],
+      "materialId": "render-blue",
+      "geometryType": "blockInstance",
+      "isClosed": true,
+      "sourceObjectId": "source-pilar-2",
+      "blockDefinitionId": "pilar",
+      "properties": {
+        "GeoGen:PartId": "P-01",
+        "GeoGen:TypeCode": "PILAR"
+      },
+      "fabrication": {
+        "material": "print-a",
+        "toleranceMm": 0.2
+      }
+    },
+    {
+      "id": "pilar-3",
+      "name": "Pilar 3",
+      "category": "column",
+      "layerId": "primaria",
+      "groupIds": [
+        "estrutura"
+      ],
+      "materialId": "render-blue",
+      "geometryType": "blockInstance",
+      "isClosed": true,
+      "sourceObjectId": "source-pilar-3",
+      "blockDefinitionId": "pilar",
+      "properties": {
+        "GeoGen:PartId": "P-01",
+        "GeoGen:TypeCode": "PILAR"
+      },
+      "fabrication": {
+        "material": "print-a",
+        "toleranceMm": 0.2
+      }
+    },
+    {
+      "id": "pilar-4",
+      "name": "Pilar 4",
+      "category": "column",
+      "layerId": "primaria",
+      "groupIds": [
+        "estrutura"
+      ],
+      "materialId": "render-blue",
+      "geometryType": "blockInstance",
+      "isClosed": true,
+      "sourceObjectId": "source-pilar-4",
+      "blockDefinitionId": "pilar",
+      "properties": {
+        "GeoGen:PartId": "P-01",
+        "GeoGen:TypeCode": "PILAR"
+      },
+      "fabrication": {
+        "material": "print-a",
+        "toleranceMm": 0.2
+      }
+    },
+    {
+      "id": "viga-principal-a",
+      "name": "Viga principal A",
+      "category": "beam",
+      "layerId": "primaria",
+      "groupIds": [
+        "estrutura"
+      ],
+      "materialId": "render-earth",
+      "geometryType": "mesh",
+      "isClosed": true,
+      "sourceObjectId": "source-viga-principal-a",
+      "blockDefinitionId": null,
+      "properties": {
+        "GeoGen:PartId": "V-01",
+        "GeoGen:TypeCode": "LONGARINA",
+        "GeoGen:Fabrication:SlicerMassKg": 0.096
+      },
+      "dimensions": {
+        "lengthM": 0.48,
+        "widthM": 0.035,
+        "thicknessM": 0.035,
+        "source": "authored"
+      },
+      "fabrication": {
+        "material": "print-a",
+        "toleranceMm": 0.2
+      }
+    },
+    {
+      "id": "viga-principal-b",
+      "name": "Viga principal B",
+      "category": "beam",
+      "layerId": "primaria",
+      "groupIds": [
+        "estrutura"
+      ],
+      "materialId": "render-earth",
+      "geometryType": "mesh",
+      "isClosed": true,
+      "sourceObjectId": "source-viga-principal-b",
+      "blockDefinitionId": null,
+      "properties": {
+        "GeoGen:PartId": "V-02",
+        "GeoGen:TypeCode": "LONGARINA",
+        "GeoGen:Fabrication:SlicerMassKg": 0.096
+      },
+      "dimensions": {
+        "lengthM": 0.48,
+        "widthM": 0.035,
+        "thicknessM": 0.035,
+        "source": "authored"
+      },
+      "fabrication": {
+        "material": "print-a",
+        "toleranceMm": 0.2
+      }
+    },
+    {
+      "id": "viga-secundaria",
+      "name": "Viga secundária",
+      "category": "beam",
+      "layerId": "secundaria",
+      "groupIds": [
+        "estrutura"
+      ],
+      "materialId": "render-earth",
+      "geometryType": "mesh",
+      "isClosed": true,
+      "sourceObjectId": "source-viga-secundaria",
+      "blockDefinitionId": null,
+      "properties": {
+        "GeoGen:PartId": "V-03",
+        "GeoGen:TypeCode": "TRAVESSA",
+        "GeoGen:Fabrication:SlicerMassKg": 0.074
+      },
+      "dimensions": {
+        "lengthM": 0.37,
+        "widthM": 0.025,
+        "thicknessM": 0.024,
+        "source": "authored"
+      },
+      "fabrication": {
+        "material": "print-a",
+        "toleranceMm": 0.2
+      }
+    },
+    {
+      "id": "laje",
+      "name": "Laje",
+      "category": "slab",
+      "layerId": "secundaria",
+      "groupIds": [
+        "estrutura"
+      ],
+      "materialId": "render-blue",
+      "geometryType": "mesh",
+      "isClosed": true,
+      "sourceObjectId": "source-laje",
+      "blockDefinitionId": null,
+      "properties": {
+        "GeoGen:PartId": "L-01",
+        "GeoGen:TypeCode": "LAJE"
+      },
+      "fabrication": {
+        "material": "print-c",
+        "toleranceMm": 0.2
+      }
+    },
+    {
+      "id": "escada",
+      "name": "Escada composta",
+      "category": "stair",
+      "layerId": "primaria",
+      "groupIds": [
+        "estrutura"
+      ],
+      "materialId": "render-blue",
+      "geometryType": "composite",
+      "isClosed": true,
+      "sourceObjectId": "source-escada",
+      "blockDefinitionId": null,
+      "properties": {
+        "GeoGen:PartId": "E-01",
+        "GeoGen:TypeCode": "ESCADA"
+      },
+      "fabrication": {
+        "material": "print-a",
+        "toleranceMm": 0.2
+      }
+    },
+    {
+      "id": "pino-1",
+      "name": "Pino calibrador",
+      "category": "connector",
+      "layerId": "conexoes",
+      "groupIds": [
+        "estrutura",
+        "revisao"
+      ],
+      "materialId": "render-blue",
+      "geometryType": "mesh",
+      "isClosed": true,
+      "sourceObjectId": "source-pino-1",
+      "blockDefinitionId": null,
+      "properties": {
+        "GeoGen:PartId": "C-01",
+        "GeoGen:TypeCode": "PINO"
+      },
+      "fabrication": {
+        "material": "print-a",
+        "toleranceMm": 0.13
+      }
+    },
+    {
+      "id": "rebaixo",
+      "name": "Conector com rebaixo",
+      "category": "connector",
+      "layerId": "conexoes",
+      "groupIds": [
+        "estrutura"
+      ],
+      "materialId": "render-blue",
+      "geometryType": "composite",
+      "isClosed": true,
+      "sourceObjectId": "source-rebaixo",
+      "blockDefinitionId": null,
+      "properties": {
+        "GeoGen:PartId": "C-02",
+        "GeoGen:TypeCode": "REBAIXO"
+      },
+      "fabrication": {
+        "material": "print-b",
+        "toleranceMm": 0.13
+      }
+    },
+    {
+      "id": "apoio",
+      "name": "Apoio sem código",
+      "category": "other",
+      "layerId": "secundaria",
+      "groupIds": [
+        "estrutura"
+      ],
+      "materialId": "render-blue",
+      "geometryType": "mesh",
+      "isClosed": true,
+      "sourceObjectId": "source-apoio",
+      "blockDefinitionId": null,
+      "properties": {},
+      "fabrication": null
+    },
+    {
+      "id": "chapa-larga",
+      "name": "Chapa de referência",
+      "category": "slab",
+      "layerId": "secundaria",
+      "groupIds": [
+        "estrutura"
+      ],
+      "materialId": "render-blue",
+      "geometryType": "mesh",
+      "isClosed": true,
+      "sourceObjectId": "source-chapa-larga",
+      "blockDefinitionId": null,
+      "properties": {
+        "GeoGen:PartId": "L-02",
+        "GeoGen:TypeCode": "CHAPA"
+      },
+      "fabrication": {
+        "material": "print-b",
+        "toleranceMm": 0.2
+      }
+    },
+    {
+      "id": "escora",
+      "name": "Escora adicionada",
+      "category": "column",
+      "layerId": "primaria",
+      "groupIds": [
+        "estrutura"
+      ],
+      "materialId": "render-blue",
+      "geometryType": "mesh",
+      "isClosed": true,
+      "sourceObjectId": "source-escora",
+      "blockDefinitionId": null,
+      "properties": {
+        "GeoGen:PartId": "P-03",
+        "GeoGen:TypeCode": "ESCORA"
+      },
+      "fabrication": {
+        "material": "print-a",
+        "toleranceMm": 0.2
+      }
+    }
+  ],
+  "assembly": {
+    "steps": [
+      {
+        "id": "fixar-base",
+        "title": "Posicionar base",
+        "elementIds": [
+          "base"
+        ],
+        "dependsOn": [],
+        "durationSeconds": 1,
+        "insertionOffsetM": [
+          0,
+          0.1,
+          0
+        ]
+      },
+      {
+        "id": "instalar-pilares",
+        "title": "Instalar pilares",
+        "elementIds": [
+          "pilar-1",
+          "pilar-2",
+          "pilar-3",
+          "pilar-4"
+        ],
+        "dependsOn": [
+          "fixar-base"
+        ],
+        "durationSeconds": 2,
+        "insertionOffsetM": [
+          0,
+          0.18,
+          0
+        ]
+      },
+      {
+        "id": "instalar-vigas",
+        "title": "Instalar vigas",
+        "elementIds": [
+          "viga-principal-a",
+          "viga-principal-b",
+          "viga-secundaria"
+        ],
+        "dependsOn": [
+          "instalar-pilares"
+        ],
+        "durationSeconds": 2,
+        "insertionOffsetM": [
+          0.07,
+          0.15,
+          0
+        ]
+      },
+      {
+        "id": "superior",
+        "title": "Instalar laje e escada",
+        "elementIds": [
+          "laje",
+          "escada"
+        ],
+        "dependsOn": [
+          "instalar-vigas"
+        ],
+        "durationSeconds": 2,
+        "insertionOffsetM": [
+          0,
+          0.17,
+          0
+        ]
+      }
+    ]
+  }
+}

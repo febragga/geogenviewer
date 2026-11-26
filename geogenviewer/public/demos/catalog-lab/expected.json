@@ -1,0 +1,28 @@
+{
+  "components": 15,
+  "columns": 4,
+  "typePilar": 4,
+  "pilarVariants": [
+    1,
+    3
+  ],
+  "composite": "escada",
+  "groupOverlap": [
+    "base",
+    "pino-1"
+  ],
+  "assemblySteps": 4,
+  "missingType": "apoio",
+  "removed": "pino-2",
+  "added": "escora",
+  "modified": "viga-secundaria",
+  "positionCheck": {
+    "gapMeters": 0.005,
+    "planes": [
+      "XY",
+      "XZ",
+      "YZ"
+    ],
+    "boundsMustBeDisjoint": true
+  }
+}
