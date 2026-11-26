@@ -3,7 +3,12 @@
 import { Dialog } from "@base-ui/react/dialog";
 import { Command } from "cmdk";
 import { useState } from "react";
+import { normalizeSearch } from "../../../lib/geogen/domain/visibility";
 import { copy } from "../copy";
+import { presets, workspaces } from "../v05-copy";
+import { useOrganizationStore } from "../state/organization-store";
+import { usePresentation } from "../state/presentation-store";
+import { useViewerStore, type Workspace } from "../state/viewer-store";
 import {
   AxisIcon,
   ClearSelectionIcon,
@@ -14,9 +19,12 @@ import {
   EyeOffIcon,
   FitViewIcon,
   FolderOpenIcon,
+  GroupIcon,
   HandIcon,
   HelpIcon,
+  HomeIcon,
   IsolateIcon,
+  LayersIcon,
   ManifestIcon,
   MaximizeIcon,
   MultiSelectIcon,
@@ -24,6 +32,7 @@ import {
   PavilionIcon,
   RadialIcon,
   ResetCameraIcon,
+  SettingsIcon,
   SidebarLeftIcon,
   SidebarRightIcon,
   SunIcon,
@@ -60,6 +69,7 @@ interface CommandPaletteProps {
   onToggleRight: () => void;
   onToggleFocus: () => void;
   onOpenHelp: () => void;
+  onOpenSettings?: () => void;
   onToggleTheme: () => void;
 }
 
@@ -93,10 +103,18 @@ export function CommandPalette({
   onToggleRight,
   onToggleFocus,
   onOpenHelp,
+  onOpenSettings,
   onToggleTheme,
 }: CommandPaletteProps) {
   const [search, setSearch] = useState("");
   const cameraDisabled = !hasModel || isLost;
+  const userLayers = useOrganizationStore((s) => s.doc.userLayers);
+  const userGroups = useOrganizationStore((s) => s.doc.userGroups);
+  const componentAssignments = useOrganizationStore((s) => s.doc.componentLayerAssignments);
+  const setWorkspace = useViewerStore((s) => s.setWorkspace);
+  const selectMany = useViewerStore((s) => s.selectMany);
+  const showNavCube = usePresentation((s) => s.showNavCube);
+  const setShowNavCube = usePresentation((s) => s.setShowNavCube);
 
   function run(action: () => void) {
     onOpenChange(false);
@@ -118,7 +136,12 @@ export function CommandPalette({
           <Dialog.Title className="visually-hidden">
             {copy.commandTitle}
           </Dialog.Title>
-          <Command label={copy.commandTitle} className="gg-cmd" loop>
+          <Command
+            label={copy.commandTitle}
+            className="gg-cmd"
+            loop
+            filter={(value, query) => (normalizeSearch(value).includes(normalizeSearch(query.trim())) ? 1 : 0)}
+          >
             <div className="gg-cmd__head">
               <span className="gg-section-index gg-technical-label">
                 {copy.commandTitle}
@@ -176,7 +199,7 @@ export function CommandPalette({
                 >
                   <PavilionIcon className="gg-cmd__icon" />
                   <span className="gg-cmd__label">{copy.demoExplode}</span>
-                  <span className="gg-cmd__meta">18 peças · v0.4</span>
+                  <span className="gg-cmd__meta">18 peças · Demonstração</span>
                 </Command.Item>
                 <Command.Item
                   className="gg-cmd__item"
@@ -374,12 +397,101 @@ export function CommandPalette({
                 </Command.Item>
                 <Command.Item
                   className="gg-cmd__item"
+                  onSelect={() => run(() => setShowNavCube(!showNavCube))}
+                >
+                  <HomeIcon className="gg-cmd__icon" />
+                  <span className="gg-cmd__label">
+                    {showNavCube ? "Ocultar Cubo de Navegação 3D" : "Exibir Cubo de Navegação 3D"}
+                  </span>
+                </Command.Item>
+                {onOpenSettings && (
+                  <Command.Item
+                    className="gg-cmd__item"
+                    onSelect={() => run(onOpenSettings)}
+                  >
+                    <SettingsIcon className="gg-cmd__icon" />
+                    <span className="gg-cmd__label">Abrir configurações</span>
+                  </Command.Item>
+                )}
+                <Command.Item
+                  className="gg-cmd__item"
                   onSelect={() => run(onOpenHelp)}
                 >
                   <HelpIcon className="gg-cmd__icon" />
                   <span className="gg-cmd__label">{copy.controlsTitle}</span>
                 </Command.Item>
               </Command.Group>
+
+              {hasModel && (
+                <Command.Group heading="Workspaces" className="gg-cmd__group">
+                  {(Object.keys(workspaces) as Workspace[]).map((id) => (
+                    <Command.Item
+                      key={`ws:${id}`}
+                      value={`workspace ${workspaces[id]} ${id}`}
+                      className="gg-cmd__item"
+                      onSelect={() => run(() => setWorkspace(id))}
+                    >
+                      <CubeIcon className="gg-cmd__icon" />
+                      <span className="gg-cmd__label">Workspace: {workspaces[id]}</span>
+                    </Command.Item>
+                  ))}
+                </Command.Group>
+              )}
+
+              {hasModel && !isLost && (
+                <Command.Group heading="Vistas padrão" className="gg-cmd__group">
+                  {(["perspective", "top", "front", "right", "left", "back", "bottom"] as const).map((preset) => (
+                    <Command.Item
+                      key={`view:${preset}`}
+                      value={`vista ${presets[preset]} ${preset}`}
+                      className="gg-cmd__item"
+                      onSelect={() => run(() => usePresentation.getState().access?.preset(preset))}
+                    >
+                      <FitViewIcon className="gg-cmd__icon" />
+                      <span className="gg-cmd__label">Vista {presets[preset]}</span>
+                    </Command.Item>
+                  ))}
+                </Command.Group>
+              )}
+
+              {hasModel && userLayers.length > 0 && (
+                <Command.Group heading="Camadas do usuário" className="gg-cmd__group">
+                  {userLayers.slice(0, 12).map((ul) => {
+                    const members = Object.entries(componentAssignments)
+                      .filter(([, lid]) => lid === ul.id)
+                      .map(([cid]) => cid);
+                    return (
+                      <Command.Item
+                        key={`cmd-ul:${ul.id}`}
+                        value={`camada usuario ${ul.name}`}
+                        className="gg-cmd__item"
+                        onSelect={() => run(() => selectMany(members))}
+                      >
+                        <LayersIcon className="gg-cmd__icon" />
+                        <span className="gg-cmd__label">Selecionar camada: {ul.name}</span>
+                        <span className="gg-cmd__meta">{members.length}</span>
+                      </Command.Item>
+                    );
+                  })}
+                </Command.Group>
+              )}
+
+              {hasModel && userGroups.length > 0 && (
+                <Command.Group heading="Grupos do usuário" className="gg-cmd__group">
+                  {userGroups.slice(0, 12).map((ug) => (
+                    <Command.Item
+                      key={`cmd-ug:${ug.id}`}
+                      value={`grupo usuario ${ug.name}`}
+                      className="gg-cmd__item"
+                      onSelect={() => run(() => selectMany(ug.memberIds))}
+                    >
+                      <GroupIcon className="gg-cmd__icon" />
+                      <span className="gg-cmd__label">Selecionar grupo: {ug.name}</span>
+                      <span className="gg-cmd__meta">{ug.memberIds.length}</span>
+                    </Command.Item>
+                  ))}
+                </Command.Group>
+              )}
             </Command.List>
           </Command>
         </Dialog.Popup>

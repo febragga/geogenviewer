@@ -178,7 +178,10 @@ export class InspectionScene {
     const instance = new Matrix4();
     const world = new Matrix4();
     for (const mesh of this.meshes) {
-      if (!isVisible(mesh) || !mesh.geometry || (mesh as Mesh & { isSkinnedMesh?: boolean }).isSkinnedMesh) continue;
+      const visible = mesh.userData.ggInstancedManaged
+        ? Boolean(mesh.userData.ggInstancedVisible)
+        : isVisible(mesh);
+      if (!visible || !mesh.geometry || (mesh as Mesh & { isSkinnedMesh?: boolean }).isSkinnedMesh) continue;
       const id = this.model.resolveComponentId(mesh);
       if (workspace === "assembly" && assembly.ghost && id !== null &&
         (assembly.timeline.byElement.get(id) ?? -1) > assembly.stepIndex) continue;

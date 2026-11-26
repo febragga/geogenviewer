@@ -1,9 +1,11 @@
 import {
   Color, EdgesGeometry, LineBasicMaterial, LineSegments, MeshStandardMaterial,
-  type BufferGeometry, type Material, type Mesh, type Object3D,
+  type BufferGeometry, type Intersection, type Material, type Mesh, type Object3D,
 } from "three";
 import type { LoadedScenePackage } from "../../../lib/geogen/importers/package";
+import type { ResolvedOrganizationView } from "../../../lib/geogen/organization/model";
 import type { DisplaySettings } from "../state/presentation-store";
+import { InstancedBatchManager, DEFAULT_MIN_BATCH_SIZE } from "./instancing.ts";
 
 const clay = new Color("#c9c5ba");
 const selection = new Color("#5cb3e8");
@@ -46,9 +48,12 @@ export class SceneDisplay {
   private readonly edgeMaterial = new LineBasicMaterial({ color: "#354457", transparent: true, opacity: 0.72 });
   private materialOpacity: number | null = null;
   private readonly loaded: LoadedScenePackage;
+  private readonly batches: InstancedBatchManager | null = null;
+  private readonly useLocalBatchMatrix: boolean;
 
-  constructor(loaded: LoadedScenePackage) {
+  constructor(loaded: LoadedScenePackage, batchHost?: Object3D, useLocalBatchMatrix = false) {
     this.loaded = loaded;
+    this.useLocalBatchMatrix = useLocalBatchMatrix;
     loaded.model.scene.traverse((object: Object3D) => {
       if (!("material" in object)) return;
       const obj = object as Mesh;
@@ -58,10 +63,33 @@ export class SceneDisplay {
         id: loaded.resolveComponentId(obj),
       });
     });
+    if (batchHost) {
+      this.batches = new InstancedBatchManager(
+        loaded.model.scene,
+        batchHost,
+        loaded.resolveComponentId,
+        DEFAULT_MIN_BATCH_SIZE,
+        useLocalBatchMatrix
+      );
+    }
   }
 
-  apply(settings: DisplaySettings, selected: ReadonlySet<string>, hovered: string | null, hidden: ReadonlySet<string>, isolated: ReadonlySet<string> | null, ghosts: ReadonlySet<string>, overrides?: ReadonlyMap<string, Color>) {
-    const settingsKey = [settings.mode, settings.opacity].join(":");
+  batchGroup(): Object3D | null {
+    return this.batches?.active ? this.batches.group : null;
+  }
+
+  resolveHit(hit: Intersection): string | null {
+    return this.batches?.active
+      ? this.batches.resolveHitComponentId(hit)
+      : this.loaded.resolveComponentId(hit.object);
+  }
+
+  syncBatchTransforms(): void {
+    this.batches?.syncTransforms(this.loaded.model.scene);
+  }
+
+  apply(settings: DisplaySettings, selected: ReadonlySet<string>, hovered: string | null, hidden: ReadonlySet<string>, isolated: ReadonlySet<string> | null, ghosts: ReadonlySet<string>, overrides?: ReadonlyMap<string, Color>, organization?: ResolvedOrganizationView | null) {
+    const settingsKey = [settings.mode, settings.opacity, organization?.source ?? "cad"].join(":");
     if (settings.opacity !== this.materialOpacity) {
       for (const entry of this.objects) {
         entry.object.material = entry.original;
@@ -71,12 +99,35 @@ export class SceneDisplay {
       this.variants.clear();
       this.materialOpacity = settings.opacity;
     }
+
+    const batchActive = Boolean(this.batches?.active);
+    if (this.batches?.active) {
+      this.batches.applyDisplayAndVisibility({
+        mode: settings.mode,
+        opacity: settings.opacity,
+        shadows: settings.shadows,
+        selected,
+        hovered,
+        hidden,
+        isolated,
+        ghosts,
+        colorForComponent: (id) => this.semanticColor(id, settings.mode, organization),
+        overrideColors: overrides,
+        clayColor: clay,
+        selectionColor: selection,
+        hoverColor: hover,
+      });
+    }
+
     for (const entry of this.objects) {
       const { id, object, original } = entry;
       const future = id !== null && ghosts.has(id);
-      object.visible = entry.visible && (id === null || (!hidden.has(id) && (!isolated || isolated.has(id))));
+      const isManagedBatch = batchActive && this.batches!.isManaged(object);
+      if (!isManagedBatch) {
+        object.visible = entry.visible && (id === null || (!hidden.has(id) && (!isolated || isolated.has(id))));
+      }
       const highlight: Highlight = id && selected.has(id) ? "selected" : id && id === hovered ? "hovered" : "";
-      const color = (id ? overrides?.get(id) : undefined) ?? this.semanticColor(id, settings.mode);
+      const color = (id ? overrides?.get(id) : undefined) ?? this.semanticColor(id, settings.mode, organization);
       const key = [settingsKey, highlight, future, color?.getHexString()].join(":");
       if (key !== entry.key && object.visible) {
         const map = (material: Material) => this.variant(material, object.isMesh, settings, color, highlight, future, key);
@@ -98,20 +149,29 @@ export class SceneDisplay {
         entry.edges = lines;
       }
       if (entry.edges) entry.edges.visible = showEdges;
-      if (object.isMesh) {
+      if (object.isMesh && !isManagedBatch) {
         object.castShadow = object.visible && !future && settings.shadows;
         object.receiveShadow = settings.shadows;
       }
     }
   }
 
-  private semanticColor(id: string | null, mode: DisplaySettings["mode"]) {
+  private semanticColor(id: string | null, mode: DisplaySettings["mode"], organization?: ResolvedOrganizationView | null) {
     const graph = this.loaded.sceneGraph;
     const component = id ? graph.components[id] : undefined;
     if (!component) return null;
-    if (mode === "layer" && component.layerId) {
-      const layer = graph.layers[component.layerId];
-      return layer?.colorHex ? new Color(layer.colorHex) : palette(component.layerId);
+    if (mode === "layer") {
+      if (organization?.source === "user") {
+        const userLayerId = organization.componentLayerId[id!];
+        if (userLayerId && organization.layers[userLayerId]) {
+          return new Color(organization.layers[userLayerId].color);
+        }
+        return null;
+      }
+      if (component.layerId) {
+        const layer = graph.layers[component.layerId];
+        return layer?.colorHex ? new Color(layer.colorHex) : palette(component.layerId);
+      }
     }
     if (mode === "category" && graph.mode === "manifest-full") return palette(component.category);
     if (mode === "semanticMaterial" && component.materialId) {
@@ -147,6 +207,7 @@ export class SceneDisplay {
   }
 
   dispose() {
+    this.batches?.dispose();
     for (const { object, original, visible, edges } of this.objects) {
       object.material = original;
       object.visible = visible;
@@ -155,5 +216,6 @@ export class SceneDisplay {
     for (const geometry of this.edges.values()) geometry.dispose();
     for (const material of this.variants.values()) material.dispose();
     this.edgeMaterial.dispose();
+    void this.useLocalBatchMatrix;
   }
 }

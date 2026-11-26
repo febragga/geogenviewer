@@ -12,6 +12,16 @@ import { useViewerStore } from "../state/viewer-store";
 export type AnnotationModel = ReturnType<typeof annotationModel>;
 export type GroupMarkers = { result: LayoutResult; plane: PlaneName; quantities: boolean };
 
+const measuredWidthCache = new Map<string, number>();
+function measureCachedText(ctx: CanvasRenderingContext2D, text: string): number {
+  const hit = measuredWidthCache.get(text);
+  if (hit !== undefined) return hit;
+  const w = ctx.measureText(text).width;
+  if (measuredWidthCache.size > 2000) measuredWidthCache.clear();
+  measuredWidthCache.set(text, w);
+  return w;
+}
+
 export function drawPublication(ctx: CanvasRenderingContext2D, width: number, height: number, camera: Camera, slot: number,
   revision: Revision, annotations: AnnotationModel, mask: ReadonlySet<string> | null, dark: boolean, leaders: boolean, groups?: GroupMarkers) {
   ctx.font = "12px system-ui, sans-serif";
@@ -31,7 +41,7 @@ export function drawPublication(ctx: CanvasRenderingContext2D, width: number, he
       const title = label + (groups.quantities ? " · " + count : "");
       const max = Math.max(30, width - x);
       ctx.fillText(title, x, y - 6, max);
-      reserved.push({ x, y: y - 20, w: Math.min(max, ctx.measureText(title).width) + 5, h: 17 });
+      reserved.push({ x, y: y - 20, w: Math.min(max, measureCachedText(ctx, title)) + 5, h: 17 });
     }
     ctx.restore();
   }
@@ -42,7 +52,7 @@ export function drawPublication(ctx: CanvasRenderingContext2D, width: number, he
     const node = revision.scene.objectByComponentId.get(id);
     if (!node || (!node.visible && "material" in node)) return undefined;
     return node.matrixWorld;
-  }, activeClipping(slot), (text) => ctx.measureText(text).width, 80, reserved);
+  }, activeClipping(slot), (text) => measureCachedText(ctx, text), 80, reserved);
   drawCallouts(ctx, labels, dark, leaders);
 }
 
@@ -56,28 +66,45 @@ export function DocumentationOverlay({ revision, annotations, mask, groups }: {
     if (!target || !parent) return;
     const context = target.getContext("2d");
     if (!context) return;
+    let lastSignature = "";
+    let cachedDark = document.querySelector('meta[name="color-scheme"]')?.getAttribute("content") === "dark";
+    const meta = document.querySelector('meta[name="color-scheme"]');
+    const observer = meta
+      ? new MutationObserver(() => {
+          cachedDark = meta.getAttribute("content") === "dark";
+          lastSignature = "";
+        })
+      : null;
+    if (meta && observer) observer.observe(meta, { attributes: true, attributeFilter: ["content"] });
+
     const update = (event: Event) => {
       const { camera, slot, region } = (event as CustomEvent<{ camera: Camera; slot: number; region?: { x: number; y: number; width: number; height: number } }>).detail;
       if (!camera) return;
       const { clientWidth: width, clientHeight: height } = target;
+      const m = camera.matrixWorldInverse.elements;
+      const p = camera.projectionMatrix.elements;
+      const sig = `${width}x${height}:${slot}:${cachedDark}:${m[0].toFixed(3)},${m[4].toFixed(3)},${m[8].toFixed(3)},${m[12].toFixed(3)},${m[13].toFixed(3)},${m[14].toFixed(3)}:${p[0].toFixed(3)},${p[5].toFixed(3)}`;
+      if (sig === lastSignature) return;
+      lastSignature = sig;
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       if (target.width !== Math.round(width * dpr) || target.height !== Math.round(height * dpr)) {
         target.width = Math.round(width * dpr); target.height = Math.round(height * dpr);
       }
       context.setTransform(dpr, 0, 0, dpr, 0, 0);
       context.clearRect(0, 0, width, height);
-      const dark = getComputedStyle(parent).colorScheme === "dark" ||
-        document.querySelector('meta[name="color-scheme"]')?.getAttribute("content") === "dark";
       context.save();
       if (region) {
         context.translate(region.x, region.y);
         context.beginPath(); context.rect(0, 0, region.width, region.height); context.clip();
       }
-      drawPublication(context, region?.width ?? width, region?.height ?? height, camera, slot, revision, annotations, mask, dark, true, groups);
+      drawPublication(context, region?.width ?? width, region?.height ?? height, camera, slot, revision, annotations, mask, cachedDark, true, groups);
       context.restore();
     };
     parent.addEventListener("geogen-camera-frame", update);
-    return () => parent.removeEventListener("geogen-camera-frame", update);
+    return () => {
+      observer?.disconnect();
+      parent.removeEventListener("geogen-camera-frame", update);
+    };
   }, [revision, annotations, mask, groups]);
   return <canvas className="gg-v08-overlay" ref={canvas} aria-hidden="true" />;
 }

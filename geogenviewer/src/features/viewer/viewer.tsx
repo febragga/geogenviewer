@@ -33,7 +33,9 @@ import type { RenderDocumentationImage } from "./scene/documentation-renderer";
 import { QuantitiesPanel, type AnalysisConfig, type QuantitiesLayout } from "./components/quantities-panel";
 import { CommandPalette } from "./components/command-palette";
 import { ControlsDialog } from "./components/controls-dialog";
+import { ViewerContextMenu, type ContextMenuState } from "./components/context-menu";
 import { ExplodePanel } from "./components/explode-panel";
+import { SettingsDialog } from "./components/settings-dialog";
 import {
   AlertIcon,
   CloseIcon,
@@ -55,6 +57,8 @@ import type { CameraCommand, NavigationMode } from "./scene/viewport";
 import { ViewportTools } from "./components/viewport-tools";
 import { useAssembly } from "./state/assembly-store";
 import { flushInspection, useInspection } from "./state/inspection-store";
+import { useOrganizationStore } from "./state/organization-store";
+import { useAppSettings } from "./state/settings-store";
 import { v06 } from "./v06-copy";
 import { usePresentation } from "./state/presentation-store";
 import { useEffectiveVisibility } from "./state/visibility-state";
@@ -65,6 +69,7 @@ import { v07, changeLabels } from "./v07-copy";
 import { v08 } from "./v08-copy";
 import { catalogTimeline, useDocumentationWorkspace } from "./state/documentation-workspace";
 import { useKnollingMotion } from "./state/documentation-store";
+import { recordRecentProject, type RecentDemoKind } from "../home/recent-projects";
 
 const Viewport = dynamic(() => import("./scene/viewport"), { ssr: false });
 
@@ -104,6 +109,7 @@ interface PendingFallback {
 export function Viewer() {
   const inputRef = useRef<HTMLInputElement>(null);
   const requestRef = useRef(0);
+  const abortRef = useRef<AbortController | null>(null);
   const loadStartedAt = useRef(0);
   const dragDepthRef = useRef(0);
 
@@ -230,13 +236,18 @@ export function Viewer() {
   );
   const [focusMode, setFocusMode] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
+  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [announcement, setAnnouncement] = useState("");
 
   useEffect(() => {
+    useAppSettings.getState().hydrate();
     const requestCounter = requestRef;
+    const activeAbort = abortRef;
     return () => {
       requestCounter.current++;
+      activeAbort.current?.abort();
       useViewerStore.getState().setSceneGraph(null);
       useInspection.getState().load(null);
     };
@@ -273,15 +284,43 @@ export function Viewer() {
   }, []);
 
   const activatePackage = useCallback(
-    (scenePackage: LoadedScenePackage, displayName: string, id: number, captured?: Revision) => {
+    (
+      scenePackage: LoadedScenePackage,
+      displayName: string,
+      id: number,
+      captured?: Revision,
+      demoKind: RecentDemoKind = null
+    ) => {
       const revision = captured ?? captureRevision(scenePackage);
       const priorWorkspace = useViewerStore.getState().workspace;
       useAssembly.getState().initialize(scenePackage.manifest ?? null);
+      useOrganizationStore.getState().initializeForRevision(scenePackage.sceneGraph, {
+        key: revision.key,
+        projectId: scenePackage.sceneGraph.projectTitle,
+        revisionId: revision.identity.revisionId,
+        modelSha256: revision.identity.sha256,
+      });
       usePresentation.getState().resetViews();
+      useAppSettings.getState().evaluateLargeModel(
+        scenePackage.sceneGraph.totalTriangles,
+        scenePackage.sceneGraph.componentOrder.length
+      );
       useInspection.getState().load(scenePackage);
       setLoaded({ scenePackage, revision, name: displayName, id, loadTime: performance.now() - loadStartedAt.current });
       setSceneGraph(scenePackage.sceneGraph);
       if (priorWorkspace === "compare" || priorWorkspace === "quantities" || priorWorkspace === "knolling" || priorWorkspace === "catalog") useViewerStore.getState().setWorkspace(priorWorkspace);
+      const effectiveWorkspace = useViewerStore.getState().workspace;
+      recordRecentProject({
+        key: revision.key,
+        title: displayName,
+        fileName: displayName,
+        revisionId: revision.identity.revisionId,
+        mode: scenePackage.sceneGraph.mode,
+        componentCount: scenePackage.sceneGraph.componentOrder.length,
+        sha256Prefix: revision.identity.sha256 ? revision.identity.sha256.slice(0, 12) : null,
+        demoKind,
+        lastWorkspace: effectiveWorkspace,
+      });
       setPendingFallback(null);
       setLost(false);
       issueCommand({ kind: "reset" });
@@ -399,8 +438,19 @@ export function Viewer() {
     }
   }, [activatePackage, pendingFallback]);
 
+  const cancelActiveLoad = useCallback(() => {
+    requestRef.current += 1;
+    abortRef.current?.abort();
+    abortRef.current = null;
+    setStatus("");
+    setAnnouncement("Carregamento cancelado.");
+  }, []);
+
   const loadDemo = useCallback(
     async (kind: "basic" | "contract" | "pavilion" | "inspection" | "revision" | "catalog") => {
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
       const id = ++requestRef.current;
       loadStartedAt.current = performance.now();
       setStatus(copy.reading);
@@ -408,18 +458,18 @@ export function Viewer() {
       setPendingFallback(null);
       try {
         if (kind === "basic") {
-          const glbBytes = await fetch("/demos/estrutura.glb").then((response) => {
+          const glbBytes = await fetch("/demos/estrutura.glb", { signal: controller.signal }).then((response) => {
             if (!response.ok) throw new Error(copy.invalid);
             return response.arrayBuffer();
           });
-          if (id !== requestRef.current) return;
+          if (id !== requestRef.current || controller.signal.aborted) return;
           setStatus(copy.decoding);
           const pkg = await importGlbBasicPackage(glbBytes, "estrutura.glb");
-          if (id !== requestRef.current) {
+          if (id !== requestRef.current || controller.signal.aborted) {
             pkg.dispose();
             return;
           }
-          activatePackage(pkg, copy.demoName, id);
+          activatePackage(pkg, copy.demoName, id, undefined, "basic");
           return;
         }
 
@@ -436,27 +486,27 @@ export function Viewer() {
         const title = demo.title;
 
         const [glbBytes, jsonBytes] = await Promise.all([
-          fetch(glbUrl).then((response) => {
+          fetch(glbUrl, { signal: controller.signal }).then((response) => {
             if (!response.ok) throw new Error(copy.invalid);
             return response.arrayBuffer();
           }),
-          fetch(jsonUrl).then((response) => {
+          fetch(jsonUrl, { signal: controller.signal }).then((response) => {
             if (!response.ok) throw new Error(copy.invalid);
             return response.arrayBuffer();
           }),
         ]);
-        if (id !== requestRef.current) return;
+        if (id !== requestRef.current || controller.signal.aborted) return;
         setStatus(copy.decoding);
         const pkg = await importGlbWithManifestPackage(
           glbBytes,
           jsonBytes,
           fileName
         );
-        if (id !== requestRef.current) {
+        if (id !== requestRef.current || controller.signal.aborted) {
           pkg.dispose();
           return;
         }
-        activatePackage(pkg, title, id);
+        activatePackage(pkg, title, id, undefined, kind);
         if (kind === "inspection") useViewerStore.getState().setWorkspace("inspect");
         if (kind === "revision") useViewerStore.getState().setWorkspace("compare");
         if (kind === "catalog") {
@@ -464,6 +514,7 @@ export function Viewer() {
           useViewerStore.getState().setWorkspace("knolling");
         }
       } catch (cause) {
+        if (controller.signal.aborted) return;
         if (id === requestRef.current) {
           const message = cause instanceof Error ? cause.message : "";
           setError(isKnownUserError(message) ? message : copy.invalid);
@@ -475,22 +526,49 @@ export function Viewer() {
     [activatePackage]
   );
 
+  const loadRevisionLab = useCallback(() => {
+    setReversed(false);
+    useViewerStore.getState().setWorkspace("compare");
+    void loadDemo("revision");
+    void secondary.demo();
+  }, [loadDemo, secondary]);
+
+  const loadCatalogLab = useCallback(() => {
+    setReversed(false);
+    docs.setRevisionSide("primary");
+    void loadDemo("catalog");
+    void secondary.demo("catalog");
+  }, [docs, loadDemo, secondary]);
+
+  const initialHandlersRef = useRef({ loadDemo, loadRevisionLab, loadCatalogLab });
+  useEffect(() => {
+    initialHandlersRef.current = { loadDemo, loadRevisionLab, loadCatalogLab };
+  }, [loadDemo, loadRevisionLab, loadCatalogLab]);
+
   useEffect(() => {
     const timer = window.setTimeout(() => {
       const params = new URLSearchParams(window.location.search);
       const demoParam = params.get("demo");
-      if (demoParam === "1") {
-        void loadDemo("basic");
+      const handlers = initialHandlersRef.current;
+      if (demoParam === "1" || demoParam === "basic") {
+        void handlers.loadDemo("basic");
       } else if (demoParam === "contrato") {
-        void loadDemo("contract");
+        void handlers.loadDemo("contract");
       } else if (demoParam === "pavilhao") {
-        void loadDemo("pavilion");
+        void handlers.loadDemo("pavilion");
       } else if (demoParam === "inspecao") {
-        void loadDemo("inspection");
+        void handlers.loadDemo("inspection");
+      } else if (demoParam === "revisao") {
+        handlers.loadRevisionLab();
+      } else if (demoParam === "catalog") {
+        handlers.loadCatalogLab();
+      } else if (params.get("open") === "1") {
+        const trigger = document.querySelector<HTMLButtonElement>(".gg-dropzone .gg-btn--primary");
+        trigger?.focus();
       }
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [loadDemo]);
+  }, []);
 
   function removeRevision(side: Side) {
     const removePrimary = (side === "base") !== reversed;
@@ -514,20 +592,6 @@ export function Viewer() {
     }
   }
 
-  function loadRevisionLab() {
-    setReversed(false);
-    useViewerStore.getState().setWorkspace("compare");
-    void loadDemo("revision");
-    void secondary.demo();
-  }
-
-  function loadCatalogLab() {
-    setReversed(false);
-    docs.setRevisionSide("primary");
-    void loadDemo("catalog");
-    void secondary.demo("catalog");
-  }
-
   const onContextLost = useCallback(() => setLost(true), []);
 
   const handleViewportSelect = useCallback(
@@ -541,6 +605,27 @@ export function Viewer() {
       setAnnouncement(`${copy.selectionAnnouncement} ${compName}`);
     },
     [clearSelection, loaded, select]
+  );
+
+  const handleViewportContextMenu = useCallback(
+    (id: string | null, x: number, y: number) => {
+      if (!loaded) return;
+      const currentSel = useViewerStore.getState().selectedIds;
+      if (id) {
+        const targetIds = currentSel.includes(id) && currentSel.length > 1 ? currentSel : [id];
+        if (!currentSel.includes(id)) {
+          select(id, "replace");
+        }
+        const label =
+          targetIds.length > 1
+            ? `${targetIds.length} componentes selecionados`
+            : loaded.scenePackage.sceneGraph.components[id]?.name ?? id;
+        setContextMenu({ x, y, targetIds, label });
+      } else {
+        setContextMenu({ x, y, targetIds: [], label: loaded.name });
+      }
+    },
+    [loaded, select]
   );
 
   const selectQuantity = useCallback((ids: string[], multi: boolean) => {
@@ -789,6 +874,7 @@ export function Viewer() {
           onExplodedBoundsChange={setExplodedBoundsMeters}
           onSelect={handleViewportSelect}
           onHover={setHoveredId}
+          onContextMenu={handleViewportContextMenu}
           onContextLost={onContextLost}
           fallback={fallback}
           comparison={base && compared && (comparing || (quantities && !ownQuantity) || docUsingPeer) ? {
@@ -893,6 +979,14 @@ export function Viewer() {
             <span className="gg-progress-bar" />
           </span>
           <span>{status}</span>
+          <button
+            type="button"
+            className="gg-mini-link-btn"
+            aria-label="Cancelar carregamento"
+            onClick={cancelActiveLoad}
+          >
+            Cancelar
+          </button>
         </div>
       )}
 
@@ -1020,6 +1114,7 @@ export function Viewer() {
             onLoadExplodeDemo={() => void loadDemo("pavilion")}
             onLoadInspectionDemo={() => void loadDemo("inspection")}
             onOpenHelp={() => setHelpOpen(true)}
+            onOpenSettings={() => setSettingsOpen(true)}
             onOpenCommand={() => setCommandOpen(true)}
             onEnterFocusMode={() => setFocusMode(true)}
             onToggleTheme={toggleColorScheme}
@@ -1047,7 +1142,11 @@ export function Viewer() {
               <>
                 <Panel id="structure-panel" defaultSize={272} minSize={220} maxSize={400}
                   groupResizeBehavior="preserve-pixel-size" className="gg-resizable-panel">
-                  <LeftHierarchyPanel onFrameIds={handleFrameIds} onClose={() => setLeftOverride(false)} />
+                  <LeftHierarchyPanel
+                    onFrameIds={handleFrameIds}
+                    onOpenContextMenu={setContextMenu}
+                    onClose={() => setLeftOverride(false)}
+                  />
                 </Panel>
                 <Separator className="gg-resize-handle" aria-label={copy.panelResize} />
               </>
@@ -1073,7 +1172,11 @@ export function Viewer() {
             }} />
           )}
           {!focusMode && !isDesktopLayout && leftOpen && (
-            <LeftHierarchyPanel onFrameIds={handleFrameIds} onClose={() => setLeftOverride(false)} />
+            <LeftHierarchyPanel
+              onFrameIds={handleFrameIds}
+              onOpenContextMenu={setContextMenu}
+              onClose={() => setLeftOverride(false)}
+            />
           )}
           {!focusMode && !isDesktopLayout && rightOpen && (
             <RightPropertiesPanel onFrameIds={handleFrameIds} onClose={() => setRightOverride(false)} />
@@ -1112,15 +1215,25 @@ export function Viewer() {
             activeTab={mobileTab}
             onTabChange={setMobileTab}
             onFrameIds={handleFrameIds}
+            onOpenContextMenu={setContextMenu}
             onClose={() => setMobileTab(null)}
           />
         )}
+
+        <ViewerContextMenu
+          state={contextMenu}
+          sceneGraph={loaded?.scenePackage.sceneGraph ?? null}
+          onClose={() => setContextMenu(null)}
+          onFrameIds={handleFrameIds}
+          onNotify={(msg) => setAnnouncement(msg)}
+        />
 
         <div className="visually-hidden" aria-live="polite">
           {announcement}
         </div>
 
         <ControlsDialog open={helpOpen} onClose={() => setHelpOpen(false)} />
+        <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
 
         <CommandPalette
           open={commandOpen}
@@ -1165,6 +1278,7 @@ export function Viewer() {
           onToggleRight={toggleRightPanel}
           onToggleFocus={() => setFocusMode((prev) => !prev)}
           onOpenHelp={() => setHelpOpen(true)}
+          onOpenSettings={() => setSettingsOpen(true)}
           onToggleTheme={toggleColorScheme}
         />
       </div>

@@ -44,8 +44,10 @@ export interface CameraAccess {
   apply: (pose: CameraPose) => void;
   applySlot: (slot: number, pose: CameraPose) => void;
   preset: (preset: ViewPreset) => void;
-  direction: (direction: Vec3) => void;
+  direction: (direction: Vec3, projection?: Projection) => void;
   projection: (projection: Projection) => void;
+  rotate90?: (dir: 1 | -1) => void;
+  home?: () => void;
   capture: (options: PngOptions) => Promise<Blob>;
   stats: () => RenderStats;
 }
@@ -59,12 +61,14 @@ interface PresentationState {
   syncZoom: boolean;
   shareSelection: boolean;
   shareVisibility: boolean;
+  showNavCube: boolean;
   display: DisplaySettings;
   access: CameraAccess | null;
   poses: (CameraPose | null)[];
   setLayout: (layout: ViewLayout) => void;
   setActive: (slot: number) => void;
   toggleMaximize: () => void;
+  setShowNavCube: (show: boolean) => void;
   patchDisplay: (patch: Partial<DisplaySettings>) => void;
   resetViews: () => void;
 }
@@ -72,11 +76,12 @@ interface PresentationState {
 export const usePresentation = create<PresentationState>((set, get) => ({
   layout: "single", active: 0, maximized: null,
   projections: ["perspective", "orthographic", "orthographic", "orthographic"],
-  syncTarget: false, syncZoom: false, shareSelection: true, shareVisibility: true, display: defaultDisplay, access: null,
+  syncTarget: false, syncZoom: false, shareSelection: true, shareVisibility: true, showNavCube: true, display: defaultDisplay, access: null,
   poses: [null, null, null, null],
   setLayout: (layout) => set({ layout, active: 0, maximized: null }),
   setActive: (slot) => { if (get().active !== slot) set({ active: slot }); },
   toggleMaximize: () => set(({ active, maximized }) => ({ maximized: maximized === null ? active : null })),
+  setShowNavCube: (showNavCube) => set({ showNavCube }),
   patchDisplay: (patch) => set(({ display }) => ({ display: { ...display, ...patch } })),
   resetViews: () => set({
     layout: "single", active: 0, maximized: null, access: null, poses: [null, null, null, null], shareSelection: true, shareVisibility: true,

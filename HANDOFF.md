@@ -1,33 +1,29 @@
 # GeoGenViewer — handoff
 
-- **Versão consolidada:** `0.8.0` (`v0.8.0`)
+- **Versão consolidada na entrega local:** `0.9.0` (`v0.9.0`)
 - **Data:** 26/11/2026
-- **Branch principal:** `main` (consolidada a partir de `feat/v0.8-knolling-component-catalog`, commits `1d5a3b5`, `15918ce` e `3cda0db`, base `93f8f74` / `v0.7.0`)
+- **Branch de trabalho alvo:** `feat/v0.9-product-design-performance` (criada localmente pelo responsável em `6563d7d`, idêntico à `main`; alterações da V0.9 aguardam apenas `git switch` / `commit` no terminal do usuário porque o sandbox bloqueia locks em `.git/`)
 - **Responsável pelas decisões:** Fernando Braga
 
-## Estado consolidado (V0.1–V0.8)
+## Estado consolidado (V0.1–V0.9)
 
-- **V0.1–V0.4:** Visualizador GLB local, seleção semântica, árvore virtualizada, manifesto CAD `1.0.0` (SHA-256), vista explodida (`radial`, `axial` CAD, `directional`, `hierarchical`) e linhas de referência.
-- **V0.5–V0.6:** Câmeras perspectiva/ortográfica, cubo de orientação, até 4 viewports em contexto WebGL único, filtros, Named Views, apresentação, timeline determinística, clipping em 3 eixos, snapping, medições e schema `inspection-v1.schema.json`.
-- **V0.7:** Workspaces **Comparar** e **Quantitativos** (`geogenviewer/src/lib/geogen/revisions/`): alinhamento de duas revisões, correspondência persistente com resolução manual de ambiguidades, diff em repouso, análise de fabricação com proveniência/cobertura e exportações CSV/JSON/PNG.
-- **V0.8:** Domínios de **Knolling**, **Catálogo**, **Callouts** e **Documentação** (`geogenviewer/src/lib/geogen/documentation/`):
-  - Knolling com 5 modos, planos XY/XZ/YZ, posições fixáveis com detecção de conflitos e restauração integral da pose ao sair.
-  - Catálogo com busca, filtros, agrupamento por tipo e variante, miniaturas em cache no renderer existente e seleção sincronizada com visualizador, quantitativos e comparação.
-  - Callouts vinculados às ocorrências, listas de peças, fichas A4/A3 e manual imprimível baseado em etapas autoradas (ilustrando até 20 etapas; exporta sequência completa em JSON), além de exportações PNG, CSV e JSON com compatibilidade preservada ao manifesto CAD `1.0.0`.
-  - Laboratório sintético `geogenviewer/public/demos/catalog-lab/` com duas revisões sintéticas.
+- **V0.1–V0.8:** Visualizador GLB local, manifesto CAD `1.0.0`, vista explodida, múltiplas viewports, timeline/editor de montagem, inspeção com clipping/medições, comparação de revisões/quantitativos/fabricação, knolling, catálogo e documentação técnica imprimível.
+- **V0.9 (`Product Design, Performance, Robustness & User Organization`):**
+  - Marca triangular `#3B82F6`, versão centralizada `0.9.0` (`src/lib/geogen/version.ts`), web manifest e Home Launchpad com showcase interativo, biblioteca de 6 demos, projetos recentes e documentação em abas.
+  - Cubo de Navegação 3D sólido chanfrado em SVG (26 faces/arestas/cantos, arrasto, Home, rotação 90°, toggle `Persp./Orto.`) em contexto WebGL único + topbar agrupada em 4 famílias de workspace.
+  - Sistema independente de Camadas e Grupos do Usuário (`schemas/organization-v1.schema.json`), com Undo/Redo, separação estrita do CAD, camada única por ocorrência, grupos sobrepostos, exclusão com escolha explícita, Menu de Contexto 3D/árvore e integração com Filtros, Cor por camada, Quantitativos, Knolling e Catálogo.
+  - Diálogo consolidado de **Configurações**, `CommandPalette` ampliado e cancelamento explícito de carga (`AbortController`).
+  - Batching GPU com `InstancedBatchManager` (reduzindo `10.001` para `2` draw calls em 10.000 peças sem regredir os `24`/`96` draw calls do pavilhão de 18 peças), cache de matrizes no `KnollingPose`, cache de busca no `catalog.ts` e cache no `DocumentationOverlay`/`callouts.ts`.
 
-## Documentação e referências V0.8
+## Documentação e evidências V0.9
 
-- [Relatório de implementação](V08_IMPLEMENTATION_REPORT.md) · [Guia de uso](V08_USER_GUIDE.md) · [Testes e evidências](V08_TEST_REPORT.md) · [Desempenho](V08_PERFORMANCE_REPORT.md) · [Capturas](docs/v08/evidence/) · [Exemplos exportados](docs/v08/examples/) · [Manual em PDF](docs/v08/examples/manual-imprimivel.pdf)
+- [Auditoria](V09_PRODUCT_DESIGN_AUDIT.md) · [Implementação](V09_IMPLEMENTATION_REPORT.md) · [Testes](V09_TEST_REPORT.md) · [Desempenho](V09_PERFORMANCE_REPORT.md) · [Design System](V09_DESIGN_SYSTEM.md) · [Brand Guidelines](V09_BRAND_GUIDELINES.md) · [Cubo 3D](V09_NAVIGATION_CUBE_SPEC.md) · [Organização do Usuário](V09_USER_ORGANIZATION_SPEC.md) · [Segurança](V09_SECURITY_AUDIT.md) · [Acessibilidade](V09_ACCESSIBILITY_REPORT.md) · [Guia do Usuário](V09_USER_GUIDE.md) · [Evidências](docs/v09/evidence/)
 
-## Verificações
+## Verificações executadas
 
-- `npm run lint`, `npm run typecheck`, `npm test` (55 testes unitários), `npm run build` e cinco suítes Playwright (`test:ui`, `test:v05`, `test:v06`, `test:v07`, `test:v08`) em `geogenviewer/`.
-- A auditoria V0.8 verificou 6 resoluções sem overflow, um contexto WebGL e 0 violações `axe` nos 6 estados avaliados; confirmou cache de miniaturas, dimensões PNG A4/A3 e geração de PDF pelo navegador.
-- Benchmark V0.8: com 10.000 ocorrências sintéticas, disposição levou `30,9 ms` em CPU; no navegador, carga e disposição levaram `1,27 s` com `10.001` draw calls.
+- `npm --prefix geogenviewer run lint` (0 erros, 0 warnings), `typecheck` (0 erros), `npm test` (62/62 aprovados), `next build` e 6 suítes Playwright (`test:ui`, `test:v05`, `test:v06`, `test:v07`, `GEOGEN_V08_GPU=1 test:v08`, `test:v09`) aprovadas com 0 violações `axe` e 0 overflow em 6 resoluções (`1920×1080`, `1440×900`, `1280×800`, `1024×768`, `768×1024`, `390×844`).
 
-## Limitações, adiamentos e próximo marco (V0.9)
+## Pendências antes da V1.0
 
-- A orientação automática usa heurística de malha; o manual ilustra até 20 etapas (JSON exporta tudo); motor próprio de PDF e checklist de produção ficaram adiados.
-- A atualização do cabeçalho da home e o refinamento de UI ficaram reservados para a V0.9, junto com a investigação do custo de draw calls (`10.001`), atualização de poses e projeção de rótulos.
-- Seguem pendentes: homologação em **tablet físico**, execução do `GeoGenExporter` no **Rhino 8** real e validação com **modelo autorizado da Casa Gerassi** (nenhum arquivo privado versionado).
+- Homologação em **tablet e smartphone físicos**, execução integrada com **GeoGenExporter no Rhino 8 real** e validação com **modelo autorizado da Casa Gerassi** (nenhum arquivo privado da IC incluído no repositório).
+- Executar `git switch feat/v0.9-product-design-performance` e comitar as alterações da V0.9 no ambiente local fora do sandbox.

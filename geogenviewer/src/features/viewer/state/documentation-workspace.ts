@@ -8,9 +8,11 @@ import { normalizeSearch, defaultHiddenIds, hiddenByFilters, visibleIds } from "
 import { authored, type Revision } from "../../../lib/geogen/revisions/revision";
 import type { FabricationSettings } from "../../../lib/geogen/revisions/fabrication";
 import type { DiffStatus } from "../../../lib/geogen/revisions/diff";
+import { resolveOrganizationView } from "../../../lib/geogen/organization/operations";
 import type { RevisionComparison } from "./revision-workspace";
 import type { Filters } from "../../../lib/geogen/domain/visibility";
 import { useAssembly } from "./assembly-store";
+import { useOrganizationStore } from "./organization-store";
 
 const noRevisions: string[] = [];
 const noEntries: ReturnType<typeof catalogEntries> = [];
@@ -67,18 +69,23 @@ export function useDocumentationWorkspace(primary: Revision | null, peer: Revisi
   const diffs = comparison.diffs;
   const statuses = useMemo(() => active ? comparisonStatuses(revision, base, diffs) : new Map<string, DiffStatus>(),
     [revision, base, active, diffs]);
+  const orgDoc = useOrganizationStore((state) => state.doc);
+  const userOrg = useMemo(
+    () => (revision && isPrimary ? resolveOrganizationView(revision.scene.sceneGraph, { ...orgDoc, activeSource: "user" }) : null),
+    [revision, isPrimary, orgDoc]
+  );
   const fabrication = revision ? fabricationConfigs[revision.key]?.settings : undefined;
-  const entries = useMemo(() => active && revision ? catalogEntries(revision, timeline, statuses, fabrication) : noEntries,
-    [active, revision, timeline, statuses, fabrication]);
+  const entries = useMemo(() => active && revision ? catalogEntries(revision, timeline, statuses, fabrication, undefined, userOrg) : noEntries,
+    [active, revision, timeline, statuses, fabrication, userOrg]);
   const rows = useMemo(() => new Map(entries.map((entry) => [entry.occurrence.id, entry])), [entries]);
 
   const scopes = useMemo((): ScopeContext => {
     const graph = revision?.scene.sceneGraph;
     if (!graph || !workflow) return { selected: new Set(visibleSelected), visible: new Set(primaryVisibility), filtered: emptyScope };
-    const blocked = new Set(hiddenByFilters(graph, filters, visibleSelected, timeline.sample(0).states));
+    const blocked = new Set(hiddenByFilters(graph, filters, visibleSelected, timeline.sample(0).states, userOrg));
     const visible = isPrimary ? primaryVisibility : visibleIds(graph.componentOrder, [...defaultHiddenIds(graph), ...blocked], null);
     return { selected: new Set(visibleSelected), visible: new Set(visible), filtered: new Set(graph.componentOrder.filter((id) => !blocked.has(id))) };
-  }, [revision, workflow, primaryVisibility, filters, visibleSelected, isPrimary, timeline]);
+  }, [revision, workflow, primaryVisibility, filters, visibleSelected, isPrimary, timeline, userOrg]);
 
   const catalog = settings?.catalog;
   const scope = settings?.scope;

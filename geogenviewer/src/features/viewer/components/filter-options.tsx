@@ -4,7 +4,9 @@ import { useMemo, useState } from "react";
 import { catalogFor, normalizeSearch, type FilterField, type FilterOption } from "../../../lib/geogen/domain/visibility";
 import type { LoadedScenePackage } from "../../../lib/geogen/importers/package";
 import { copy } from "../copy";
+import { resolveOrganizationView } from "../../../lib/geogen/organization/operations";
 import { preferenceKey, readLocalList, writeLocalList, type FilterPreset } from "../state/local-preferences";
+import { useOrganizationStore } from "../state/organization-store";
 import { useEffectiveVisibility } from "../state/visibility-state";
 import { useViewerStore } from "../state/viewer-store";
 import { assemblyStates, filterFields, v05 } from "../v05-copy";
@@ -14,6 +16,8 @@ export function FilterOptions({ loaded, onFit }: { loaded: LoadedScenePackage; o
   const beforeIsolation = useViewerStore((state) => state.beforeIsolation);
   const selected = useViewerStore((state) => state.selectedIds);
   const setFilters = useViewerStore((state) => state.setFilters);
+  const orgDoc = useOrganizationStore((state) => state.doc);
+  const userOrg = useMemo(() => resolveOrganizationView(loaded.sceneGraph, { ...orgDoc, activeSource: "user" }), [loaded.sceneGraph, orgDoc]);
   const { visible } = useEffectiveVisibility();
   const [field, setField] = useState<FilterField>("layer");
   const [search, setSearch] = useState("");
@@ -26,8 +30,8 @@ export function FilterOptions({ loaded, onFit }: { loaded: LoadedScenePackage; o
   const options = useMemo<FilterOption[]>(() => {
     if (field === "selection") return [{ value: "selected", label: "Selecionados" }, { value: "unselected", label: "Sem seleção" }];
     if (field === "assembly") return Object.entries(assemblyStates).map(([value, label]) => ({ value, label }));
-    return catalogFor(loaded.sceneGraph, new Map(loaded.manifest?.blocks?.map((block) => [block.id, block.name])), field);
-  }, [field, loaded]);
+    return catalogFor(loaded.sceneGraph, new Map(loaded.manifest?.blocks?.map((block) => [block.id, block.name])), field, userOrg);
+  }, [field, loaded, userOrg]);
   const query = normalizeSearch(search.trim());
   const matching = query ? options.filter((item) => normalizeSearch(item.label + " " + item.value).includes(query)) : options;
   const current = filters[field] ?? [];

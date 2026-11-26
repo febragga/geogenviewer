@@ -3,6 +3,7 @@
 import { Menu } from "@base-ui/react/menu";
 import Link from "next/link";
 import type { ViewerSceneGraph } from "../../../lib/geogen/domain/model";
+import { GEOGEN_VERSION_LABEL } from "../../../lib/geogen/version";
 import { copy } from "../copy";
 import { v06 } from "../v06-copy";
 import { useViewerStore, type Workspace } from "../state/viewer-store";
@@ -17,6 +18,7 @@ import {
   MaximizeIcon,
   MoreIcon,
   PavilionIcon,
+  SettingsIcon,
   SidebarLeftIcon,
   SidebarRightIcon,
 } from "./icons";
@@ -38,10 +40,18 @@ interface ViewerTopbarProps {
   onLoadExplodeDemo: () => void;
   onLoadInspectionDemo: () => void;
   onOpenHelp: () => void;
+  onOpenSettings?: () => void;
   onOpenCommand: () => void;
   onEnterFocusMode: () => void;
   onToggleTheme: () => void;
 }
+
+const WORKSPACE_FAMILIES: { id: string; label: string; primary: Workspace; items: Workspace[] }[] = [
+  { id: "vis", label: "Visualização", primary: "explore", items: ["explore", "explode", "assembly"] },
+  { id: "insp", label: "Inspeção", primary: "inspect", items: ["inspect"] },
+  { id: "ana", label: "Análise", primary: "compare", items: ["compare", "quantities"] },
+  { id: "doc", label: "Documentação", primary: "knolling", items: ["knolling", "catalog"] },
+];
 
 export function ViewerTopbar({
   modelName,
@@ -58,6 +68,7 @@ export function ViewerTopbar({
   onLoadExplodeDemo,
   onLoadInspectionDemo,
   onOpenHelp,
+  onOpenSettings,
   onOpenCommand,
   onEnterFocusMode,
   onToggleTheme,
@@ -75,6 +86,7 @@ export function ViewerTopbar({
           <BrandMarkIcon className="gg-brand__mark" />
           <span className="gg-brand__name">{copy.title}</span>
         </Link>
+        <span className="gg-brand__version gg-mono" aria-hidden="true">{GEOGEN_VERSION_LABEL}</span>
         <span className="gg-topbar__divider" aria-hidden="true" />
         <div className="gg-topbar__model">
           <h1 className="gg-topbar__title">{modelName ?? copy.noModel}</h1>
@@ -93,15 +105,38 @@ export function ViewerTopbar({
         </div>
       </div>
 
-      {(modelName || workspace === "compare") && <label className="gg-workspace-picker">
-        <span className="visually-hidden">{v05.workspace}</span>
-        <select aria-label={v05.workspace} value={workspace} onChange={(event) => setWorkspace(event.currentTarget.value as Workspace)}>
-          {([["Visualização", ["explore", "explode", "assembly"]], ["Inspeção", ["inspect"]],
-            ["Análise", ["compare", "quantities"]], ["Documentação", ["knolling", "catalog"]]] as const).map(([label, ids]) => (
-              <optgroup key={label} label={label}>{ids.map((id) => <option key={id} value={id}>{workspaces[id]}</option>)}</optgroup>
-            ))}
-        </select>
-      </label>}
+      {(modelName || workspace === "compare") && (
+        <div className="gg-workspace-nav">
+          <nav className="gg-workspace-families" aria-label="Famílias de workspace">
+            {WORKSPACE_FAMILIES.map((family) => {
+              const active = family.items.includes(workspace);
+              return (
+                <button
+                  key={family.id}
+                  type="button"
+                  className="gg-workspace-family-btn"
+                  aria-pressed={active}
+                  onClick={() => {
+                    if (!active) setWorkspace(family.primary);
+                  }}
+                >
+                  {family.label}
+                </button>
+              );
+            })}
+          </nav>
+          <label className="gg-workspace-picker">
+            <span className="visually-hidden">{v05.workspace}</span>
+            <select aria-label={v05.workspace} value={workspace} onChange={(event) => setWorkspace(event.currentTarget.value as Workspace)}>
+              {WORKSPACE_FAMILIES.map((family) => (
+                <optgroup key={family.id} label={family.label}>
+                  {family.items.map((id) => <option key={id} value={id}>{workspaces[id]}</option>)}
+                </optgroup>
+              ))}
+            </select>
+          </label>
+        </div>
+      )}
 
       <div className="gg-topbar__actions">
         <div
@@ -174,6 +209,19 @@ export function ViewerTopbar({
           </button>
         </ActionTooltip>
 
+        {onOpenSettings && (
+          <ActionTooltip label="Configurações">
+            <button
+              type="button"
+              className="gg-btn gg-btn--ghost gg-btn--icon gg-hide-md"
+              aria-label="Configurações"
+              onClick={onOpenSettings}
+            >
+              <SettingsIcon size={16} strokeWidth={1.75} />
+            </button>
+          </ActionTooltip>
+        )}
+
         <ActionTooltip label={copy.controlsTitle}>
           <button
             type="button"
@@ -237,6 +285,12 @@ export function ViewerTopbar({
                     <HelpIcon size={15} strokeWidth={1.75} />
                     <span>{copy.controlsTitle}</span>
                   </Menu.Item>
+                  {onOpenSettings && (
+                    <Menu.Item className="gg-menu-item" onClick={onOpenSettings}>
+                      <SettingsIcon size={15} strokeWidth={1.75} />
+                      <span>Configurações</span>
+                    </Menu.Item>
+                  )}
                   <Menu.Separator className="gg-menu-sep" />
                   <Menu.Item className="gg-menu-item" onClick={onToggleTheme}>
                     <span className="gg-menu-item__grow">

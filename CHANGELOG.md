@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.9.0] · 26/11/2026 — Product Design, Performance, Robustez e Organização do Usuário
+
+- Identidade visual oficial com marca triangular `#3B82F6`, versão centralizada `0.9.0` e web manifest completos.
+- Home Launchpad renovada com showcase interativo (*Montado*, *Explodido*, *Knolling*), biblioteca de 6 demonstrações, **Projetos Recentes** em metadados leves e documentação técnica em abas.
+- Cubo de Navegação 3D sólido chanfrado em SVG (26 faces/arestas/cantos em contexto WebGL único, arrasto contínuo, Home, rotação 90° e toggle `Persp./Orto.`) e navegação de workspaces agrupada em 4 famílias.
+- Sistema independente de **Camadas e Grupos do Usuário** (`schemas/organization-v1.schema.json`), com separação estrita do CAD, camada única por ocorrência, grupos sobrepostos, Undo/Redo, modal explícito de exclusão, drag-and-drop, Menu de Contexto e integração com Filtros, Quantitativos, Knolling, Catálogo e Cor por camada.
+- Diálogo consolidado de **Configurações** (tema, fundo independente da viewport, Cubo 3D, qualidade, modo automático para modelos grandes e unidades), `CommandPalette` ampliado e cancelamento de carregamento com `AbortController`.
+- Otimização WebGL com `InstancedBatchManager` (`10.001` → `2` draw calls nos benchmarks de 10.000 peças, mantendo `24`/`96` draw calls no pavilhão de 18 peças), cache de matriz pai no `KnollingPose`, cache de busca em `catalog.ts` e cache de projeção/medição em `DocumentationOverlay`/`callouts.ts`.
+
 ## [0.8.0] · 26/11/2026 — Knolling, catálogo e documentação
 
 - Organização de ocorrências e tipos em cinco modos, três planos CAD, orientação configurável e transição reversível.

@@ -77,8 +77,8 @@ export const scopeLabels: Record<QuantityScope, string> = {
   modified: "Componentes modificados", category: "Categoria", material: "Material de fabricação",
 };
 export const groupLabels: Record<Grouping, string> = {
-  category: "Categoria", layer: "Camada", material: "Material de fabricação", block: "Definição de bloco",
-  part: "Part ID", type: "Código de tipo", prototype: "Protótipo", property: "Propriedade personalizada", group: "Grupos",
+  category: "Categoria", layer: "Camada CAD", userLayer: "Camada do usuário", material: "Material de fabricação", block: "Definição de bloco",
+  part: "Part ID", type: "Código de tipo", prototype: "Protótipo", property: "Propriedade personalizada", group: "Grupos CAD", userGroup: "Grupos do usuário",
 };
 export const massLabels = { solid: "Massa maciça teórica", slicer: "Massa do slicer", measured: "Massa medida", estimate: "Massa estimada" };
 export const timeLabels = { machine: v07.machine, production: v07.production, recorded: v07.recorded };

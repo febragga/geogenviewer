@@ -305,16 +305,20 @@ function createRig(
     invalidate();
   }
 
-  function direction(vector: Vec3, projection = activePose().projection) {
+  function transitionTo(to: CameraPose) {
     const index = activeSlot();
     const pose = activePose();
-    const to = orientPose(pose, vector, projection);
-    if (projection !== pose.projection || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    if (to.projection !== pose.projection || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       applyActive(to);
       return;
     }
     slots[index].transition = { from: pose, to, elapsed: 0 };
     invalidate();
+  }
+
+  function direction(vector: Vec3, projection = activePose().projection) {
+    const pose = activePose();
+    transitionTo(orientPose(pose, vector, projection));
   }
 
   const access = {
@@ -329,6 +333,30 @@ function createRig(
     },
     direction,
     preset: (preset: (typeof viewSlots)[number]) => direction(viewDirections[preset], preset === "perspective" ? "perspective" : "orthographic"),
+    home: () => {
+      const slot = activeSlot();
+      transitionTo(initialPose("perspective", center, radius, aspect(slot)));
+    },
+    rotate90: (dir: 1 | -1) => {
+      const pose = activePose();
+      const target = new Vector3(...pose.target);
+      const offset = new Vector3(...pose.position).sub(target);
+      const length = Math.max(offset.length(), 1e-6);
+      const forward = offset.clone().divideScalar(length);
+      if (Math.abs(forward.y) > 0.985) {
+        const nextUp = new Vector3(...pose.up).applyAxisAngle(forward, -dir * (Math.PI / 2)).normalize();
+        transitionTo({ ...pose, up: [nextUp.x, nextUp.y, nextUp.z] });
+        return;
+      }
+      const worldUp = new Vector3(0, 1, 0);
+      const rotated = offset.clone().applyAxisAngle(worldUp, dir * (Math.PI / 2));
+      const nextUp = new Vector3(...pose.up).applyAxisAngle(worldUp, dir * (Math.PI / 2)).normalize();
+      transitionTo({
+        ...pose,
+        position: rotated.add(target).toArray(),
+        up: [nextUp.x, nextUp.y, nextUp.z],
+      });
+    },
     projection: (projection: CameraPose["projection"]) => {
       const pose = activePose();
       if (projection !== pose.projection) {
