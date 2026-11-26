@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import packageJson from "../package.json" with { type: "json" };
 import {
   BoxGeometry,
   Group,
@@ -181,8 +182,8 @@ function createSyntheticScenePackage(count = 12) {
 }
 
 test("V0.9 branding constants and version metadata stay centralized", () => {
-  assert.equal(GEOGEN_VERSION, "0.9.0");
-  assert.equal(GEOGEN_VERSION_LABEL, "v0.9.0");
+  assert.equal(GEOGEN_VERSION, packageJson.version);
+  assert.equal(GEOGEN_VERSION_LABEL, "v" + packageJson.version);
   assert.equal(GEOGEN_CONTRACT_VERSION, "1.0.0");
   assert.equal(GEOGEN_BRAND_BLUE, "#3B82F6");
 });

@@ -5,11 +5,13 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import AxeBuilder from "@axe-core/playwright";
+import packageJson from "../package.json" with { type: "json" };
+
+const versionLabel = "v" + packageJson.version;
 
 const appDir = fileURLToPath(new URL("../", import.meta.url));
-const repoRoot = fileURLToPath(new URL("../../", import.meta.url));
-const afterDir = join(repoRoot, "docs", "v09", "evidence", "after");
 const outDir = join(appDir, "test-results", "v09");
+const afterDir = join(outDir, "captures");
 await mkdir(afterDir, { recursive: true });
 await mkdir(outDir, { recursive: true });
 
@@ -50,7 +52,7 @@ async function checkAxe(page, label) {
   assert.equal(
     result.violations.length,
     0,
-    `Axe violations on ${label}: ${JSON.stringify(result.violations.map((v) => v.id))}`
+    `Axe violations on ${label}: ${JSON.stringify(result.violations.map((v) => ({ id: v.id, nodes: v.nodes.map((n) => n.target) })))}`
   );
 }
 
@@ -109,7 +111,7 @@ try {
   // 1. Home Launchpad (Dark + Light + Showcase + Docs)
   await page.goto(origin, { waitUntil: "networkidle" });
   await page.getByRole("heading", { name: "Da geometria à montagem." }).waitFor();
-  await page.getByText("v0.9.0").first().waitFor();
+  await page.getByText(versionLabel, { exact: true }).first().waitFor();
   await checkOverflow(page, "home-1440x900-dark");
   await checkAxe(page, "home-dark");
   await page.screenshot({ path: join(afterDir, "01-home-dark.png"), fullPage: true });
@@ -119,7 +121,7 @@ try {
   await page.getByRole("tab", { name: "GeoGenExporter" }).click();
 
   await page.locator(".gg-home-header .gg-theme-toggle").click();
-  await page.waitForTimeout(150);
+  await page.waitForFunction(() => getComputedStyle(document.documentElement).colorScheme === "light");
   await checkOverflow(page, "home-1440x900-light");
   await checkAxe(page, "home-light");
   await page.screenshot({ path: join(afterDir, "02-home-light.png"), fullPage: true });
@@ -201,7 +203,7 @@ try {
   assert.equal(await page.locator(".gg-viewport").getAttribute("data-background"), "white");
   await page.screenshot({ path: join(afterDir, "14-settings-dialog.png") });
   await page.getByRole("tab", { name: "Sobre" }).click();
-  await page.getByText("GeoGenViewer v0.9.0").waitFor();
+  await page.getByText("GeoGenViewer " + versionLabel).waitFor();
   await page.getByRole("button", { name: "Fechar configurações" }).click();
   report.settings.verified = true;
 

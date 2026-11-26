@@ -7,7 +7,6 @@ import {
   type OrganizationBinding,
   type UserOrganizationDocument,
 } from "./model.ts";
-import { wouldCreateCycle } from "./operations.ts";
 
 export const organizationMaxBytes = 12 * 1024 * 1024;
 
@@ -38,7 +37,10 @@ export class OrganizationValidationError extends Error {
   }
 }
 
-function assertSafeTreeJson(value: unknown, path = "$"): void {
+function assertSafeTreeJson(value: unknown, path = "$", depth = 0): void {
+  if (depth > 64) {
+    throw new OrganizationValidationError("JSON_DEPTH", "O JSON de organização é profundo demais.");
+  }
   if (typeof value === "number") {
     if (!Number.isFinite(value)) {
       throw new OrganizationValidationError(
@@ -59,7 +61,7 @@ function assertSafeTreeJson(value: unknown, path = "$"): void {
   }
   if (Array.isArray(value)) {
     for (let i = 0; i < value.length; i += 1) {
-      assertSafeTreeJson(value[i], `${path}[${i}]`);
+      assertSafeTreeJson(value[i], `${path}[${i}]`, depth + 1);
     }
     return;
   }
@@ -71,7 +73,7 @@ function assertSafeTreeJson(value: unknown, path = "$"): void {
           `Chave proibida "${key}" em "${path}".`
         );
       }
-      assertSafeTreeJson((value as Record<string, unknown>)[key], `${path}.${key}`);
+      assertSafeTreeJson((value as Record<string, unknown>)[key], `${path}.${key}`, depth + 1);
     }
   }
 }
@@ -98,11 +100,14 @@ function checkHierarchyIntegrity<T extends { id: string; parentId: string | null
         `Pai "${item.parentId}" inexistente em ${kindLabel}.`
       );
     }
-    if (wouldCreateCycle(items, item.id, item.parentId)) {
-      throw new OrganizationValidationError(
-        "CYCLE_OR_DEPTH",
-        `Ciclo ou profundidade acima de ${MAX_ORGANIZATION_DEPTH} níveis em ${kindLabel}.`
-      );
+    let depth = 1;
+    for (let parent = item.parentId; parent !== null; parent = byId.get(parent)?.parentId ?? null) {
+      if (parent === item.id || ++depth > MAX_ORGANIZATION_DEPTH) {
+        throw new OrganizationValidationError(
+          "CYCLE_OR_DEPTH",
+          `Ciclo ou profundidade acima de ${MAX_ORGANIZATION_DEPTH} níveis em ${kindLabel}.`
+        );
+      }
     }
   }
 }
@@ -180,27 +185,37 @@ export function checkOrganizationCompatibility(
   binding: OrganizationBinding
 ): OrganizationCompatibilityResult {
   const warnings: string[] = [];
-  let mismatch = false;
-
-  if (
-    doc.modelSha256 &&
-    binding.modelSha256 &&
-    doc.modelSha256.toLowerCase() !== binding.modelSha256.toLowerCase()
-  ) {
-    mismatch = true;
-    warnings.push(
-      `O SHA-256 do arquivo de organização (${doc.modelSha256.slice(0, 12)}) difere do modelo carregado (${binding.modelSha256.slice(0, 12)}).`
-    );
+  const sameBinary = Boolean(doc.modelSha256 && binding.modelSha256 &&
+    doc.modelSha256.toLowerCase() === binding.modelSha256.toLowerCase());
+  const sameCadIdentity = Boolean(doc.projectId && binding.projectId && doc.projectId === binding.projectId &&
+    doc.revisionId && doc.revisionId === binding.revisionId);
+  // V0.9.0 stored the display title as projectId (and the filename for GLB-only).
+  const legacyTitle = sameBinary && doc.projectId === sceneGraph.projectTitle;
+  if ((doc.modelSha256 && !sameBinary) || (!doc.modelSha256 && !sameCadIdentity)) {
+    warnings.push("O arquivo de organização não pôde ser vinculado ao modelo carregado.");
   }
-  if (doc.projectId && binding.projectId && doc.projectId !== binding.projectId) {
-    mismatch = true;
-    warnings.push(`O projeto de origem (${doc.projectId}) difere do projeto atual (${binding.projectId}).`);
+  if (doc.projectId !== binding.projectId && !legacyTitle) {
+    warnings.push("O projeto de origem difere do projeto atual.");
+  }
+  if (doc.revisionId !== binding.revisionId) {
+    warnings.push("A revisão de origem difere da revisão atual.");
   }
 
   const validSet = new Set(sceneGraph.componentOrder);
+  const reserved = new Set([...validSet, ...Object.keys(sceneGraph.layers), ...Object.keys(sceneGraph.groups)]);
+  for (const { id } of [...doc.userLayers, ...doc.userGroups]) {
+    if (reserved.has(id)) {
+      warnings.push("A organização contém identificadores já usados na estrutura do modelo.");
+      break;
+    }
+    reserved.add(id);
+  }
+  if (warnings.length) {
+    return { status: "mismatch", matchedOccurrences: 0, missingOccurrences: 0, warnings, sanitized: doc };
+  }
   let matched = 0;
   let missing = 0;
-  const cleanAssignments: Record<string, string> = {};
+  const cleanAssignments: Record<string, string> = Object.create(null);
   for (const [compId, layerId] of Object.entries(doc.componentLayerAssignments)) {
     if (validSet.has(compId)) {
       cleanAssignments[compId] = layerId;
@@ -231,15 +246,15 @@ export function checkOrganizationCompatibility(
 
   const sanitized: UserOrganizationDocument = {
     ...doc,
-    projectId: binding.projectId ?? doc.projectId,
-    revisionId: binding.revisionId ?? doc.revisionId,
-    modelSha256: binding.modelSha256 ?? doc.modelSha256,
+    projectId: binding.projectId,
+    revisionId: binding.revisionId,
+    modelSha256: binding.modelSha256,
     userGroups: cleanGroups,
     componentLayerAssignments: cleanAssignments,
   };
 
   return {
-    status: mismatch ? "mismatch" : missing > 0 ? "partial" : "match",
+    status: missing > 0 ? "partial" : "match",
     matchedOccurrences: matched,
     missingOccurrences: missing,
     warnings,

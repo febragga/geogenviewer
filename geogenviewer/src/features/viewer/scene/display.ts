@@ -1,6 +1,6 @@
 import {
   Color, EdgesGeometry, LineBasicMaterial, LineSegments, MeshStandardMaterial,
-  type BufferGeometry, type Intersection, type Material, type Mesh, type Object3D,
+  type BufferGeometry, type Intersection, type Material, type Mesh, type Object3D, type Raycaster,
 } from "three";
 import type { LoadedScenePackage } from "../../../lib/geogen/importers/package";
 import type { ResolvedOrganizationView } from "../../../lib/geogen/organization/model";
@@ -43,17 +43,17 @@ interface Renderable {
 
 export class SceneDisplay {
   private readonly objects: Renderable[] = [];
+  private readonly pickables: Object3D[] = [];
   private readonly variants = new Map<string, Material>();
   private readonly edges = new Map<BufferGeometry, EdgesGeometry>();
   private readonly edgeMaterial = new LineBasicMaterial({ color: "#354457", transparent: true, opacity: 0.72 });
   private materialOpacity: number | null = null;
   private readonly loaded: LoadedScenePackage;
   private readonly batches: InstancedBatchManager | null = null;
-  private readonly useLocalBatchMatrix: boolean;
 
   constructor(loaded: LoadedScenePackage, batchHost?: Object3D, useLocalBatchMatrix = false) {
     this.loaded = loaded;
-    this.useLocalBatchMatrix = useLocalBatchMatrix;
+
     loaded.model.scene.traverse((object: Object3D) => {
       if (!("material" in object)) return;
       const obj = object as Mesh;
@@ -74,8 +74,15 @@ export class SceneDisplay {
     }
   }
 
-  batchGroup(): Object3D | null {
-    return this.batches?.active ? this.batches.group : null;
+  intersections(raycaster: Raycaster): Intersection[] {
+    this.pickables.length = 0;
+    for (const { object, id } of this.objects) {
+      if (id && object.visible) this.pickables.push(object);
+    }
+    if (this.batches?.active && this.batches.group.visible) {
+      this.pickables.push(...this.batches.group.children);
+    }
+    return raycaster.intersectObjects(this.pickables, false);
   }
 
   resolveHit(hit: Intersection): string | null {
@@ -84,8 +91,12 @@ export class SceneDisplay {
       : this.loaded.resolveComponentId(hit.object);
   }
 
+  sourceIntersection(hit: Intersection): Intersection {
+    return this.batches?.sourceIntersection(hit) ?? hit;
+  }
+
   syncBatchTransforms(): void {
-    this.batches?.syncTransforms(this.loaded.model.scene);
+    this.batches?.syncTransforms();
   }
 
   apply(settings: DisplaySettings, selected: ReadonlySet<string>, hovered: string | null, hidden: ReadonlySet<string>, isolated: ReadonlySet<string> | null, ghosts: ReadonlySet<string>, overrides?: ReadonlyMap<string, Color>, organization?: ResolvedOrganizationView | null) {
@@ -106,6 +117,7 @@ export class SceneDisplay {
         mode: settings.mode,
         opacity: settings.opacity,
         shadows: settings.shadows,
+        edges: settings.edges,
         selected,
         hovered,
         hidden,
@@ -121,8 +133,12 @@ export class SceneDisplay {
 
     for (const entry of this.objects) {
       const { id, object, original } = entry;
-      const future = id !== null && ghosts.has(id);
       const isManagedBatch = batchActive && this.batches!.isManaged(object);
+      if (isManagedBatch && !object.visible) {
+        if (entry.edges) entry.edges.visible = false;
+        continue;
+      }
+      const future = id !== null && ghosts.has(id);
       if (!isManagedBatch) {
         object.visible = entry.visible && (id === null || (!hidden.has(id) && (!isolated || isolated.has(id))));
       }
@@ -152,6 +168,23 @@ export class SceneDisplay {
       if (object.isMesh && !isManagedBatch) {
         object.castShadow = object.visible && !future && settings.shadows;
         object.receiveShadow = settings.shadows;
+      }
+    }
+
+    if (this.variants.size > 512) {
+      const inUse = new Set<Material>();
+      for (const entry of this.objects) {
+        if (!entry.object.visible) {
+          entry.object.material = entry.original;
+          entry.key = undefined;
+        }
+        const materials = Array.isArray(entry.object.material) ? entry.object.material : [entry.object.material];
+        for (const material of materials) inUse.add(material);
+      }
+      for (const [key, material] of this.variants) {
+        if (inUse.has(material)) continue;
+        material.dispose();
+        this.variants.delete(key);
       }
     }
   }
@@ -216,6 +249,5 @@ export class SceneDisplay {
     for (const geometry of this.edges.values()) geometry.dispose();
     for (const material of this.variants.values()) material.dispose();
     this.edgeMaterial.dispose();
-    void this.useLocalBatchMatrix;
   }
 }

@@ -80,8 +80,7 @@ export function recordRecentProject(
   storage?: Pick<Storage, "getItem" | "setItem">
 ): RecentProjectRecord[] {
   if (typeof window === "undefined" && !storage) return [];
-  const store = storage ?? window.localStorage;
-  const current = readRecentProjects(store);
+  const current = readRecentProjects(storage);
   const nextItem: RecentProjectRecord = {
     ...input,
     key: sanitizeText(input.key, 160),
@@ -97,7 +96,7 @@ export function recordRecentProject(
     MAX_RECENT_PROJECTS
   );
   try {
-    store.setItem(RECENT_PROJECTS_KEY, JSON.stringify(updated));
+    (storage ?? window.localStorage).setItem(RECENT_PROJECTS_KEY, JSON.stringify(updated));
   } catch {
     // Ignore storage quota / privacy mode failures
   }

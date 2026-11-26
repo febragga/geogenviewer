@@ -121,6 +121,7 @@ export function StructureContent({
   const orgPast = useOrganizationStore((s) => s.past);
   const orgFuture = useOrganizationStore((s) => s.future);
   const lastImportNotice = useOrganizationStore((s) => s.lastImportNotice);
+  const persistenceNotice = useOrganizationStore((s) => s.persistenceNotice);
   const setOrgSource = useOrganizationStore((s) => s.setActiveSource);
   const copyFromImported = useOrganizationStore((s) => s.copyFromImported);
   const createLayer = useOrganizationStore((s) => s.createLayer);
@@ -165,6 +166,8 @@ export function StructureContent({
   const toggleComponentVisibility = useViewerStore((s) => s.toggleComponentVisibility);
   const toggleCollectionVisibility = useViewerStore((s) => s.toggleCollectionVisibility);
   const showAll = useViewerStore((s) => s.showAll);
+  const hiddenGroupKeys = useViewerStore((s) => s.hiddenGroupKeys);
+  const toggleGroupVisibility = useViewerStore((s) => s.toggleGroupVisibility);
 
   const rows = useMemo(
     () =>
@@ -268,8 +271,11 @@ export function StructureContent({
     const isRowHovered = row.kind === "component" && hoveredId === row.id;
     const isRenaming = renamingTarget && renamingTarget.id === row.id && renamingTarget.kind === row.kind;
 
-    const visLabel =
-      vis === "visible"
+    const groupKey = row.kind === "group" ? (row.origin ?? "cad") + ":" + row.id : null;
+    const groupHidden = groupKey ? hiddenGroupKeys.includes(groupKey) : null;
+    const visLabel = groupHidden !== null
+      ? `${groupHidden ? copy.treeVisibilityShow : copy.treeVisibilityHide} ${row.label}`
+      : vis === "visible"
         ? `${copy.treeVisibilityHide} ${row.label}`
         : vis === "hidden"
           ? `${copy.treeVisibilityShow} ${row.label}`
@@ -529,12 +535,14 @@ export function StructureContent({
             }`}
             aria-label={visLabel}
             aria-pressed={
-              vis === "hidden" ? true : vis === "partial" ? "mixed" : false
+              groupHidden ?? (vis === "hidden" ? true : vis === "partial" ? "mixed" : false)
             }
             disabled={!isUserNode && row.targetComponentIds.length === 0}
             onClick={() => {
               if (userLayerRec) {
                 toggleUserLayerVis(userLayerRec.id);
+              } else if (groupKey) {
+                toggleGroupVisibility(groupKey);
               } else if (row.kind === "component") {
                 toggleComponentVisibility(row.id);
               } else {
@@ -656,8 +664,14 @@ export function StructureContent({
                     className="gg-btn gg-btn--ghost gg-btn--xs"
                     title="Clonar camadas e grupos importados para edição do usuário"
                     onClick={() => {
-                      copyFromImported(sceneGraph);
-                      setOrgMessage("Estrutura importada copiada para camadas/grupos do usuário.");
+                      if ((orgDoc.userLayers.length || orgDoc.userGroups.length) &&
+                          !window.confirm("Substituir a organização personalizada pela estrutura CAD?")) return;
+                      try {
+                        copyFromImported(sceneGraph);
+                        setOrgMessage("Estrutura importada copiada para camadas/grupos do usuário.");
+                      } catch (error) {
+                        setOrgMessage(error instanceof Error ? error.message : String(error));
+                      }
                     }}
                   >
                     <CopyIcon size={12} strokeWidth={1.75} aria-hidden="true" />
@@ -720,7 +734,10 @@ export function StructureContent({
                     event.currentTarget.value = "";
                     if (!file || !sceneGraph) return;
                     try {
+                      const binding = useOrganizationStore.getState().binding;
+                      if (file.size > 12 * 1024 * 1024) throw new Error("O arquivo organization.json excede 12 MiB.");
                       const text = await file.text();
+                      if (binding !== useOrganizationStore.getState().binding) return;
                       const result = importOrgJson(text, sceneGraph);
                       setOrgMessage(
                         result.warnings[0] ?? `Organização importada (${result.matchedOccurrences} vínculos).`
@@ -740,12 +757,7 @@ export function StructureContent({
                     const trimmed = newItemName.trim();
                     if (!trimmed) return;
                     if (newItemKind === "layer") {
-                      createLayer({ name: trimmed, color: newItemColor, parentId: newItemParentId });
-                      if (selectedIds.length > 0) {
-                        const latest = useOrganizationStore.getState().doc;
-                        const created = latest.userLayers[latest.userLayers.length - 1];
-                        if (created) assignOccurrencesToLayer(selectedIds, created.id);
-                      }
+                      createLayer({ name: trimmed, color: newItemColor, parentId: newItemParentId, memberIds: selectedIds });
                     } else {
                       createGroup({ name: trimmed, color: newItemColor, memberIds: selectedIds });
                     }
@@ -777,6 +789,7 @@ export function StructureContent({
                 </form>
               )}
 
+              {persistenceNotice && <p className="gg-org-notice" role="status">{persistenceNotice}</p>}
               {(orgMessage || lastImportNotice) && (
                 <div className="gg-org-notice" role="status">
                   <span>{orgMessage ?? lastImportNotice}</span>

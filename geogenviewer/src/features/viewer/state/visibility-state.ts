@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import type { AssemblyTimeline } from "../../../lib/geogen/assembly/timeline";
 import type { ViewerSceneGraph } from "../../../lib/geogen/domain/model";
-import { hiddenByFilters, visibleIds } from "../../../lib/geogen/domain/visibility";
+import { hiddenByFilters, hiddenByGroups, visibleIds } from "../../../lib/geogen/domain/visibility";
 import type { ResolvedOrganizationView } from "../../../lib/geogen/organization/model";
 import { resolveOrganizationView } from "../../../lib/geogen/organization/operations";
 import { useAssembly } from "./assembly-store";
@@ -20,6 +20,7 @@ export function resolveVisibility(
   const sample = timeline.sample(timeline.schedule[workspace === "assembly" ? stepIndex : 0]?.start ?? timeline.total);
   const denied = new Set([
     ...scope.hiddenIds,
+    ...hiddenByGroups(graph, scope.hiddenGroupKeys ?? [], organization),
     ...hiddenByFilters(graph, scope.filters, scope.selectedIds, sample.states, organization),
     ...(organization?.source === "user" ? organization.hiddenByUserLayers : []),
   ]);
@@ -43,6 +44,7 @@ export function resolveVisibility(
 export function useEffectiveVisibility() {
   const graph = useViewerStore((state) => state.sceneGraph);
   const hiddenIds = useViewerStore((state) => state.hiddenIds);
+  const hiddenGroupKeys = useViewerStore((state) => state.hiddenGroupKeys);
   const isolatedIds = useViewerStore((state) => state.isolatedIds);
   const filters = useViewerStore((state) => state.filters);
   const selectedIds = useViewerStore((state) => state.selectedIds);
@@ -62,10 +64,10 @@ export function useEffectiveVisibility() {
 
   return useMemo(() => {
     if (!graph) return { hidden: hiddenIds, visible: [] as string[] };
-    const { denied } = resolveVisibility(graph, { hiddenIds, isolatedIds, filters, selectedIds }, workspace, {
+    const { denied } = resolveVisibility(graph, { hiddenIds, hiddenGroupKeys, isolatedIds, filters, selectedIds }, workspace, {
       timeline, stepIndex, ghost, solo,
     }, userOrg);
     const hidden = Array.from(denied);
     return { hidden, visible: visibleIds(graph.componentOrder, hidden, isolatedIds) };
-  }, [graph, hiddenIds, isolatedIds, filters, selectedIds, workspace, timeline, stepIndex, ghost, solo, userOrg]);
+  }, [graph, hiddenIds, hiddenGroupKeys, isolatedIds, filters, selectedIds, workspace, timeline, stepIndex, ghost, solo, userOrg]);
 }

@@ -32,11 +32,12 @@ export interface InstancedBatch {
 }
 
 const ZERO_MATRIX = new Matrix4().makeScale(0, 0, 0);
+const IDENTITY_MATRIX = new Matrix4();
 const WHITE = new Color(0xffffff);
 export const DEFAULT_MIN_BATCH_SIZE = 24;
 export const MAX_OVERLAY_PROMOTIONS = 64;
 
-function isBatchableMesh(obj: Object3D): obj is Mesh {
+function isBatchableMesh(obj: Object3D, sourceRoot: Object3D, useLocalMatrix: boolean): obj is Mesh {
   const mesh = obj as Mesh & {
     isSkinnedMesh?: boolean;
     isInstancedMesh?: boolean;
@@ -46,7 +47,23 @@ function isBatchableMesh(obj: Object3D): obj is Mesh {
   if (mesh.isSkinnedMesh || mesh.isInstancedMesh) return false;
   if (mesh.morphTargetInfluences && mesh.morphTargetInfluences.length > 0) return false;
   if (!mesh.geometry || !mesh.material || Array.isArray(mesh.material)) return false;
-  return true;
+  const { material } = mesh;
+  if (material.transparent || material.opacity !== 1 || !material.depthWrite ||
+      ("transmission" in material && Number(material.transmission) > 0) ||
+      mesh.children.length || mesh.layers.mask !== 1) return false;
+
+  for (let parent = mesh.parent; parent && parent !== sourceRoot; parent = parent.parent) {
+    if (!parent.visible || (parent as Mesh).isMesh) return false;
+  }
+  const matrix = useLocalMatrix ? mesh.matrix : mesh.matrixWorld;
+  const determinant = matrix.determinant();
+  if (!Number.isFinite(determinant) || determinant <= 0) return false;
+  const [a, b, c, , d, e, f, , g, h, i] = matrix.elements;
+  const x = Math.hypot(a, b, c), y = Math.hypot(d, e, f), z = Math.hypot(g, h, i);
+  const tolerance = 1e-6;
+  return Math.abs(a * d + b * e + c * f) <= tolerance * x * y &&
+    Math.abs(a * g + b * h + c * i) <= tolerance * x * z &&
+    Math.abs(d * g + e * h + f * i) <= tolerance * y * z;
 }
 
 /**
@@ -62,7 +79,11 @@ export class InstancedBatchManager {
   private readonly host: Object3D;
   private readonly resolveComponentId: (obj: Object3D | null) => string | null;
   private readonly useLocalMatrix: boolean;
-  private matricesDirty = true;
+  private readonly sourceRoot: Object3D;
+  private readonly inverseBatchWorld = new Matrix4();
+  private readonly relativeMatrix = new Matrix4();
+  private originalPath = false;
+  private batchWorldIsIdentity = true;
   private disposed = false;
 
   constructor(
@@ -74,14 +95,16 @@ export class InstancedBatchManager {
   ) {
     this.host = batchHost;
     this.resolveComponentId = resolveComponentId;
+    this.sourceRoot = sourceRoot;
     this.useLocalMatrix = useLocalMatrix;
     this.group.name = "gg-instanced-batches";
     this.group.userData.ggInstancedContainer = true;
 
+    this.host.add(this.group);
+    this.updateSourceMatrices();
     const candidates = new Map<string, Mesh[]>();
-    sourceRoot.updateWorldMatrix(true, true);
     sourceRoot.traverse((obj) => {
-      if (!isBatchableMesh(obj)) return;
+      if (!isBatchableMesh(obj, sourceRoot, useLocalMatrix)) return;
       const mat = obj.material as Material;
       const key = `${obj.geometry.uuid}:${mat.uuid}`;
       let list = candidates.get(key);
@@ -119,7 +142,7 @@ export class InstancedBatchManager {
         mesh.userData.ggInstancedVisible = mesh.visible;
         instancedMesh.setMatrixAt(
           slotIndex,
-          mesh.visible ? (this.useLocalMatrix ? mesh.matrix : mesh.matrixWorld) : ZERO_MATRIX
+          mesh.visible ? this.batchMatrix(mesh) : ZERO_MATRIX
         );
         instancedMesh.setColorAt(slotIndex, WHITE);
         slots.push(slot);
@@ -142,9 +165,7 @@ export class InstancedBatchManager {
       this.group.add(instancedMesh);
     }
 
-    if (this.batches.length > 0) {
-      this.host.add(this.group);
-    }
+    if (this.batches.length === 0) this.group.removeFromParent();
   }
 
   get active(): boolean {
@@ -152,28 +173,40 @@ export class InstancedBatchManager {
   }
 
   isManaged(mesh: Mesh): boolean {
-    return this.slotByMesh.has(mesh);
+    return !this.originalPath && this.slotByMesh.has(mesh);
   }
 
-  markMatricesDirty(): void {
-    this.matricesDirty = true;
+  private updateSourceMatrices(): void {
+    if (this.useLocalMatrix) return;
+    this.group.updateWorldMatrix(true, false);
+    this.batchWorldIsIdentity = this.group.matrixWorld.equals(IDENTITY_MATRIX);
+    if (!this.batchWorldIsIdentity) this.inverseBatchWorld.copy(this.group.matrixWorld).invert();
+    this.sourceRoot.parent?.updateWorldMatrix(true, false);
+    this.sourceRoot.updateMatrixWorld();
+  }
+
+  private batchMatrix(mesh: Mesh): Matrix4 {
+    if (this.useLocalMatrix) return mesh.matrix;
+    return this.batchWorldIsIdentity ? mesh.matrixWorld :
+      this.relativeMatrix.multiplyMatrices(this.inverseBatchWorld, mesh.matrixWorld);
+  }
+
+  sourceIntersection(hit: Intersection): Intersection {
+    const slot = hit.instanceId === undefined ? undefined :
+      this.batchByInstanced.get(hit.object as InstancedMesh)?.slots[hit.instanceId];
+    return slot ? { ...hit, object: slot.mesh, instanceId: undefined } : hit;
   }
 
   resolveHitComponentId(hit: Intersection): string | null {
-    const obj = hit.object;
-    if ((obj as InstancedMesh).isInstancedMesh && hit.instanceId !== undefined) {
-      const batch = this.batchByInstanced.get(obj as InstancedMesh);
-      if (batch) {
-        return batch.slots[hit.instanceId]?.componentId ?? null;
-      }
-    }
-    return this.resolveComponentId(obj);
+    const source = this.sourceIntersection(hit);
+    return this.resolveComponentId(source.object);
   }
 
   applyDisplayAndVisibility(params: {
     mode: string;
     opacity: number;
     shadows: boolean;
+    edges?: boolean;
     selected: ReadonlySet<string>;
     hovered: string | null;
     hidden: ReadonlySet<string>;
@@ -202,9 +235,16 @@ export class InstancedBatchManager {
       hoverColor,
     } = params;
 
+    this.originalPath = Boolean(params.edges || mode === "xray" || mode === "technical" || opacity < 1);
+    this.group.visible = !this.originalPath;
+    if (this.originalPath) {
+      for (const slot of this.slotByMesh.values()) delete slot.mesh.userData.ggInstancedManaged;
+      return false;
+    }
+    this.updateSourceMatrices();
     const usePerInstanceColor =
       mode === "layer" || mode === "category" || mode === "semanticMaterial" || Boolean(overrideColors?.size);
-    const totalOverlayCandidates = selected.size + (hovered ? 1 : 0) + ghosts.size;
+    const totalOverlayCandidates = selected.size + (hovered ? 1 : 0);
     const promoteOverlayMeshes = totalOverlayCandidates <= MAX_OVERLAY_PROMOTIONS;
     let overlayActiveCount = 0;
 
@@ -248,8 +288,9 @@ export class InstancedBatchManager {
         const isSelected = id !== null && selected.has(id);
         const isHovered = id !== null && id === hovered;
         const isGhost = id !== null && ghosts.has(id);
-        const promote = isVisible && promoteOverlayMeshes && (isSelected || isHovered || isGhost);
+        const promote = isVisible && (isGhost || (promoteOverlayMeshes && (isSelected || isHovered)));
 
+        slot.mesh.userData.ggInstancedManaged = true;
         slot.mesh.userData.ggInstancedVisible = isVisible;
         slot.mesh.visible = promote;
         if (promote) overlayActiveCount += 1;
@@ -257,12 +298,7 @@ export class InstancedBatchManager {
         if (!isVisible || promote) {
           batch.instancedMesh.setMatrixAt(slot.slotIndex, ZERO_MATRIX);
         } else {
-          if (!this.useLocalMatrix) slot.mesh.updateWorldMatrix(true, false);
-          else slot.mesh.updateMatrix();
-          batch.instancedMesh.setMatrixAt(
-            slot.slotIndex,
-            this.useLocalMatrix ? slot.mesh.matrix : slot.mesh.matrixWorld
-          );
+          batch.instancedMesh.setMatrixAt(slot.slotIndex, this.batchMatrix(slot.mesh));
         }
 
         if (usePerInstanceColor || !promoteOverlayMeshes) {
@@ -279,33 +315,32 @@ export class InstancedBatchManager {
           colorsDirty = true;
         }
       }
+      batch.instancedMesh.boundingSphere = null;
       batch.instancedMesh.instanceMatrix.needsUpdate = true;
       if (colorsDirty && batch.instancedMesh.instanceColor) {
         batch.instancedMesh.instanceColor.needsUpdate = true;
       }
     }
 
-    this.matricesDirty = false;
     return overlayActiveCount > 0;
   }
 
   /** Fast path when transforms move (Explode, Assembly, Knolling) without visibility/mode changes. */
-  syncTransforms(rootScene: Object3D): void {
-    if (!this.active) return;
-    rootScene.updateMatrixWorld();
+  syncTransforms(): void {
+    if (!this.active || this.originalPath) return;
+    this.updateSourceMatrices();
     for (const batch of this.batches) {
       let dirty = false;
       for (const slot of batch.slots) {
         if (!slot.mesh.userData.ggInstancedVisible || slot.mesh.visible) continue;
-        batch.instancedMesh.setMatrixAt(
-          slot.slotIndex,
-          this.useLocalMatrix ? slot.mesh.matrix : slot.mesh.matrixWorld
-        );
+        batch.instancedMesh.setMatrixAt(slot.slotIndex, this.batchMatrix(slot.mesh));
         dirty = true;
       }
-      if (dirty) batch.instancedMesh.instanceMatrix.needsUpdate = true;
+      if (dirty) {
+        batch.instancedMesh.boundingSphere = null;
+        batch.instancedMesh.instanceMatrix.needsUpdate = true;
+      }
     }
-    this.matricesDirty = false;
   }
 
   dispose(): void {

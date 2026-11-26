@@ -89,6 +89,7 @@ export const USER_ORGANIZATION_PALETTE = [
 ] as const;
 
 export const MAX_ORGANIZATION_DEPTH = 16;
+export const MAX_ORGANIZATION_ENTRIES = 2_000;
 
 export function createEmptyOrganization(
   binding?: Partial<OrganizationBinding>

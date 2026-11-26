@@ -8,7 +8,8 @@ import AxeBuilder from "@axe-core/playwright";
 import { makeBenchmarkFixture } from "./revision-benchmark-fixture.mjs";
 
 const app = fileURLToPath(new URL("../", import.meta.url));
-const out = join(app, "test-results", "v08");
+const hardware = process.env.GEOGEN_V091_HARDWARE === "1";
+const out = join(app, "test-results", hardware ? "v091-hardware" : "v08");
 await mkdir(out, { recursive: true });
 const port = process.env.GEOGEN_V08_PORT ?? "3208";
 const origin = "http://127.0.0.1:" + port;
@@ -95,10 +96,35 @@ async function stats(page) {
   return Object.fromEntries(fields.flatMap((label, i) => i % 2 ? [] : [[label, fields[i + 1]]]));
 }
 
+async function profileFrameIntervals(page) {
+  return page.evaluate(async () => {
+    const stamps = [];
+    const capture = () => stamps.push(performance.now());
+    document.addEventListener("geogen-camera-frame", capture);
+    const canvas = document.querySelector(".gg-viewport canvas:not(.gg-v08-overlay)");
+    const bounds = canvas.getBoundingClientRect();
+    const windowCount = 20;
+    const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+    try {
+      await pause(250);
+      const idleFrames250ms = stamps.length;
+      stamps.length = 0;
+      for (let i = 0; i < windowCount; i++) {
+        canvas.dispatchEvent(new WheelEvent("wheel", { deltaY: i % 2 ? 24 : -24,
+          clientX: bounds.x + bounds.width / 2, clientY: bounds.y + bounds.height / 2, cancelable: true }));
+        await pause(35);
+      }
+      const intervals = stamps.slice(1).map((stamp, index) => stamp - stamps[index]).sort((a, b) => a - b);
+      const percentile = (p) => intervals.length ? Number(intervals[Math.ceil(intervals.length * p) - 1].toFixed(2)) : null;
+      return { idleFrames250ms, samples: intervals.length, p50: percentile(0.5), p95: percentile(0.95) };
+    } finally { document.removeEventListener("geogen-camera-frame", capture); }
+  });
+}
+
 try {
   await ready();
   browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL ?? "chrome",
-    args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
+    args: hardware ? [] : ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, acceptDownloads: true, colorScheme: "light" });
   await instrument(context);
   const page = await context.newPage();
@@ -108,6 +134,12 @@ try {
     if (/^https?:/.test(request.url()) && !request.url().startsWith(origin + "/")) results.problems.push("Requisição externa " + request.url());
   });
   await open(page);
+  const renderer = await view(page).evaluate((canvas) => {
+    const gl = canvas.getContext("webgl2");
+    const debug = gl?.getExtension("WEBGL_debug_renderer_info");
+    return gl && debug ? gl.getParameter(debug.UNMASKED_RENDERER_WEBGL) : null;
+  });
+  results.environment = { browser: browser.version(), mode: hardware ? "default" : "swiftshader", renderer };
   const k = kit(page);
   await page.screenshot({ path: join(out, "knolling-completo.png") });
   results.lab = await stats(page);
@@ -264,6 +296,7 @@ try {
     await tab.waitForFunction(() => document.documentElement.dataset.projection === "orthographic");
     const loadAndLayoutMs = Math.round(performance.now() - t0);
     const figures = await stats(tab);
+    const activeFramesMs = process.env.GEOGEN_V091_PROFILE === "1" ? await profileFrameIntervals(tab) : undefined;
     await kit(tab).getByRole("checkbox", { name: "Mostrar callouts", exact: true }).first().check();
     const overlay = await stats(tab);
     const startThumb = performance.now();
@@ -284,7 +317,23 @@ try {
     const captureMs = Math.round(performance.now() - captureStart);
     const contexts = Number(await tab.locator("html").getAttribute("data-gl-count"));
     assert.equal(contexts, 1);
-    results.benchmark.push({ count, loadAndLayoutMs, firstThumbnailMs, filterMs, sheetMs, captureMs, contexts, figures, overlay });
+    results.benchmark.push({ count, loadAndLayoutMs, firstThumbnailMs, filterMs, sheetMs, captureMs, contexts, figures, overlay, activeFramesMs });
+    if (count === 10_000 && process.env.GEOGEN_V091_PROFILE === "1") {
+      await workspace(tab, "explore");
+      await button(tab, "Vistas").click();
+      await choice(tab, "Distribuição").selectOption("quad");
+      await tab.waitForFunction(() => document.querySelectorAll(".gg-view-region").length === 4);
+      await tab.keyboard.press("Escape");
+      const quad = await stats(tab);
+      await tab.screenshot({ path: join(out, "stress-quad.png") });
+      const replaced = await view(tab).elementHandle();
+      await tab.locator('input[aria-label="Abrir GLB / Manifesto"]').setInputFiles(join(app, "public/demos/estrutura.glb"));
+      await tab.waitForFunction((canvas) => !canvas.isConnected, replaced);
+      await view(tab).waitFor();
+      const small = await stats(tab);
+      assert.equal(await view(tab).count(), 1);
+      results.stress = { quad, small, priorCanvasDetached: true, currentCanvasCount: 1 };
+    }
     await browserContext.close();
   }
 } catch (error) {

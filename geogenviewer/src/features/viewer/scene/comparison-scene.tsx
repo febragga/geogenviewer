@@ -5,7 +5,9 @@ import { useEffect, useMemo, useRef } from "react";
 import { Box3, Color, DirectionalLight, Group, HemisphereLight, Matrix4, Raycaster, Scene, Sphere, Vector2, type Camera, type InstancedMesh, type Mesh, type Object3D } from "three";
 import { createStore } from "zustand";
 import { firstVisibleHit } from "../../../lib/geogen/inspection/sections";
-import { defaultHiddenIds, hiddenByFilters } from "../../../lib/geogen/domain/visibility";
+import { defaultHiddenIds, hiddenByFilters, hiddenByGroups } from "../../../lib/geogen/domain/visibility";
+import { resolveOrganizationView } from "../../../lib/geogen/organization/operations";
+import { useOrganizationStore } from "../state/organization-store";
 import type { Revision } from "../../../lib/geogen/revisions/revision";
 import type { RevisionComparison, Side } from "../state/revision-workspace";
 import { usePresentation, type PngOptions } from "../state/presentation-store";
@@ -204,7 +206,8 @@ export function ComparisonScene({ base, comparison, state, primaryKey, compact, 
         display.mode === "toggle" || (display.mode === "side" && compact) ? display.side : null);
       const visible = sides.filter((side) => showOnly ? side === showOnly : display.visible[side]);
       for (const side of sides) data.objects[side].group.visible = visible.includes(side);
-      const inputs = [settings, selection, viewer.hiddenIds, viewer.isolatedIds, viewer.filters, viewer.selectedIds];
+      const organization = useOrganizationStore.getState().doc;
+      const inputs = [settings, selection, viewer.hiddenIds, viewer.hiddenGroupKeys, viewer.isolatedIds, viewer.filters, viewer.selectedIds, organization];
       if (inputs.every((value, index) => value === last[index])) return;
       last = inputs;
       for (const side of sides) {
@@ -215,20 +218,30 @@ export function ComparisonScene({ base, comparison, state, primaryKey, compact, 
         const hidden = new Set(single ? [] : style.hidden);
         for (const id of primary ? viewer.hiddenIds : defaultHiddenIds(graph)) hidden.add(id);
         const selected = selection ? style.selected : new Set<string>();
-        for (const id of hiddenByFilters(graph, viewer.filters, [...selected], new Map())) hidden.add(id);
-        const isolated = !single && display.isolate && state.selection ? style.selected :
-          primary && viewer.isolatedIds ? new Set(viewer.isolatedIds) : null;
+        const userOrganization = primary ? resolveOrganizationView(graph, { ...organization, activeSource: "user" }) : null;
+        const primaryOrganization = userOrganization ? { ...userOrganization, source: organization.activeSource } : null;
+        for (const id of hiddenByFilters(graph, viewer.filters, [...selected], new Map(), primaryOrganization)) hidden.add(id);
+        if (primary) {
+          for (const id of hiddenByGroups(graph, viewer.hiddenGroupKeys, primaryOrganization)) hidden.add(id);
+          if (primaryOrganization?.source === "user") {
+            for (const id of primaryOrganization.hiddenByUserLayers) hidden.add(id);
+          }
+        }
+        const localIsolation = primary && viewer.isolatedIds ? new Set(viewer.isolatedIds) : null;
+        const isolated = !single && display.isolate && state.selection ?
+          new Set([...style.selected].filter((id) => !localIsolation || localIsolation.has(id))) : localIsolation;
         const opacity = !single && !showOnly ? display.opacity[side] : 1;
         const mode = !single && display.semantic ? "shaded" : settings.mode;
         displays[side].apply({ ...settings, mode, opacity: opacity * settings.opacity, shadows: false },
-          selected, null, hidden, isolated, single ? new Set() : style.ghosts, single ? undefined : style.colors);
+          selected, null, hidden, isolated, single ? new Set() : style.ghosts, single ? undefined : style.colors, primaryOrganization);
       }
     };
     const stopView = usePresentation.subscribe((a, b) => { if (a.display !== b.display || a.active !== b.active) invalidate(); });
     const stopInspect = useInspection.subscribe(() => invalidate());
     const stopViewer = useViewerStore.subscribe(() => invalidate());
+    const stopOrganization = useOrganizationStore.subscribe((next, prev) => { if (next.doc !== prev.doc) invalidate(); });
     invalidate();
-    return () => { runtime.current = null; stopView(); stopInspect(); stopViewer(); };
+    return () => { runtime.current = null; stopView(); stopInspect(); stopViewer(); stopOrganization(); };
   }, [data, base, comparison, primaryKey, compact, state, styles, split, single, separation, gl, invalidate]);
 
   useEffect(() => { cameras.current?.mode(mode === "pan"); }, [cameras, mode]);
@@ -284,7 +297,10 @@ export function ComparisonScene({ base, comparison, state, primaryKey, compact, 
         }
         return null;
       };
-      const hits = ray.intersectObjects([...byGroup.keys()], true);
+      const currentEngine = engine.current;
+      const hits = currentEngine ?
+        groups.flatMap((side) => currentEngine[side].intersections(ray)).sort((a, b) => a.distance - b.distance) :
+        ray.intersectObjects([...byGroup.keys()], true);
       const hit = firstVisibleHit(hits, gl.clippingPlanes, (candidate) =>
         Boolean(candidate.object.visible && sideOf(candidate.object)));
       const side = hit ? sideOf(hit.object) : null;

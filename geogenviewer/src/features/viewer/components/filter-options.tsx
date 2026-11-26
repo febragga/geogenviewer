@@ -5,7 +5,7 @@ import { catalogFor, normalizeSearch, type FilterField, type FilterOption } from
 import type { LoadedScenePackage } from "../../../lib/geogen/importers/package";
 import { copy } from "../copy";
 import { resolveOrganizationView } from "../../../lib/geogen/organization/operations";
-import { preferenceKey, readLocalList, writeLocalList, type FilterPreset } from "../state/local-preferences";
+import { preferenceKey, readLocalList, validFilters, writeLocalList, type FilterPreset } from "../state/local-preferences";
 import { useOrganizationStore } from "../state/organization-store";
 import { useEffectiveVisibility } from "../state/visibility-state";
 import { useViewerStore } from "../state/viewer-store";
@@ -22,8 +22,11 @@ export function FilterOptions({ loaded, onFit }: { loaded: LoadedScenePackage; o
   const [field, setField] = useState<FilterField>("layer");
   const [search, setSearch] = useState("");
   const [limit, setLimit] = useState(80);
-  const key = preferenceKey("filters", loaded.manifest, loaded.sceneGraph.fileName, loaded.sceneGraph.fileSizeBytes);
-  const [saved, setSaved] = useState(() => readLocalList<FilterPreset>(key));
+  const key = preferenceKey("filters", loaded.manifest, loaded.sceneGraph.fileName, loaded.sceneGraph.fileSizeBytes, loaded.binarySha256 ?? null);
+  const [saved, setSaved] = useState(() => readLocalList<FilterPreset>(key, undefined, (preset) => validFilters(preset.filters)));
+  const [legacy] = useState(() => !loaded.manifest && readLocalList(
+    preferenceKey("filters", undefined, loaded.sceneGraph.fileName, loaded.sceneGraph.fileSizeBytes)
+  ).length > 0);
   const [chosen, setChosen] = useState("");
   const [name, setName] = useState("");
   const [status, setStatus] = useState("");
@@ -75,7 +78,7 @@ export function FilterOptions({ loaded, onFit }: { loaded: LoadedScenePackage; o
         <button type="button" className="gg-btn gg-btn--secondary" disabled={!selected.length} onClick={useViewerStore.getState().hideUnselected}>{v05.hideUnselected}</button>
         <button type="button" className="gg-btn gg-btn--ghost" disabled={!beforeIsolation} onClick={useViewerStore.getState().restoreIsolation}>{v05.undoIsolate}</button>
         <button type="button" className="gg-btn gg-btn--ghost" onClick={() => {
-          useViewerStore.setState({ hiddenIds: visible, isolatedIds: null, filters: {}, beforeIsolation: null });
+          useViewerStore.setState({ hiddenIds: visible, hiddenGroupKeys: [], isolatedIds: null, filters: {}, beforeIsolation: null });
         }}>{v05.invert}</button>
         <button type="button" className="gg-btn gg-btn--ghost" disabled={!visible.length} onClick={() => useViewerStore.getState().selectMany(visible)}>{v05.selectVisible}</button>
         <button type="button" className="gg-btn gg-btn--ghost" disabled={!selected.length} onClick={() => onFit(selected)}>{v05.fitSelection}</button>
@@ -103,6 +106,7 @@ export function FilterOptions({ loaded, onFit }: { loaded: LoadedScenePackage; o
           setChosen("");
         }}>{v05.remove}</button>
       </div>
+      {legacy && <p className="gg-v05-hint">Combinações antigas deste GLB seguem armazenadas sem vínculo ao conteúdo do arquivo.</p>}
       {status && <p role="status">{status}</p>}
     </>
   );

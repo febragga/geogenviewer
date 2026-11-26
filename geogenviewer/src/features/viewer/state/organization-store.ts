@@ -4,17 +4,19 @@ import { create } from "zustand";
 import type { ViewerSceneGraph } from "../../../lib/geogen/domain/model";
 import {
   checkOrganizationCompatibility,
+  OrganizationValidationError,
+  organizationMaxBytes,
   parseAndValidateOrganization,
   serializeOrganization,
   type OrganizationCompatibilityResult,
-} from "../../../lib/geogen/organization/document";
+} from "../../../lib/geogen/organization/document.ts";
 import {
   createEmptyOrganization,
   type DeleteLayerStrategy,
   type OrganizationBinding,
   type OrganizationSource,
   type UserOrganizationDocument,
-} from "../../../lib/geogen/organization/model";
+} from "../../../lib/geogen/organization/model.ts";
 import {
   addOccurrencesToUserGroup,
   assignOccurrencesToUserLayer,
@@ -33,36 +35,49 @@ import {
   reorderUserLayer,
   setOrganizationSource,
   toggleUserLayerVisibility,
-} from "../../../lib/geogen/organization/operations";
+} from "../../../lib/geogen/organization/operations.ts";
 
-const STORAGE_PREFIX = "geogen:v09:org:";
+const STORAGE_PREFIX = "geogen:v091:org:";
 const MAX_HISTORY = 50;
+const storageFailure = "O armazenamento local está indisponível. Exporte a organização para guardar as alterações.";
 
-function storageKey(binding: OrganizationBinding): string {
-  const token = binding.modelSha256 || binding.revisionId || binding.projectId || binding.key;
-  return `${STORAGE_PREFIX}${token}`;
+function storageKey(binding: OrganizationBinding): string | null {
+  if (!binding.modelSha256 && !(binding.projectId && binding.revisionId)) return null;
+  return STORAGE_PREFIX + JSON.stringify([binding.projectId, binding.revisionId, binding.modelSha256?.toLowerCase() ?? null]);
 }
 
-function readPersistedOrganization(binding: OrganizationBinding): UserOrganizationDocument | null {
-  if (typeof window === "undefined") return null;
+function readPersistedOrganization(graph: ViewerSceneGraph, binding: OrganizationBinding) {
+  const key = storageKey(binding);
+  if (!key || typeof window === "undefined") return { doc: null, notice: null };
   try {
-    const raw = window.localStorage.getItem(storageKey(binding));
-    if (!raw) return null;
-    return parseAndValidateOrganization(raw);
-  } catch {
-    return null;
+    const store = window.localStorage;
+    const legacy = binding.modelSha256 && "geogen:v09:org:" + binding.modelSha256;
+    const raw = store.getItem(key) ?? (legacy ? store.getItem(legacy) : null);
+    if (!raw) return { doc: null, notice: null };
+    const result = checkOrganizationCompatibility(parseAndValidateOrganization(raw), graph, binding);
+    return {
+      doc: result.status === "mismatch" ? null : result.sanitized,
+      notice: result.warnings[0] ?? null,
+    };
+  } catch (error) {
+    return { doc: null, notice: error instanceof OrganizationValidationError ? error.message : storageFailure };
   }
 }
 
 function writePersistedOrganization(
   binding: OrganizationBinding | null,
   doc: UserOrganizationDocument
-): void {
-  if (typeof window === "undefined" || !binding) return;
+): string | null {
+  if (typeof window === "undefined" || !binding) return null;
+  const key = storageKey(binding);
+  if (!key) return storageFailure;
   try {
-    window.localStorage.setItem(storageKey(binding), serializeOrganization(doc));
+    const raw = serializeOrganization(doc);
+    if (raw.length > organizationMaxBytes) return storageFailure;
+    window.localStorage.setItem(key, raw);
+    return null;
   } catch {
-    /* ignore storage quota failures safely */
+    return storageFailure;
   }
 }
 
@@ -72,12 +87,13 @@ interface OrganizationState {
   past: UserOrganizationDocument[];
   future: UserOrganizationDocument[];
   lastImportNotice: string | null;
+  persistenceNotice: string | null;
 
   initializeForRevision: (sceneGraph: ViewerSceneGraph | null, binding: OrganizationBinding | null) => void;
   setActiveSource: (source: OrganizationSource) => void;
   copyFromImported: (sceneGraph: ViewerSceneGraph) => void;
 
-  createLayer: (input: { name: string; color?: string; parentId?: string | null }) => void;
+  createLayer: (input: { name: string; color?: string; parentId?: string | null; memberIds?: readonly string[] }) => boolean;
   renameLayer: (layerId: string, name: string) => void;
   recolorLayer: (layerId: string, color: string) => void;
   toggleLayerVisibility: (layerId: string, visible?: boolean) => void;
@@ -111,9 +127,10 @@ export const useOrganizationStore = create<OrganizationState>((set, get) => {
     const next = mutator(doc);
     if (next === doc) return;
     const nextPast = [...past, doc].slice(-MAX_HISTORY);
-    writePersistedOrganization(binding, next);
+    const persistenceNotice = writePersistedOrganization(binding, next);
     set({
       doc: next,
+      persistenceNotice,
       past: nextPast,
       future: [],
     });
@@ -125,6 +142,7 @@ export const useOrganizationStore = create<OrganizationState>((set, get) => {
     past: [],
     future: [],
     lastImportNotice: null,
+    persistenceNotice: null,
 
     initializeForRevision(sceneGraph, binding) {
       if (!sceneGraph || !binding) {
@@ -134,21 +152,11 @@ export const useOrganizationStore = create<OrganizationState>((set, get) => {
           past: [],
           future: [],
           lastImportNotice: null,
+          persistenceNotice: null,
         });
         return;
       }
-      const persisted = readPersistedOrganization(binding);
-      if (persisted) {
-        const checked = checkOrganizationCompatibility(persisted, sceneGraph, binding);
-        set({
-          binding,
-          doc: checked.sanitized,
-          past: [],
-          future: [],
-          lastImportNotice: checked.warnings[0] ?? null,
-        });
-        return;
-      }
+      const persisted = readPersistedOrganization(sceneGraph, binding);
       const empty = createEmptyOrganization(binding);
       // GLB-only models start directly ready for user layers when no CAD layers exist
       const hasCadHierarchy =
@@ -156,10 +164,11 @@ export const useOrganizationStore = create<OrganizationState>((set, get) => {
         (Object.keys(sceneGraph.layers).length > 0 || Object.keys(sceneGraph.groups).length > 0);
       set({
         binding,
-        doc: { ...empty, activeSource: hasCadHierarchy ? "cad" : "user" },
+        doc: persisted.doc ?? { ...empty, activeSource: hasCadHierarchy ? "cad" : "user" },
         past: [],
         future: [],
-        lastImportNotice: null,
+        lastImportNotice: persisted.notice,
+        persistenceNotice: null,
       });
     },
 
@@ -168,11 +177,22 @@ export const useOrganizationStore = create<OrganizationState>((set, get) => {
     },
 
     copyFromImported(sceneGraph) {
-      commit((doc) => copyImportedStructureToUser(doc, sceneGraph));
+      commit((doc) => {
+        const copied = copyImportedStructureToUser(doc, sceneGraph);
+        return parseAndValidateOrganization(serializeOrganization(copied));
+      });
     },
 
     createLayer(input) {
-      commit((doc) => createUserLayer(doc, input));
+      let created = false;
+      commit((doc) => {
+        const next = createUserLayer(doc, input);
+        if (next === doc) return doc;
+        created = true;
+        const id = next.userLayers.at(-1)!.id;
+        return input.memberIds?.length ? assignOccurrencesToUserLayer(next, input.memberIds, id) : next;
+      });
+      return created;
     },
 
     renameLayer(layerId, name) {
@@ -235,9 +255,10 @@ export const useOrganizationStore = create<OrganizationState>((set, get) => {
       const { past, doc, future, binding } = get();
       if (past.length === 0) return;
       const previous = past[past.length - 1];
-      writePersistedOrganization(binding, previous);
+      const persistenceNotice = writePersistedOrganization(binding, previous);
       set({
         doc: previous,
+        persistenceNotice,
         past: past.slice(0, -1),
         future: [doc, ...future].slice(0, MAX_HISTORY),
       });
@@ -247,9 +268,10 @@ export const useOrganizationStore = create<OrganizationState>((set, get) => {
       const { past, doc, future, binding } = get();
       if (future.length === 0) return;
       const next = future[0];
-      writePersistedOrganization(binding, next);
+      const persistenceNotice = writePersistedOrganization(binding, next);
       set({
         doc: next,
+        persistenceNotice,
         past: [...past, doc].slice(-MAX_HISTORY),
         future: future.slice(1),
       });
@@ -260,15 +282,11 @@ export const useOrganizationStore = create<OrganizationState>((set, get) => {
     },
 
     importJson(rawJson, sceneGraph) {
-      const binding = get().binding ?? {
-        key: "session",
-        projectId: sceneGraph.projectTitle,
-        revisionId: sceneGraph.revisionId,
-        modelSha256: null,
-      };
+      const { binding } = get();
+      if (!binding) throw new Error("Abra um modelo antes de importar uma organização.");
       const parsed = parseAndValidateOrganization(rawJson);
       const result = checkOrganizationCompatibility(parsed, sceneGraph, binding);
-      commit(() => ({ ...result.sanitized, activeSource: "user" }));
+      if (result.status !== "mismatch") commit(() => ({ ...result.sanitized, activeSource: "user" }));
       set({ lastImportNotice: result.warnings[0] ?? null });
       return result;
     },

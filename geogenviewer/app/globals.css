@@ -73,6 +73,13 @@
   scrollbar-color: var(--gg-border-strong) transparent;
 }
 
+/* Keep foreground and surface colors in sync on the frame that changes theme. */
+:root[data-gg-theme-switch] *,
+:root[data-gg-theme-switch] *::before,
+:root[data-gg-theme-switch] *::after {
+  transition: none !important;
+}
+
 @media (pointer: coarse), (max-width: 1023px) {
   :root {
     --gg-target-size: 44px;
@@ -2082,6 +2089,7 @@ a {
   color: var(--gg-text-primary);
 }
 
+
 @media (pointer: coarse), (max-width: 1023px) {
   .gg-preset-btn,
   .gg-seg-btn,
@@ -2942,8 +2950,8 @@ a {
 }
 
 .gg-org-source-btn[aria-pressed="true"] {
-  background: #3b82f6;
-  color: #ffffff;
+  background: var(--gg-accent);
+  color: var(--gg-accent-ink);
 }
 
 .gg-org-bar__actions {

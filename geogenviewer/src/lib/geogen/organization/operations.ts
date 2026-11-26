@@ -1,6 +1,7 @@
 import type { ViewerSceneGraph } from "../domain/model.ts";
 import {
   MAX_ORGANIZATION_DEPTH,
+  MAX_ORGANIZATION_ENTRIES,
   normalizeHexColor,
   toCadGroupRecord,
   toCadLayerRecord,
@@ -27,9 +28,13 @@ function sanitizeLabel(name: string, fallback: string): string {
 }
 
 function uniqueId(prefix: string, existingIds: Set<string>): string {
-  let index = 1;
-  while (existingIds.has(`${prefix}-${index}`)) index += 1;
-  return `${prefix}-${index}`;
+  let id: string;
+  do {
+    const token = globalThis.crypto.randomUUID?.() ??
+      Array.from(globalThis.crypto.getRandomValues(new Uint8Array(16)), (byte) => byte.toString(16).padStart(2, "0")).join("");
+    id = prefix + "-" + token;
+  } while (existingIds.has(id));
+  return id;
 }
 
 export function wouldCreateCycle<T extends { id: string; parentId: string | null }>(
@@ -50,7 +55,17 @@ export function wouldCreateCycle<T extends { id: string; parentId: string | null
     if (depth > MAX_ORGANIZATION_DEPTH) return true;
     current = byId.get(current)?.parentId ?? null;
   }
-  return false;
+  // A moved subtree keeps its existing height under the new parent.
+  let subtreeDepth = 1;
+  for (const id of subtreeIds(nodes, nodeId)) {
+    let itemDepth = 1;
+    for (let parent = byId.get(id)?.parentId; parent && id !== nodeId; parent = byId.get(parent)?.parentId) {
+      itemDepth += 1;
+      if (parent === nodeId || depth + itemDepth > MAX_ORGANIZATION_DEPTH) break;
+    }
+    subtreeDepth = Math.max(subtreeDepth, itemDepth);
+  }
+  return depth + subtreeDepth > MAX_ORGANIZATION_DEPTH;
 }
 
 export function subtreeIds<T extends { id: string; parentId: string | null }>(
@@ -100,6 +115,7 @@ export function createUserLayer(
   doc: UserOrganizationDocument,
   input: { name: string; color?: string; parentId?: string | null; visible?: boolean }
 ): UserOrganizationDocument {
+  if (doc.userLayers.length >= MAX_ORGANIZATION_ENTRIES) return doc;
   const existingIds = new Set(doc.userLayers.map((l) => l.id));
   const id = uniqueId("ulayer", existingIds);
   const parentId =
@@ -301,10 +317,12 @@ export function createUserGroup(
     memberIds?: readonly string[];
   }
 ): UserOrganizationDocument {
+  if (doc.userGroups.length >= MAX_ORGANIZATION_ENTRIES) return doc;
   const existingIds = new Set(doc.userGroups.map((g) => g.id));
   const id = uniqueId("ugroup", existingIds);
   const parentId =
     input.parentId && existingIds.has(input.parentId) ? input.parentId : null;
+  if (wouldCreateCycle(doc.userGroups, id, parentId)) return doc;
   const order = doc.userGroups.filter((g) => g.parentId === parentId).length;
   const group: UserGroupRecord = {
     id,
@@ -436,7 +454,8 @@ export function copyImportedStructureToUser(
   doc: UserOrganizationDocument,
   sceneGraph: ViewerSceneGraph
 ): UserOrganizationDocument {
-  const existingLayerIds = new Set(doc.userLayers.map((l) => l.id));
+  const occupiedIds = [...sceneGraph.componentOrder, ...Object.keys(sceneGraph.layers), ...Object.keys(sceneGraph.groups)];
+  const existingLayerIds = new Set([...occupiedIds, ...doc.userLayers.map((l) => l.id)]);
   const layerIdMap = new Map<string, string>();
   const clonedLayers: UserLayerRecord[] = [];
   const cadLayerIds = Object.keys(sceneGraph.layers);
@@ -460,7 +479,7 @@ export function copyImportedStructureToUser(
     });
   }
 
-  const existingGroupIds = new Set(doc.userGroups.map((g) => g.id));
+  const existingGroupIds = new Set([...occupiedIds, ...doc.userGroups.map((g) => g.id), ...existingLayerIds]);
   const groupIdMap = new Map<string, string>();
   const cadGroupIds = Object.keys(sceneGraph.groups);
   for (const cadGroupId of cadGroupIds) {
@@ -505,10 +524,10 @@ export function resolveOrganizationView(
   doc: UserOrganizationDocument
 ): ResolvedOrganizationView {
   if (doc.activeSource === "cad") {
-    const layers: Record<string, ResolvedLayerView> = {};
-    const groups: Record<string, ResolvedGroupView> = {};
-    const componentLayerId: Record<string, string | null> = {};
-    const componentGroupIds: Record<string, string[]> = {};
+    const layers: Record<string, ResolvedLayerView> = Object.create(null);
+    const groups: Record<string, ResolvedGroupView> = Object.create(null);
+    const componentLayerId: Record<string, string | null> = Object.create(null);
+    const componentGroupIds: Record<string, string[]> = Object.create(null);
     const cadLayerIds = Object.keys(sceneGraph.layers);
     const cadGroupIds = Object.keys(sceneGraph.groups);
 
@@ -538,7 +557,7 @@ export function resolveOrganizationView(
   }
 
   const validComponents = new Set(sceneGraph.componentOrder);
-  const layers: Record<string, ResolvedLayerView> = {};
+  const layers: Record<string, ResolvedLayerView> = Object.create(null);
   const sortedLayers = [...doc.userLayers].sort((a, b) => a.order - b.order);
   const hiddenSet = new Set(doc.hiddenLayerIds);
 
@@ -563,7 +582,7 @@ export function resolveOrganizationView(
     }
   }
 
-  const componentLayerId: Record<string, string | null> = {};
+  const componentLayerId: Record<string, string | null> = Object.create(null);
   const hiddenByUserLayers = new Set<string>();
   for (const compId of sceneGraph.componentOrder) {
     const assigned = doc.componentLayerAssignments[compId];
@@ -579,9 +598,9 @@ export function resolveOrganizationView(
     }
   }
 
-  const groups: Record<string, ResolvedGroupView> = {};
+  const groups: Record<string, ResolvedGroupView> = Object.create(null);
   const sortedGroups = [...doc.userGroups].sort((a, b) => a.order - b.order);
-  const componentGroupIds: Record<string, string[]> = {};
+  const componentGroupIds: Record<string, string[]> = Object.create(null);
   for (const compId of sceneGraph.componentOrder) {
     componentGroupIds[compId] = [];
   }

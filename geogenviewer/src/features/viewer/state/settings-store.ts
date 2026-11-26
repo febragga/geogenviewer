@@ -18,6 +18,7 @@ export interface AppPreferences {
 }
 
 const SETTINGS_KEY = "geogen:v09:settings";
+export const THEME_KEY = "geogen-color-scheme";
 
 export const defaultAppPreferences: AppPreferences = {
   theme: "system",
@@ -29,10 +30,22 @@ export const defaultAppPreferences: AppPreferences = {
   largeModelOccurrenceThreshold: 1_500,
 };
 
-function applyThemePreference(theme: ThemePreference): void {
+let themeFrame: number | null = null;
+
+export function applyThemePreference(theme: ThemePreference): void {
   if (typeof document === "undefined") return;
   const meta = document.querySelector<HTMLMetaElement>('meta[name="color-scheme"]');
   const value = theme === "system" ? "light dark" : theme;
+  if (meta?.content === value) return;
+  const root = document.documentElement;
+  root.setAttribute("data-gg-theme-switch", "");
+  if (themeFrame !== null) cancelAnimationFrame(themeFrame);
+  themeFrame = requestAnimationFrame(() => {
+    themeFrame = requestAnimationFrame(() => {
+      root.removeAttribute("data-gg-theme-switch");
+      themeFrame = null;
+    });
+  });
   if (meta) {
     meta.content = value;
   } else {
@@ -47,13 +60,12 @@ export function loadPersistedPreferences(): AppPreferences {
   if (typeof window === "undefined") return defaultAppPreferences;
   try {
     const raw = window.localStorage.getItem(SETTINGS_KEY);
-    if (!raw) return defaultAppPreferences;
-    const parsed = JSON.parse(raw) as Partial<AppPreferences>;
+    const savedTheme = window.localStorage.getItem(THEME_KEY);
+    const parsed = (raw ? JSON.parse(raw) ?? {} : {}) as Partial<AppPreferences>;
+    const theme = savedTheme ?? parsed?.theme;
     return {
-      theme:
-        parsed.theme === "light" || parsed.theme === "dark" || parsed.theme === "system"
-          ? parsed.theme
-          : defaultAppPreferences.theme,
+      theme: theme === "light" || theme === "dark" || theme === "system"
+        ? theme : defaultAppPreferences.theme,
       viewportBackground:
         parsed.viewportBackground === "white" ||
         parsed.viewportBackground === "dark" ||
@@ -93,6 +105,7 @@ export function loadPersistedPreferences(): AppPreferences {
 function savePreferences(prefs: AppPreferences): void {
   if (typeof window === "undefined") return;
   try {
+    window.localStorage.setItem(THEME_KEY, prefs.theme);
     window.localStorage.setItem(SETTINGS_KEY, JSON.stringify(prefs));
   } catch {
     /* ignore storage quota failures */

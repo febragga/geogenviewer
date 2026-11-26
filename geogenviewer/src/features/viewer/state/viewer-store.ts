@@ -19,11 +19,12 @@ export interface ViewerStoreState {
   selectedIds: string[];
   hoveredId: string | null;
   hiddenIds: string[];
+  hiddenGroupKeys: string[];
   isolatedIds: string[] | null;
   expandedIds: string[];
   filters: Filters;
   workspace: Workspace;
-  beforeIsolation: { hiddenIds: string[]; isolatedIds: string[] | null; filters: Filters } | null;
+  beforeIsolation: { hiddenIds: string[]; hiddenGroupKeys: string[]; isolatedIds: string[] | null; filters: Filters } | null;
   restoreIsolation: () => void;
   setFilters: (filters: Filters) => void;
   setWorkspace: (workspace: Workspace) => void;
@@ -48,6 +49,7 @@ export interface ViewerStoreState {
   toggleCollectionVisibility: (elementIds: string[]) => void;
   isolateIds: (ids: string[]) => void;
   showAll: () => void;
+  toggleGroupVisibility: (key: string) => void;
   toggleExpanded: (id: string) => void;
   expandAll: () => void;
   collapseAll: () => void;
@@ -94,6 +96,7 @@ export const useViewerStore = create<ViewerStoreState>((set, get) => ({
   selectedIds: [],
   hoveredId: null,
   hiddenIds: [],
+  hiddenGroupKeys: [],
   isolatedIds: null,
   expandedIds: [],
   treeTab: "hierarchy",
@@ -115,6 +118,7 @@ export const useViewerStore = create<ViewerStoreState>((set, get) => ({
         selectedIds: [],
         hoveredId: null,
         hiddenIds: [],
+        hiddenGroupKeys: [],
         isolatedIds: null,
         expandedIds: [],
         searchQuery: "",
@@ -142,6 +146,7 @@ export const useViewerStore = create<ViewerStoreState>((set, get) => ({
       selectedIds: [],
       hoveredId: null,
       hiddenIds: defaultHiddenIds(graph),
+      hiddenGroupKeys: [],
       filters: {},
       beforeIsolation: null,
       workspace: "explore",
@@ -265,7 +270,7 @@ export const useViewerStore = create<ViewerStoreState>((set, get) => ({
   },
 
   isolateIds(ids) {
-    const { sceneGraph, hiddenIds, isolatedIds, filters, beforeIsolation } = get();
+    const { sceneGraph, hiddenIds, hiddenGroupKeys, isolatedIds, filters, beforeIsolation } = get();
     if (ids.length === 0) return;
     const targetSet = new Set<string>();
     for (const id of ids) {
@@ -274,7 +279,7 @@ export const useViewerStore = create<ViewerStoreState>((set, get) => ({
       }
     }
     set({
-      beforeIsolation: beforeIsolation ?? { hiddenIds, isolatedIds, filters },
+      beforeIsolation: beforeIsolation ?? { hiddenIds, hiddenGroupKeys, isolatedIds, filters },
       isolatedIds: Array.from(targetSet),
       hiddenIds: hiddenIds.filter((id) => !targetSet.has(id)),
     });
@@ -286,7 +291,13 @@ export const useViewerStore = create<ViewerStoreState>((set, get) => ({
   },
 
   showAll() {
-    set({ hiddenIds: [], isolatedIds: null, filters: {}, beforeIsolation: null });
+    set({ hiddenIds: [], hiddenGroupKeys: [], isolatedIds: null, filters: {}, beforeIsolation: null });
+  },
+
+  toggleGroupVisibility(key) {
+    set(({ hiddenGroupKeys }) => ({
+      hiddenGroupKeys: hiddenGroupKeys.includes(key) ? hiddenGroupKeys.filter((value) => value !== key) : [...hiddenGroupKeys, key],
+    }));
   },
 
   setFilters(filters) { set({ filters }); },

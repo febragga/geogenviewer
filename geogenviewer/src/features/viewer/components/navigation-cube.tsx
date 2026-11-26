@@ -22,6 +22,8 @@ export function NavigationCube() {
   const textRefs = useRef<(SVGTextElement | null)[]>([]);
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const stationSlotMapRef = useRef<number[]>([]);
+  const homeButton = useRef<HTMLButtonElement>(null);
+  const highlight = useRef<number | null>(null);
 
   const [hoveredStation, setHoveredStation] = useState<number | null>(null);
   const [focusedStation, setFocusedStation] = useState<number | null>(null);
@@ -82,7 +84,7 @@ export function NavigationCube() {
           poly.dataset.station = String(face.index);
           poly.dataset.kind = String(face.station.kind);
           poly.dataset.visible = face.visible ? "true" : "false";
-          poly.dataset.highlighted = "false";
+          poly.dataset.highlighted = String(highlight.current === face.index);
           poly.style.setProperty("--gg-cube-shade", face.shade.toFixed(3));
           stationSlotMapRef.current[face.index] = slotIndex;
         }
@@ -92,7 +94,7 @@ export function NavigationCube() {
             text.setAttribute("transform", face.textMatrix);
             text.textContent = face.station.shortLabel ?? "";
             text.dataset.station = String(face.index);
-            text.dataset.highlighted = "false";
+            text.dataset.highlighted = String(highlight.current === face.index);
             text.style.display = "";
           } else {
             text.style.display = "none";
@@ -100,6 +102,7 @@ export function NavigationCube() {
         }
 
         if (btn) {
+          if (!face.visible && document.activeElement === btn) homeButton.current?.focus({ preventScroll: true });
           btn.hidden = !face.visible;
           btn.style.zIndex = String(2 + slotIndex);
           if (face.visible && face.points.length > 0) {
@@ -149,6 +152,7 @@ export function NavigationCube() {
   const activeHighlight = hoveredStation ?? focusedStation;
 
   useEffect(() => {
+    highlight.current = activeHighlight;
     for (let slotIndex = 0; slotIndex < polyRefs.current.length; slotIndex += 1) {
       const poly = polyRefs.current[slotIndex];
       const text = textRefs.current[slotIndex];
@@ -310,6 +314,7 @@ export function NavigationCube() {
         <button
           type="button"
           className="gg-view-cube__ctrl"
+          ref={homeButton}
           title={v05.homeView}
           aria-label={v05.homeView}
           onClick={() => {

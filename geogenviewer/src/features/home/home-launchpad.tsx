@@ -664,7 +664,7 @@ export function HomeLaunchpad() {
             {docTopic === "changelog" && (
               <div className="gg-doc-columns">
                 <div>
-                  <h3>v0.9.0 · Atual</h3>
+                  <h3>{GEOGEN_VERSION_LABEL} · Atual</h3>
                   <p>
                     Nova identidade triangular (#3B82F6), nova home launchpad, Navigation Cube 3D sólido, sistema
                     de grupos e camadas personalizadas com undo/redo e persistência, instancing GPU e refinamento de UX.

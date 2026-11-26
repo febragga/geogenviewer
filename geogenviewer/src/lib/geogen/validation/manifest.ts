@@ -34,7 +34,10 @@ export class ManifestValidationError extends Error {
 
 const unsafeContentPattern = /<\s*\/?\s*(script|iframe|object|embed|svg|style)\b|javascript\s*:/i;
 
-function assertSafeAndFinite(value: unknown, path: string): void {
+function assertSafeAndFinite(value: unknown, path: string, depth = 0): void {
+  if (depth > 64) {
+    throw new ManifestValidationError("JSON_DEPTH", "O JSON do manifesto é profundo demais.");
+  }
   if (typeof value === "number") {
     if (!Number.isFinite(value)) {
       throw new ManifestValidationError(
@@ -55,7 +58,7 @@ function assertSafeAndFinite(value: unknown, path: string): void {
   }
   if (Array.isArray(value)) {
     for (let i = 0; i < value.length; i++) {
-      assertSafeAndFinite(value[i], `${path}[${i}]`);
+      assertSafeAndFinite(value[i], `${path}[${i}]`, depth + 1);
     }
     return;
   }
@@ -67,7 +70,7 @@ function assertSafeAndFinite(value: unknown, path: string): void {
           `Chave de objeto proibida "${k}" em "${path}".`
         );
       }
-      assertSafeAndFinite(v, `${path}.${k}`);
+      assertSafeAndFinite(v, `${path}.${k}`, depth + 1);
     }
   }
 }

@@ -352,7 +352,7 @@ function SceneController({
       const technical = config && sectionAt(config, slot).mode === "technical" && activeClipping(slot).length > 0;
       const org = useOrganizationStore.getState().doc;
       const inputs = [
-        view.display, technical, selection, scene.workspace, scope.selectedIds, hovered, scope.filters, scope.hiddenIds,
+        view.display, technical, selection, scene.workspace, scope.selectedIds, hovered, scope.filters, scope.hiddenIds, scope.hiddenGroupKeys,
         scope.isolatedIds, assembly.timeline, assembly.stepIndex, assembly.ghost, assembly.solo, knollRef.current?.mask, org,
       ];
       const changed = inputs.some((value, index) => value !== last[index]);
@@ -581,10 +581,8 @@ function SceneController({
       onDraw(hitRegion.slot);
       scenePackage.model.scene.updateMatrixWorld();
       raycaster.setFromCamera(pointerNdc, hitRegion.camera);
-      const batchGroup = sceneDisplayRef.current?.batchGroup();
-      const hits = batchGroup
-        ? raycaster.intersectObjects([scenePackage.model.scene, batchGroup], true)
-        : raycaster.intersectObject(scenePackage.model.scene, true);
+      const hits = sceneDisplayRef.current?.intersections(raycaster) ??
+        raycaster.intersectObject(scenePackage.model.scene, true);
       const { ghost, timeline, stepIndex, solo } = useAssembly.getState();
       const workspace = useViewerStore.getState().workspace;
       const ghostEnabled = workspace === "assembly" && ghost && solo === null;
@@ -603,7 +601,8 @@ function SceneController({
           snap, planes, event.shiftKey) : null;
         runtime.setCandidate(hitRegion.slot, result);
         if (confirm && result && hit && id) {
-          const anchor = runtime.anchor(hit, id, result.point, result.mode);
+          const sourceHit = sceneDisplayRef.current?.sourceIntersection(hit) ?? hit;
+          const anchor = runtime.anchor(sourceHit, id, result.point, result.mode);
           if (anchor) useInspection.getState().confirm(anchor, workspace);
         }
       }

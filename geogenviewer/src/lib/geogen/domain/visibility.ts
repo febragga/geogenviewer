@@ -19,6 +19,29 @@ export type AssemblyVisibility = "context" | "future" | "active" | "mounted";
 
 export interface FilterOption { value: string; label: string }
 
+export function hiddenByGroups(
+  graph: ViewerSceneGraph,
+  keys: readonly string[],
+  organization?: ResolvedOrganizationView | null
+): Set<string> {
+  const denied = new Set<string>();
+  const visited = new Set<string>();
+  const pending = [...keys];
+  while (pending.length > 0) {
+    const key = pending.pop()!;
+    if (visited.has(key)) continue;
+    visited.add(key);
+    const separator = key.indexOf(":");
+    const source = key.slice(0, separator);
+    const id = key.slice(separator + 1);
+    const user = source === "user" ? organization?.groups[id] : undefined;
+    const cad = source === "cad" ? graph.groups[id] : undefined;
+    for (const member of user?.componentIds ?? cad?.elementIds ?? []) denied.add(member);
+    for (const child of user?.childIds ?? cad?.childGroupIds ?? []) pending.push(source + ":" + child);
+  }
+  return denied;
+}
+
 export function layerChain(graph: ViewerSceneGraph, id: string | null) {
   const chain: string[] = [];
   for (let layer = id; layer && !chain.includes(layer); layer = graph.layers[layer]?.parentId ?? null) {
@@ -112,6 +135,7 @@ export function hiddenByFilters(
   organization?: ResolvedOrganizationView | null
 ) {
   const entries = (Object.keys(filters) as FilterField[]).flatMap((field) => {
+    if (!organization && (field === "userLayer" || field === "userGroup")) return [];
     const options = filters[field];
     return options?.length ? [[field, new Set(options)] as const] : [];
   });

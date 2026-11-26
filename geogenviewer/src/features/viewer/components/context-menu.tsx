@@ -106,13 +106,8 @@ function ViewerContextMenuBody({
   function submitNewLayer() {
     const trimmed = newName.trim();
     if (!trimmed || !hasTargets) return;
-    createLayer({ name: trimmed });
-    const latest = useOrganizationStore.getState().doc;
-    const created = latest.userLayers[latest.userLayers.length - 1];
-    if (created) {
-      assignOccurrencesToLayer(ids, created.id);
-      onNotify?.(`Camada "${created.name}" criada com ${ids.length} item(ns).`);
-    }
+    const created = createLayer({ name: trimmed, memberIds: ids });
+    if (created) onNotify?.(`Camada "${trimmed}" criada com ${ids.length} item(ns).`);
     onClose();
   }
 

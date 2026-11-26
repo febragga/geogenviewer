@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { defaultTechnicalOptions, type TechnicalOptions } from "../../../lib/geogen/inspection/document";
 import { annotationModel } from "../../../lib/geogen/documentation/callouts";
@@ -146,6 +146,8 @@ function PageImage({ image }: { image: SheetImages[number] }) {
     <figcaption>{image.title}</figcaption></figure>;
 }
 
+const illustratedStageLimit = 20;
+
 export function SheetEditor({ docs, item, counterpart, renderer, knolling, manual, setManual, selectedStep, setSelectedStep,
   generated, onGenerated, fail }: {
   docs: DocumentationWorkspace; item: CatalogItem | null; counterpart: Counterpart; renderer: RenderDocumentationImage | null;
@@ -154,6 +156,8 @@ export function SheetEditor({ docs, item, counterpart, renderer, knolling, manua
 }) {
   const [busy, setBusy] = useState(false);
   const [local, setLocal] = useState(false);
+  const pending = useRef<AbortController | null>(null);
+  useEffect(() => () => pending.current?.abort(), []);
   const inspection = useInspection((state) => state.doc);
   const revision = docs.revision;
   const settings = docs.settings?.sheet;
@@ -167,6 +171,10 @@ export function SheetEditor({ docs, item, counterpart, renderer, knolling, manua
 
   async function prepare() {
     if (!revision || !settings || !renderer) { fail(v08.noRenderer); return; }
+    const controller = new AbortController();
+    pending.current?.abort();
+    pending.current = controller;
+    const render: RenderDocumentationImage = (request) => renderer(request, controller.signal);
     setBusy(true);
     try {
       const moment = assembly ? assemblyMoment(docs.timeline, selectedStep, settings.stage, settings.progress) : null;
@@ -185,7 +193,10 @@ export function SheetEditor({ docs, item, counterpart, renderer, knolling, manua
       if (manual && assembly) page.groups.unshift({
         title: v08.manual, lines: [{ label: "Projeto", value: page.project }, { label: "Índice", value: byStep.map(({ step }, i) => (i + 1) + " · " + step.title).join(" / ") },
           { label: "Ocorrências no catálogo", value: String(docs.entries.length) },
-          { label: "Sem etapa autorada", value: String(docs.entries.filter((entry) => entry.step === null).length) }],
+          { label: "Sem etapa autorada", value: String(docs.entries.filter((entry) => entry.step === null).length) },
+          { label: "Etapas ilustradas", value: `${Math.min(illustratedStageLimit, byStep.length)} de ${byStep.length}` },
+          ...(byStep.length > illustratedStageLimit ? [{ label: "Etapas sem ilustração", value:
+            byStep.slice(illustratedStageLimit).map(({ step }, index) => `${illustratedStageLimit + index + 1} · ${step.title}`).join(" / ") }] : [])],
       });
       const images: SheetImages = [];
       const ids = moment ? [...target!] : item ? [item.representative.occurrence.id] : [];
@@ -195,7 +206,7 @@ export function SheetEditor({ docs, item, counterpart, renderer, knolling, manua
       const frames: SheetFrame[] = settings.frames.length ? settings.frames : ["axonometric"];
       const annotations = settings.labels ? annotationModel(docs.rows, docs.settings?.callouts ?? [], [], new Set(ids)) : undefined;
       if (!composite && !dual && ids.length) for (const frame of frames) {
-        const blob = frame === "current" && docs.isPrimary ? await publicationCapture(docs, settings) : await renderer({
+        const blob = frame === "current" && docs.isPrimary ? await publicationCapture(docs, settings) : await render({
           revision, ids, orientation: frame === "current" ? "axonometric" : frame, width: 560,
           style: "materials", background: settings.background, transparent: settings.transparent,
           annotations, leaders: settings.leaders, scale: settings.scale,
@@ -205,7 +216,7 @@ export function SheetEditor({ docs, item, counterpart, renderer, knolling, manua
         images.push({ title: frameLabels[frame] + (local && frame !== "current" && !assembly ? " · " + v08.localFrame : ""), blob });
       }
       if (dual && item && counterpart) for (const [model, entry] of [[revision, item.representative], [counterpart.revision, counterpart.entry]] as const) {
-        images.push({ title: model.identity.revisionId ?? v08.revision, blob: await renderer({
+        images.push({ title: model.identity.revisionId ?? v08.revision, blob: await render({
           revision: model, ids: [entry.occurrence.id], orientation: "axonometric", width: 560, style: "materials", background: settings.background,
         }) });
       }
@@ -214,24 +225,32 @@ export function SheetEditor({ docs, item, counterpart, renderer, knolling, manua
         const allParts = occurrenceItems(docs.entries);
         const layout = layoutKnolling(allParts, defaultLayout(Math.max(...revision.scene.sceneGraph.sceneBoundsMeters)));
         const poses = new Map(layout.placements.map((entry) => [entry.item.representative.occurrence.id, entry.world]));
-        const overview = { title: v08.knolling, blob: await renderer({ revision, ids: [...poses.keys()], layoutPose: poses,
+        const overview = { title: v08.knolling, blob: await render({ revision, ids: [...poses.keys()], layoutPose: poses,
           orientation: "top", style: "materials", width: 620, background: settings.background }) };
         const stages: NonNullable<GenerateSheet["manualPages"]>["stages"] = [];
-        for (let index = 0; index < Math.min(20, byStep.length); index++) {
+        for (let index = 0; index < Math.min(illustratedStageLimit, byStep.length); index++) {
           const phase = assemblyMoment(docs.timeline, index, "after", 1)!;
           const scope = new Set([...phase.previously, ...phase.installed]);
           const stagePage = sheetPage(revision, { ...settings, title: "" },
             allParts.filter((part) => scope.has(part.representative.occurrence.id)), measurementRows, docs.settings?.callouts ?? [], phase);
-          const image = { title: phase.entry.step.title, blob: await renderer({ revision, ids: [...scope],
+          const image = { title: phase.entry.step.title, blob: await render({ revision, ids: [...scope],
             orientation: "axonometric", style: "materials", width: 400, background: settings.background }) };
           stages.push({ page: stagePage, image });
         }
         manualPages = { overview, stages };
       }
-      onGenerated({ page, images, settings, manual: manual && assembly, manualPages });
-      fail(null);
-    } catch (error) { fail(error); }
-    finally { setBusy(false); }
+      if (!controller.signal.aborted) {
+        onGenerated({ page, images, settings, manual: manual && assembly, manualPages });
+        fail(null);
+      }
+    } catch (error) {
+      if (!controller.signal.aborted) fail(error);
+    } finally {
+      if (pending.current === controller) {
+        pending.current = null;
+        setBusy(false);
+      }
+    }
   }
 
   function exportPng() {
@@ -272,6 +291,9 @@ export function SheetEditor({ docs, item, counterpart, renderer, knolling, manua
       {settings.stage === "during" && <label className="gg-v07-field">{v08.stageFraction}<input type="range" min={0} max={1} step={0.01} value={settings.progress}
         onChange={(event) => patch({ progress: event.currentTarget.valueAsNumber })} /></label>}
       <label className="gg-v07-check"><input type="checkbox" checked={manual} onChange={(event) => setManual(event.currentTarget.checked)} />{v08.manual}</label>
+      {manual && byStep.length > illustratedStageLimit && <p className="gg-v05-hint">
+        O manual ilustra as primeiras {illustratedStageLimit} de {byStep.length} etapas. A sequência completa vai no JSON.
+      </p>}
     </> : <p>{v08.noAssembly}</p>)}
     <details><summary>{v08.views}</summary>
       <Choice label={v08.viewFrame} value={local ? "piece" : "world"} options={{ world: v08.globalFrame, piece: v08.localFrame }} onChange={(value) => setLocal(value === "piece")} />
@@ -300,6 +322,11 @@ export function SheetEditor({ docs, item, counterpart, renderer, knolling, manua
     <div className="gg-v07-actions">
       <button type="button" className={actionClass} disabled={busy || !renderer || (assembly && !byStep.length) || (dual && !counterpart)}
         onClick={() => void prepare()}>{busy ? v08.preparing : v08.preview}</button>
+      {busy && <button type="button" className={actionClass} onClick={() => {
+        pending.current?.abort();
+        pending.current = null;
+        setBusy(false);
+      }}>Cancelar geração</button>}
       <button type="button" className={actionClass} disabled={!generated || busy} onClick={exportPng}>{v08.exportSheet}</button>
       <button type="button" className={actionClass} disabled={!generated || busy} onClick={printGenerated}>{v08.print}</button>
     </div>

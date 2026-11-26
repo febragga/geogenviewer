@@ -58,6 +58,7 @@ import { ViewportTools } from "./components/viewport-tools";
 import { useAssembly } from "./state/assembly-store";
 import { flushInspection, useInspection } from "./state/inspection-store";
 import { useOrganizationStore } from "./state/organization-store";
+import { resolveOrganizationView } from "../../lib/geogen/organization/operations";
 import { useAppSettings } from "./state/settings-store";
 import { v06 } from "./v06-copy";
 import { usePresentation } from "./state/presentation-store";
@@ -161,6 +162,7 @@ export function Viewer() {
   const quantitySelected = ownQuantity ? selectedIds : secondaryIds;
   const background = usePresentation((s) => s.display.background);
   const effective = useEffectiveVisibility();
+  const organization = useOrganizationStore((state) => state.doc);
   const docs = useDocumentationWorkspace(loaded?.revision ?? null, secondary.revision, base, comp, publication,
     selectedIds, effective.visible, filters, analysisConfigs, quantitySecondarySelection, setQuantitySecondarySelection);
   const [documentationRenderer, setDocumentationRenderer] = useState<RenderDocumentationImage | null>(null);
@@ -262,14 +264,19 @@ export function Viewer() {
 
   useEffect(() => () => loaded?.scenePackage.dispose(), [loaded]);
 
+  useEffect(() => () => {
+    requestRef.current += 1;
+    abortRef.current?.abort();
+  }, []);
+
   useEffect(() => {
     if (!comparing || !loaded) return;
     const stored = useViewerStore.getState();
-    const { sceneGraph, selectedIds, hiddenIds, isolatedIds, filters, hoveredId, beforeIsolation } = stored;
+    const { sceneGraph, selectedIds, hiddenIds, hiddenGroupKeys, isolatedIds, filters, hoveredId, beforeIsolation } = stored;
     const { display } = usePresentation.getState();
     return () => {
       if (useViewerStore.getState().sceneGraph !== sceneGraph) return;
-      useViewerStore.setState({ selectedIds, hiddenIds, isolatedIds, filters, hoveredId, beforeIsolation });
+      useViewerStore.setState({ selectedIds, hiddenIds, hiddenGroupKeys, isolatedIds, filters, hoveredId, beforeIsolation });
       usePresentation.setState({ display });
     };
   }, [comparing, loaded]);
@@ -296,7 +303,7 @@ export function Viewer() {
       useAssembly.getState().initialize(scenePackage.manifest ?? null);
       useOrganizationStore.getState().initializeForRevision(scenePackage.sceneGraph, {
         key: revision.key,
-        projectId: scenePackage.sceneGraph.projectTitle,
+        projectId: revision.identity.projectId,
         revisionId: revision.identity.revisionId,
         modelSha256: revision.identity.sha256,
       });
@@ -331,7 +338,10 @@ export function Viewer() {
 
   const openFiles = useCallback(
     async (files: File[]) => {
+      abortRef.current?.abort();
+      abortRef.current = null;
       const id = ++requestRef.current;
+      setStatus("");
       loadStartedAt.current = performance.now();
       setError("");
       setPendingFallback(null);
@@ -520,7 +530,10 @@ export function Viewer() {
           setError(isKnownUserError(message) ? message : copy.invalid);
         }
       } finally {
-        if (id === requestRef.current) setStatus("");
+        if (id === requestRef.current) {
+          abortRef.current = null;
+          setStatus("");
+        }
       }
     },
     [activatePackage]
@@ -592,7 +605,10 @@ export function Viewer() {
     }
   }
 
-  const onContextLost = useCallback(() => setLost(true), []);
+  const onContextLost = useCallback(() => {
+    setAnnouncement(copy.noWebgl);
+    setLost(true);
+  }, []);
 
   const handleViewportSelect = useCallback(
     (id: string | null, options: { multi: boolean }) => {
@@ -650,10 +666,11 @@ export function Viewer() {
   const quantityScopes = useMemo(() => {
     if (!quantities || !quantityRevision) return { visible: emptyIds, filtered: emptyIds };
     const graph = quantityRevision.scene.sceneGraph;
-    const denied = new Set(hiddenByFilters(graph, filters, quantitySelected, new Map()));
+    const userOrganization = ownQuantity ? resolveOrganizationView(graph, { ...organization, activeSource: "user" }) : null;
+    const denied = new Set(hiddenByFilters(graph, filters, quantitySelected, new Map(), userOrganization));
     const visible = ownQuantity ? effective.visible : visibleIds(graph.componentOrder, [...defaultHiddenIds(graph), ...denied], null);
     return { visible, filtered: graph.componentOrder.filter((id) => !denied.has(id)) };
-  }, [quantities, quantityRevision, ownQuantity, effective.visible, filters, quantitySelected]);
+  }, [quantities, quantityRevision, ownQuantity, effective.visible, filters, quantitySelected, organization]);
 
   const handleFrameIds = useCallback(
     (ids?: string[]) => {
