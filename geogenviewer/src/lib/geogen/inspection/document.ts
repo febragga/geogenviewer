@@ -76,7 +76,7 @@ export function matchesIdentity(a: InspectionIdentity, b: InspectionIdentity) {
     (a.sha256 || b.sha256 ? a.sha256 === b.sha256 : a.fileName === b.fileName);
 }
 
-export function validateInspection(input: unknown, identity: InspectionIdentity, ids: ReadonlySet<string>, anchorExists?: (anchor: MeshAnchor) => boolean) {
+export function validateInspection(input: unknown, identity: InspectionIdentity, ids: ReadonlySet<string>, anchorExists?: (anchor: MeshAnchor) => boolean, keepMissing = false) {
   if (!validate(input)) throw new Error("Arquivo de inspeção inválido em " + (validate.errors?.[0]?.instancePath || "raiz") + ".");
   if (!matchesIdentity(input.model, identity)) throw new Error("O arquivo de inspeção pertence a outro modelo ou revisão.");
   const used = new Set<string>();
@@ -87,21 +87,21 @@ export function validateInspection(input: unknown, identity: InspectionIdentity,
       (record.kind === "distance") !== (typeof record.valueM === "number")) {
       throw new Error("Quantidade de pontos ou formato de valor inválido.");
     }
-    if (record.anchors.some((anchor) => !ids.has(anchor.elementId) || (anchorExists && !anchorExists(anchor)))) {
+    if (!keepMissing && record.anchors.some((anchor) => !ids.has(anchor.elementId) || (anchorExists && !anchorExists(anchor)))) {
       throw new Error("Uma medição referencia uma peça ou nó indisponível.");
     }
   }
   if (input.snapshot) {
     const snapshot = input.snapshot;
     if (!Number.isFinite(Date.parse(snapshot.generatedAt)) || snapshot.projection !== snapshot.camera.projection ||
-      snapshot.elementIds.some((id) => !ids.has(id))) throw new Error("Metadados da captura técnica inválidos.");
+      (!keepMissing && snapshot.elementIds.some((id) => !ids.has(id)))) throw new Error("Metadados da captura técnica inválidos.");
   }
   return input;
 }
 
-export function parseInspection(text: string, identity: InspectionIdentity, ids: ReadonlySet<string>, anchorExists?: (anchor: MeshAnchor) => boolean) {
+export function parseInspection(text: string, identity: InspectionIdentity, ids: ReadonlySet<string>, anchorExists?: (anchor: MeshAnchor) => boolean, keepMissing = false) {
   if (new TextEncoder().encode(text).byteLength > maxInspectionBytes) throw new Error("Arquivo de inspeção excede 2 MB.");
   let parsed: unknown;
   try { parsed = JSON.parse(text); } catch { throw new Error("Arquivo de inspeção deve conter JSON válido."); }
-  return validateInspection(parsed, identity, ids, anchorExists);
+  return validateInspection(parsed, identity, ids, anchorExists, keepMissing);
 }

@@ -1,0 +1,566 @@
+{
+  "schemaVersion": "1.0.0",
+  "project": {
+    "id": "revision-lab",
+    "title": "Laboratório sintético de revisões",
+    "revisionId": "proto-02",
+    "prototypeId": "proto-02",
+    "geometryKind": "physicalModel",
+    "scaleDenominator": 50,
+    "displayUnit": "mm"
+  },
+  "geometry": {
+    "file": "model.glb",
+    "format": "glb",
+    "coordinateSystem": "RH_Y_UP",
+    "unit": "m",
+    "nodeMatchStrategy": "extras",
+    "sha256": "42dbdd4e16d129ba6fa7ed9ff91c1d19d0ff2c4772715fa278563f475ecf7fe8"
+  },
+  "source": {
+    "application": "GeoGenViewer Synthetic Generator",
+    "sourceUnit": "m",
+    "sourceUpAxis": "Z",
+    "sourceOrigin": [
+      1200.5,
+      580.25,
+      27
+    ],
+    "metersPerSourceUnit": 1
+  },
+  "layers": [
+    {
+      "id": "structure",
+      "name": "Estrutura",
+      "parentId": null,
+      "visible": true
+    },
+    {
+      "id": "connections",
+      "name": "Conexões",
+      "parentId": null,
+      "visible": true
+    }
+  ],
+  "groups": [
+    {
+      "id": "kit",
+      "name": "Kit",
+      "parentId": null
+    },
+    {
+      "id": "review",
+      "name": "Revisão",
+      "parentId": null
+    }
+  ],
+  "materials": [
+    {
+      "id": "sample-a",
+      "name": "Material sintético A",
+      "densityKgM3": 1100,
+      "costPerKg": {
+        "amount": 72,
+        "currency": "BRL"
+      }
+    },
+    {
+      "id": "sample-b",
+      "name": "Material sintético B",
+      "densityKgM3": 1350,
+      "costPerKg": {
+        "amount": 18,
+        "currency": "EUR"
+      }
+    },
+    {
+      "id": "sample-c",
+      "name": "Material sem densidade",
+      "costPerKg": {
+        "amount": 40,
+        "currency": "BRL"
+      }
+    },
+    {
+      "id": "sample-d",
+      "name": "Material sem custo",
+      "densityKgM3": 980
+    }
+  ],
+  "blocks": [
+    {
+      "id": "standard",
+      "name": "Bloco sintético"
+    }
+  ],
+  "elements": [
+    {
+      "id": "same",
+      "name": "Peça de referência",
+      "category": "other",
+      "layerId": "structure",
+      "groupIds": [
+        "kit",
+        "review"
+      ],
+      "materialId": "sample-a",
+      "geometryType": "mesh",
+      "isClosed": true,
+      "isValid": true,
+      "areaM2": {
+        "value": 0.0236,
+        "source": "cad"
+      },
+      "volumeM3": {
+        "value": 0.00024,
+        "source": "cad"
+      },
+      "properties": {
+        "GeoGen:TypeCode": "PADRAO",
+        "GeoGen:Fabrication:MeasuredMassKg": 0
+      },
+      "fabrication": {
+        "material": "sample-a",
+        "toleranceMm": 0.1
+      }
+    },
+    {
+      "id": "size",
+      "name": "Travessa redimensionada",
+      "category": "other",
+      "layerId": "structure",
+      "groupIds": [
+        "kit"
+      ],
+      "materialId": "sample-a",
+      "geometryType": "mesh",
+      "isClosed": true,
+      "isValid": true,
+      "properties": {
+        "GeoGen:TypeCode": "PADRAO",
+        "GeoGen:Fabrication:SlicerMassKg": 0.12
+      },
+      "dimensions": {
+        "lengthM": 0.11,
+        "widthM": 0.06,
+        "thicknessM": 0.05,
+        "source": "authored"
+      },
+      "fabrication": {
+        "material": "sample-a",
+        "toleranceMm": 0.1
+      }
+    },
+    {
+      "id": "moved",
+      "name": "Conector reposicionado",
+      "category": "connector",
+      "layerId": "structure",
+      "groupIds": [
+        "kit"
+      ],
+      "materialId": "sample-a",
+      "geometryType": "mesh",
+      "isClosed": true,
+      "isValid": true,
+      "properties": {
+        "GeoGen:TypeCode": "PADRAO"
+      },
+      "fabrication": {
+        "material": "sample-a",
+        "toleranceMm": 0.1
+      }
+    },
+    {
+      "id": "rotated",
+      "name": "Viga rotacionada",
+      "category": "beam",
+      "layerId": "structure",
+      "groupIds": [
+        "kit"
+      ],
+      "materialId": "sample-a",
+      "geometryType": "mesh",
+      "isClosed": true,
+      "isValid": true,
+      "properties": {
+        "GeoGen:TypeCode": "PADRAO"
+      },
+      "fabrication": {
+        "material": "sample-a",
+        "toleranceMm": 0.1
+      }
+    },
+    {
+      "id": "material",
+      "name": "Placa com novo material",
+      "category": "slab",
+      "layerId": "structure",
+      "groupIds": [
+        "kit"
+      ],
+      "materialId": "sample-b",
+      "geometryType": "mesh",
+      "isClosed": true,
+      "isValid": true,
+      "properties": {
+        "GeoGen:TypeCode": "PADRAO",
+        "GeoGen:Fabrication:MachineTimeSeconds": 360
+      },
+      "fabrication": {
+        "material": "sample-b",
+        "toleranceMm": 0.1
+      }
+    },
+    {
+      "id": "tolerance",
+      "name": "Pino com tolerância revisada",
+      "category": "connector",
+      "layerId": "structure",
+      "groupIds": [
+        "kit"
+      ],
+      "materialId": "sample-a",
+      "geometryType": "mesh",
+      "isClosed": true,
+      "isValid": true,
+      "properties": {
+        "GeoGen:TypeCode": "PADRAO"
+      },
+      "fabrication": {
+        "material": "sample-a",
+        "toleranceMm": 0.13
+      }
+    },
+    {
+      "id": "category",
+      "name": "Peça recategorizada",
+      "category": "column",
+      "layerId": "structure",
+      "groupIds": [
+        "kit"
+      ],
+      "materialId": "sample-a",
+      "geometryType": "mesh",
+      "isClosed": true,
+      "isValid": true,
+      "properties": {
+        "GeoGen:TypeCode": "PADRAO"
+      },
+      "fabrication": {
+        "material": "sample-a",
+        "toleranceMm": 0.1
+      }
+    },
+    {
+      "id": "metadata",
+      "name": "Peça com acabamento",
+      "category": "other",
+      "layerId": "structure",
+      "groupIds": [
+        "kit"
+      ],
+      "materialId": "sample-a",
+      "geometryType": "mesh",
+      "isClosed": true,
+      "isValid": true,
+      "properties": {
+        "GeoGen:TypeCode": "PADRAO",
+        "Finish": "Texturizado"
+      },
+      "fabrication": {
+        "material": "sample-a",
+        "toleranceMm": 0.1
+      }
+    },
+    {
+      "id": "layer",
+      "name": "Peça em nova camada",
+      "category": "other",
+      "layerId": "connections",
+      "groupIds": [
+        "kit"
+      ],
+      "materialId": "sample-d",
+      "geometryType": "mesh",
+      "isClosed": true,
+      "isValid": true,
+      "properties": {
+        "GeoGen:TypeCode": "PADRAO"
+      },
+      "fabrication": {
+        "material": "sample-d",
+        "toleranceMm": 0.1
+      }
+    },
+    {
+      "id": "block-a",
+      "name": "Ocorrência de bloco A",
+      "category": "other",
+      "layerId": "structure",
+      "groupIds": [
+        "kit"
+      ],
+      "materialId": "sample-a",
+      "geometryType": "blockInstance",
+      "isClosed": true,
+      "isValid": true,
+      "blockDefinitionId": "standard",
+      "sourceObjectId": "instance-root",
+      "instancePath": "0/0",
+      "properties": {
+        "GeoGen:TypeCode": "BLOCO"
+      },
+      "fabrication": {
+        "material": "sample-a",
+        "toleranceMm": 0.1
+      }
+    },
+    {
+      "id": "block-b",
+      "name": "Ocorrência de bloco B",
+      "category": "other",
+      "layerId": "structure",
+      "groupIds": [
+        "kit"
+      ],
+      "materialId": "sample-a",
+      "geometryType": "blockInstance",
+      "isClosed": true,
+      "isValid": true,
+      "blockDefinitionId": "standard",
+      "sourceObjectId": "instance-root",
+      "instancePath": "0/1",
+      "properties": {
+        "GeoGen:TypeCode": "BLOCO"
+      },
+      "fabrication": {
+        "material": "sample-a",
+        "toleranceMm": 0.1
+      }
+    },
+    {
+      "id": "compound",
+      "name": "Conjunto com duas malhas",
+      "category": "other",
+      "layerId": "structure",
+      "groupIds": [
+        "kit"
+      ],
+      "materialId": "sample-a",
+      "geometryType": "composite",
+      "isClosed": true,
+      "isValid": true,
+      "properties": {
+        "GeoGen:TypeCode": "PADRAO"
+      },
+      "fabrication": {
+        "material": "sample-a",
+        "toleranceMm": 0.1
+      }
+    },
+    {
+      "id": "tess",
+      "name": "Placa com malha retesselada",
+      "category": "other",
+      "layerId": "structure",
+      "groupIds": [
+        "kit"
+      ],
+      "materialId": "sample-a",
+      "geometryType": "mesh",
+      "isClosed": true,
+      "isValid": true,
+      "properties": {
+        "GeoGen:TypeCode": "PADRAO"
+      },
+      "fabrication": {
+        "material": "sample-a",
+        "toleranceMm": 0.1
+      }
+    },
+    {
+      "id": "open",
+      "name": "Superfície aberta",
+      "category": "other",
+      "layerId": "structure",
+      "groupIds": [
+        "kit"
+      ],
+      "materialId": "sample-c",
+      "geometryType": "mesh",
+      "isClosed": false,
+      "isValid": true,
+      "properties": {
+        "GeoGen:TypeCode": "PADRAO"
+      },
+      "fabrication": {
+        "material": "sample-c",
+        "toleranceMm": 0.1
+      }
+    },
+    {
+      "id": "new-id",
+      "name": "Conector com ID substituído",
+      "category": "other",
+      "layerId": "structure",
+      "groupIds": [
+        "kit"
+      ],
+      "materialId": "sample-a",
+      "geometryType": "mesh",
+      "isClosed": true,
+      "isValid": true,
+      "sourceObjectId": "stable-source",
+      "properties": {
+        "GeoGen:TypeCode": "PADRAO"
+      },
+      "fabrication": {
+        "material": "sample-a",
+        "toleranceMm": 0.1
+      }
+    },
+    {
+      "id": "repeat-b1",
+      "name": "Peça repetida 1",
+      "category": "other",
+      "layerId": "structure",
+      "groupIds": [
+        "kit"
+      ],
+      "materialId": "sample-a",
+      "geometryType": "mesh",
+      "isClosed": true,
+      "isValid": true,
+      "properties": {
+        "GeoGen:TypeCode": "PADRAO",
+        "GeoGen:PartId": "REP"
+      },
+      "fabrication": {
+        "material": "sample-a",
+        "toleranceMm": 0.1
+      }
+    },
+    {
+      "id": "repeat-b2",
+      "name": "Peça repetida 2",
+      "category": "other",
+      "layerId": "structure",
+      "groupIds": [
+        "kit"
+      ],
+      "materialId": "sample-a",
+      "geometryType": "mesh",
+      "isClosed": true,
+      "isValid": true,
+      "properties": {
+        "GeoGen:TypeCode": "PADRAO",
+        "GeoGen:PartId": "REP"
+      },
+      "fabrication": {
+        "material": "sample-a",
+        "toleranceMm": 0.1
+      }
+    },
+    {
+      "id": "added",
+      "name": "Peça acrescentada",
+      "category": "other",
+      "layerId": "structure",
+      "groupIds": [
+        "kit"
+      ],
+      "materialId": "sample-a",
+      "geometryType": "mesh",
+      "isClosed": true,
+      "isValid": true,
+      "properties": {
+        "GeoGen:TypeCode": "PADRAO"
+      },
+      "fabrication": {
+        "material": "sample-a",
+        "toleranceMm": 0.1
+      }
+    },
+    {
+      "id": "scaled",
+      "name": "Ocorrência escalada",
+      "category": "other",
+      "layerId": "structure",
+      "groupIds": [
+        "kit"
+      ],
+      "materialId": "sample-a",
+      "geometryType": "blockInstance",
+      "isClosed": true,
+      "isValid": true,
+      "blockDefinitionId": "standard",
+      "properties": {
+        "GeoGen:TypeCode": "PADRAO"
+      },
+      "fabrication": {
+        "material": "sample-a",
+        "toleranceMm": 0.1
+      }
+    },
+    {
+      "id": "mirror",
+      "name": "Ocorrência espelhada",
+      "category": "other",
+      "layerId": "structure",
+      "groupIds": [
+        "kit"
+      ],
+      "materialId": "sample-a",
+      "geometryType": "blockInstance",
+      "isClosed": true,
+      "isValid": true,
+      "blockDefinitionId": "standard",
+      "properties": {
+        "GeoGen:TypeCode": "PADRAO"
+      },
+      "fabrication": {
+        "material": "sample-a",
+        "toleranceMm": 0.1
+      }
+    },
+    {
+      "id": "assembly",
+      "name": "Peça com etapa revisada",
+      "category": "other",
+      "layerId": "structure",
+      "groupIds": [
+        "kit"
+      ],
+      "materialId": "sample-a",
+      "geometryType": "mesh",
+      "isClosed": true,
+      "isValid": true,
+      "properties": {
+        "GeoGen:TypeCode": "PADRAO"
+      },
+      "fabrication": {
+        "material": "sample-a",
+        "toleranceMm": 0.1
+      }
+    }
+  ],
+  "assembly": {
+    "steps": [
+      {
+        "id": "demo-assembly",
+        "title": "Inserir peça",
+        "elementIds": [
+          "assembly"
+        ],
+        "dependsOn": [],
+        "durationSeconds": 2,
+        "insertionOffsetM": [
+          0,
+          0.1,
+          0
+        ]
+      }
+    ]
+  }
+}
