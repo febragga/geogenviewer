@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   useSyncExternalStore,
@@ -12,6 +13,8 @@ import {
 } from "react";
 import { Group, Panel, Separator } from "react-resizable-panels";
 import { maxGlbBytes } from "../../lib/geogen/importers/glb";
+import { defaultHiddenIds, hiddenByFilters, visibleIds } from "../../lib/geogen/domain/visibility";
+import { captureRevision, type Revision } from "../../lib/geogen/revisions/revision";
 import {
   importGlbBasicPackage,
   importGlbWithManifestPackage,
@@ -22,6 +25,8 @@ import {
   maxManifestBytes,
 } from "../../lib/geogen/validation/manifest";
 import { AssemblyPanel } from "./components/assembly-panel";
+import { ComparisonPanel, RevisionViewLabels } from "./components/comparison-panel";
+import { QuantitiesPanel, type AnalysisConfig, type QuantitiesLayout } from "./components/quantities-panel";
 import { CommandPalette } from "./components/command-palette";
 import { ControlsDialog } from "./components/controls-dialog";
 import { ExplodePanel } from "./components/explode-panel";
@@ -51,6 +56,8 @@ import { usePresentation } from "./state/presentation-store";
 import { useEffectiveVisibility } from "./state/visibility-state";
 import { connectViewportScopes } from "./state/viewport-scopes";
 import { useViewerStore } from "./state/viewer-store";
+import { useRevisionComparison, useSecondaryRevision, type Side } from "./state/revision-workspace";
+import { v07 } from "./v07-copy";
 
 const Viewport = dynamic(() => import("./scene/viewport"), { ssr: false });
 
@@ -72,6 +79,8 @@ function createMediaStore(query: string) {
 
 const wideDesktopStore = createMediaStore("(min-width: 1180px)");
 const desktopLayoutStore = createMediaStore("(min-width: 1024px)");
+const compareCompactStore = createMediaStore("(max-width: 767px)");
+const emptyIds: string[] = [];
 
 function isKnownUserError(message: string): boolean {
   return /^(O arquivo|Selecione|O GLB|A versão|Exporte|A cena|Manifesto|Incompatibilidade|Conflito|Referência)/.test(
@@ -93,6 +102,7 @@ export function Viewer() {
 
   const [loaded, setLoaded] = useState<{
     scenePackage: LoadedScenePackage;
+    revision: Revision;
     name: string;
     id: number;
     loadTime: number;
@@ -112,6 +122,29 @@ export function Viewer() {
   const hiddenIds = useViewerStore((s) => s.hiddenIds);
   const filters = useViewerStore((s) => s.filters);
   const workspace = useViewerStore((s) => s.workspace);
+  const comparing = workspace === "compare";
+  const quantities = workspace === "quantities";
+  const analytics = comparing || quantities;
+  const secondary = useSecondaryRevision();
+  const [reversed, setReversed] = useState(false);
+  const base = reversed && secondary.revision ? secondary.revision : loaded?.revision ?? null;
+  const compared = reversed && secondary.revision ? loaded?.revision ?? null : secondary.revision;
+  const comp = useRevisionComparison(base, compared, Boolean(base && compared));
+  const compact = useSyncExternalStore(compareCompactStore.subscribe, compareCompactStore.getSnapshot, compareCompactStore.getServerSnapshot);
+  const capture = useRef<(() => Promise<Blob>) | null>(null);
+  const onCaptureChange = useCallback((value: (() => Promise<Blob>) | null) => { capture.current = value; }, []);
+  const [analysisConfigs, setAnalysisConfigs] = useState<Record<string, AnalysisConfig>>({});
+  const onAnalysisConfig = useCallback((key: string, config: AnalysisConfig) => {
+    setAnalysisConfigs((current) => ({ ...current, [key]: config }));
+  }, []);
+  const [quantitiesLayout, setQuantitiesLayout] = useState<QuantitiesLayout>("table");
+  const [quantitySide, setQuantitySide] = useState<Side>("base");
+  const actualSide = compared ? quantitySide : "base";
+  const quantityRevision = actualSide === "comparison" ? compared : base;
+  const ownQuantity = Boolean(loaded && quantityRevision && loaded.revision === quantityRevision);
+  const [quantitySecondarySelection, setQuantitySecondarySelection] = useState<{ key: string; ids: string[] } | null>(null);
+  const secondaryIds = quantitySecondarySelection?.key === quantityRevision?.key ? quantitySecondarySelection?.ids ?? emptyIds : emptyIds;
+  const quantitySelected = ownQuantity ? selectedIds : secondaryIds;
   const background = usePresentation((s) => s.display.background);
   const effective = useEffectiveVisibility();
   const isolatedIds = useViewerStore((s) => s.isolatedIds);
@@ -164,8 +197,8 @@ export function Viewer() {
 
   const [leftOverride, setLeftOverride] = useState<boolean | null>(null);
   const [rightOverride, setRightOverride] = useState<boolean | null>(null);
-  const leftOpen = leftOverride ?? isWideDesktop;
-  const rightOpen = rightOverride ?? isWideDesktop;
+  const leftOpen = !analytics && (leftOverride ?? isWideDesktop);
+  const rightOpen = !analytics && (rightOverride ?? isWideDesktop);
 
   const [mobileTab, setMobileTab] = useState<"structure" | "properties" | null>(
     null
@@ -194,6 +227,18 @@ export function Viewer() {
   useEffect(() => () => loaded?.scenePackage.dispose(), [loaded]);
 
   useEffect(() => {
+    if (!comparing || !loaded) return;
+    const stored = useViewerStore.getState();
+    const { sceneGraph, selectedIds, hiddenIds, isolatedIds, filters, hoveredId, beforeIsolation } = stored;
+    const { display } = usePresentation.getState();
+    return () => {
+      if (useViewerStore.getState().sceneGraph !== sceneGraph) return;
+      useViewerStore.setState({ selectedIds, hiddenIds, isolatedIds, filters, hoveredId, beforeIsolation });
+      usePresentation.setState({ display });
+    };
+  }, [comparing, loaded]);
+
+  useEffect(() => {
     if (workspace !== "assembly") useAssembly.getState().setSolo(null);
     useInspection.getState().setTool(workspace === "inspect" ? "sections" : "selection");
   }, [workspace]);
@@ -203,12 +248,15 @@ export function Viewer() {
   }, []);
 
   const activatePackage = useCallback(
-    (scenePackage: LoadedScenePackage, displayName: string, id: number) => {
+    (scenePackage: LoadedScenePackage, displayName: string, id: number, captured?: Revision) => {
+      const revision = captured ?? captureRevision(scenePackage);
+      const priorWorkspace = useViewerStore.getState().workspace;
       useAssembly.getState().initialize(scenePackage.manifest ?? null);
       usePresentation.getState().resetViews();
       useInspection.getState().load(scenePackage);
-      setLoaded({ scenePackage, name: displayName, id, loadTime: performance.now() - loadStartedAt.current });
+      setLoaded({ scenePackage, revision, name: displayName, id, loadTime: performance.now() - loadStartedAt.current });
       setSceneGraph(scenePackage.sceneGraph);
+      if (priorWorkspace === "compare" || priorWorkspace === "quantities") useViewerStore.getState().setWorkspace(priorWorkspace);
       setPendingFallback(null);
       setLost(false);
       issueCommand({ kind: "reset" });
@@ -327,7 +375,7 @@ export function Viewer() {
   }, [activatePackage, pendingFallback]);
 
   const loadDemo = useCallback(
-    async (kind: "basic" | "contract" | "pavilion" | "inspection") => {
+    async (kind: "basic" | "contract" | "pavilion" | "inspection" | "revision") => {
       const id = ++requestRef.current;
       loadStartedAt.current = performance.now();
       setStatus(copy.reading);
@@ -354,10 +402,11 @@ export function Viewer() {
           pavilion: { stem: "pavilhao-explosao", title: copy.demoExplodeName },
           contract: { stem: "contrato-exemplo", title: copy.demoContractName },
           inspection: { stem: "inspection-lab", title: v06.labTitle },
+          revision: { stem: "revision-lab/proto-01/model", title: v07.revisionLab },
         }[kind];
-        const fileName = demo.stem + ".glb";
-        const glbUrl = "/demos/" + fileName;
-        const jsonUrl = "/demos/" + demo.stem + ".manifest.json";
+        const fileName = demo.stem.split("/").at(-1) + ".glb";
+        const glbUrl = "/demos/" + demo.stem + ".glb";
+        const jsonUrl = kind === "revision" ? "/demos/revision-lab/proto-01/manifest.json" : "/demos/" + demo.stem + ".manifest.json";
         const title = demo.title;
 
         const [glbBytes, jsonBytes] = await Promise.all([
@@ -383,6 +432,7 @@ export function Viewer() {
         }
         activatePackage(pkg, title, id);
         if (kind === "inspection") useViewerStore.getState().setWorkspace("inspect");
+        if (kind === "revision") useViewerStore.getState().setWorkspace("compare");
       } catch (cause) {
         if (id === requestRef.current) {
           const message = cause instanceof Error ? cause.message : "";
@@ -412,6 +462,35 @@ export function Viewer() {
     return () => window.clearTimeout(timer);
   }, [loadDemo]);
 
+  function removeRevision(side: Side) {
+    const removePrimary = (side === "base") !== reversed;
+    setReversed(false);
+    if (!removePrimary) { secondary.release(); return; }
+    const remaining = secondary.release(false);
+    const id = ++requestRef.current;
+    setStatus("");
+    setError("");
+    setPendingFallback(null);
+    if (remaining) {
+      loadStartedAt.current = performance.now();
+      activatePackage(remaining.scene, remaining.scene.sceneGraph.projectTitle, id, remaining);
+    } else {
+      setLoaded(undefined);
+      setSceneGraph(null);
+      useAssembly.getState().initialize(null);
+      useInspection.getState().load(null);
+      usePresentation.getState().resetViews();
+      useViewerStore.getState().setWorkspace("compare");
+    }
+  }
+
+  function loadRevisionLab() {
+    setReversed(false);
+    useViewerStore.getState().setWorkspace("compare");
+    void loadDemo("revision");
+    void secondary.demo();
+  }
+
   const onContextLost = useCallback(() => setLost(true), []);
 
   const handleViewportSelect = useCallback(
@@ -426,6 +505,33 @@ export function Viewer() {
     },
     [clearSelection, loaded, select]
   );
+
+  const selectQuantity = useCallback((ids: string[], multi: boolean) => {
+    if (ownQuantity) {
+      const viewer = useViewerStore.getState();
+      if (multi && ids.length === 1) viewer.select(ids[0], "toggle");
+      else viewer.selectMany(ids, multi ? "add" : "replace");
+    } else if (quantityRevision) {
+      setQuantitySecondarySelection((old) => {
+        const active = old?.key === quantityRevision.key ? old.ids : [];
+        const next = multi && ids.length === 1 && active.includes(ids[0]) ? active.filter((id) => id !== ids[0]) :
+          multi ? [...new Set([...active, ...ids])] : ids;
+        return { key: quantityRevision.key, ids: next };
+      });
+    }
+  }, [ownQuantity, quantityRevision]);
+
+  const selectQuantityFromModel = useCallback((id: string | null, multi: boolean) => {
+    if (id || !multi) selectQuantity(id ? [id] : [], multi);
+  }, [selectQuantity]);
+
+  const quantityScopes = useMemo(() => {
+    if (!quantities || !quantityRevision) return { visible: emptyIds, filtered: emptyIds };
+    const graph = quantityRevision.scene.sceneGraph;
+    const denied = new Set(hiddenByFilters(graph, filters, quantitySelected, new Map()));
+    const visible = ownQuantity ? effective.visible : visibleIds(graph.componentOrder, [...defaultHiddenIds(graph), ...denied], null);
+    return { visible, filtered: graph.componentOrder.filter((id) => !denied.has(id)) };
+  }, [quantities, quantityRevision, ownQuantity, effective.visible, filters, quantitySelected]);
 
   const handleFrameIds = useCallback(
     (ids?: string[]) => {
@@ -644,6 +750,10 @@ export function Viewer() {
           onHover={setHoveredId}
           onContextLost={onContextLost}
           fallback={fallback}
+          comparison={base && compared && (comparing || (quantities && !ownQuantity)) ? {
+            base, comparison: compared, state: comp, primaryKey: loaded.revision.key, compact, onCaptureChange,
+            single: quantities ? actualSide : undefined, quantitySelection: quantitySelected, onQuantitySelect: selectQuantityFromModel,
+          } : undefined}
         />
       ) : lost ? (
         <div className="gg-viewport-center">
@@ -717,6 +827,8 @@ export function Viewer() {
                 <span>{copy.demo}</span>
               </button>
             </div>
+            <button type="button" className="gg-btn gg-btn--secondary" disabled={Boolean(status) || secondary.busy}
+              onClick={loadRevisionLab}>{v07.revisionLab}</button>
             <p className="gg-dropzone__privacy">{copy.local}</p>
           </section>
         </div>
@@ -784,7 +896,8 @@ export function Viewer() {
 
       {loaded && !lost && (
         <ViewportTools key={"tools-" + loaded.id} loaded={loaded.scenePackage} loadTime={loaded.loadTime}
-          onFit={handleFrameIds} onReset={() => issueCommand({ kind: "reset" })} />
+          onFit={handleFrameIds} onReset={() => issueCommand({ kind: "reset" })}
+          comparison={Boolean(base && compared && (comparing || (quantities && !ownQuantity)))} />
       )}
 
       {loaded && !lost && (
@@ -798,14 +911,16 @@ export function Viewer() {
         </div>
       )}
 
-      {loaded && !lost && explodeOpen && (
+      {comparing && base && compared && <RevisionViewLabels state={comp} compact={compact} />}
+
+      {loaded && !lost && explodeOpen && !analytics && (
         <ExplodePanel
           subscribeLiveFactor={subscribeLiveFactor}
           onClose={() => setExplodeOpen(false)}
         />
       )}
 
-      {loaded && (
+      {loaded && (!analytics || (quantities && ownQuantity)) && (
         <ViewerToolbar
           mode={mode}
           disabled={lost}
@@ -840,7 +955,8 @@ export function Viewer() {
 
   return (
     <Tooltip.Provider delay={300}>
-      <div className={`gg-app ${focusMode ? "gg-app--focus" : ""} ${workspace === "assembly" && loaded && !focusMode ? "gg-app--assembly" : ""}`}>
+      <div className={`gg-app ${focusMode ? "gg-app--focus" : ""} ${workspace === "assembly" && loaded && !focusMode ? "gg-app--assembly" : ""}`}
+        data-analytics={analytics && !focusMode || undefined}>
         {!focusMode && (
           <ViewerTopbar
             modelName={loaded?.name}
@@ -877,7 +993,8 @@ export function Viewer() {
           }}
         />
 
-        <main className="gg-workspace">
+        <main className="gg-workspace" data-v07={analytics && !focusMode || undefined}
+          data-v07-layout={quantities && !focusMode ? quantitiesLayout : undefined}>
           <Group orientation="horizontal" className="gg-panel-group">
             {isDesktopLayout && !focusMode && leftOpen && (
               <>
@@ -914,11 +1031,17 @@ export function Viewer() {
           {!focusMode && !isDesktopLayout && rightOpen && (
             <RightPropertiesPanel onFrameIds={handleFrameIds} onClose={() => setRightOverride(false)} />
           )}
+          {comparing && !focusMode && <ComparisonPanel key={comp.key} base={base} comparison={compared} state={comp} compact={compact}
+            busy={Boolean(status) || secondary.busy} error={secondary.error} baseOnLeft={!reversed} onBase={() => inputRef.current?.click()}
+            onSecondary={(files) => void secondary.files(files)} onRemove={removeRevision} onReverse={() => setReversed((old) => !old)}
+            onLab={loadRevisionLab} onFit={() => issueCommand({ kind: "fit" })} capture={capture} />}
+          {base && quantities && !focusMode && <QuantitiesPanel configs={analysisConfigs} onConfig={onAnalysisConfig} base={base} comparison={compared} analysis={comp} side={actualSide} onSide={setQuantitySide}
+              layout={quantitiesLayout} onLayout={setQuantitiesLayout} scopes={quantityScopes} selected={quantitySelected} onSelect={selectQuantity} />}
         </main>
 
         {loaded && workspace === "assembly" && !focusMode && <AssemblyPanel />}
 
-        {!focusMode && (
+        {!focusMode && !analytics && (
           <MobileBottomSheet
             activeTab={mobileTab}
             onTabChange={setMobileTab}

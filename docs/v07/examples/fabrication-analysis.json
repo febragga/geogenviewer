@@ -1,0 +1,1199 @@
+{
+  "schemaVersion": "1.0.0",
+  "generatedAt": "2026-11-26T12:00:00.000Z",
+  "revision": {
+    "projectId": "revision-lab",
+    "revisionId": "proto-02",
+    "prototypeId": "proto-02",
+    "sha256": "42dbdd4e16d129ba6fa7ed9ff91c1d19d0ff2c4772715fa278563f475ecf7fe8",
+    "geometryKind": "physicalModel",
+    "scaleDenominator": 50,
+    "sourceOrigin": [
+      1200.5,
+      580.25,
+      27
+    ],
+    "sourceUnit": "m",
+    "sourceUpAxis": "Z",
+    "metersPerSourceUnit": 1
+  },
+  "settings": {
+    "materials": [],
+    "scenarios": [],
+    "activeScenario": null,
+    "mapping": {},
+    "authored": {}
+  },
+  "scope": "all",
+  "grouping": "category",
+  "scopeValue": "",
+  "property": "",
+  "report": {
+    "scope": "all",
+    "includedIds": [
+      "same",
+      "size",
+      "moved",
+      "rotated",
+      "material",
+      "tolerance",
+      "category",
+      "metadata",
+      "layer",
+      "block-a",
+      "block-b",
+      "compound",
+      "tess",
+      "open",
+      "new-id",
+      "repeat-b1",
+      "repeat-b2",
+      "added",
+      "scaled",
+      "mirror",
+      "assembly"
+    ],
+    "excludedIds": [],
+    "components": [
+      {
+        "id": "same",
+        "material": "sample-a",
+        "originalMaterial": "sample-a",
+        "density": {
+          "value": 1100,
+          "source": "cad",
+          "detail": "sample-a"
+        },
+        "rate": {
+          "value": 72,
+          "currency": "BRL",
+          "source": "cad",
+          "detail": "sample-a"
+        },
+        "volume": {
+          "value": 0.00024,
+          "source": "cad",
+          "method": "volume-cad"
+        },
+        "mass": {
+          "solid": {
+            "value": 0.264,
+            "source": "cad",
+            "detail": "volume-cad × sample-a"
+          },
+          "slicer": null,
+          "measured": {
+            "value": 0,
+            "source": "cad",
+            "detail": "GeoGen:Fabrication:MeasuredMassKg"
+          },
+          "estimate": null
+        },
+        "costs": [
+          {
+            "value": 19.008000000000003,
+            "source": "cad",
+            "currency": "BRL",
+            "method": "solid",
+            "detail": "volume-cad × sample-a × sample-a"
+          },
+          {
+            "value": 0,
+            "source": "cad",
+            "currency": "BRL",
+            "method": "measured",
+            "detail": "GeoGen:Fabrication:MeasuredMassKg × sample-a"
+          }
+        ],
+        "time": {
+          "machine": null,
+          "production": null,
+          "recorded": null
+        }
+      },
+      {
+        "id": "size",
+        "material": "sample-a",
+        "originalMaterial": "sample-a",
+        "density": {
+          "value": 1100,
+          "source": "cad",
+          "detail": "sample-a"
+        },
+        "rate": {
+          "value": 72,
+          "currency": "BRL",
+          "source": "cad",
+          "detail": "sample-a"
+        },
+        "volume": {
+          "value": 0.0003299999957531689,
+          "source": "mesh",
+          "method": "volume-closed-mesh"
+        },
+        "mass": {
+          "solid": {
+            "value": 0.3629999953284858,
+            "source": "cad",
+            "detail": "volume-closed-mesh × sample-a"
+          },
+          "slicer": {
+            "value": 0.12,
+            "source": "cad",
+            "detail": "GeoGen:Fabrication:SlicerMassKg"
+          },
+          "measured": null,
+          "estimate": null
+        },
+        "costs": [
+          {
+            "value": 26.135999663650978,
+            "source": "cad",
+            "currency": "BRL",
+            "method": "solid",
+            "detail": "volume-closed-mesh × sample-a × sample-a"
+          },
+          {
+            "value": 8.64,
+            "source": "cad",
+            "currency": "BRL",
+            "method": "slicer",
+            "detail": "GeoGen:Fabrication:SlicerMassKg × sample-a"
+          }
+        ],
+        "time": {
+          "machine": null,
+          "production": null,
+          "recorded": null
+        }
+      },
+      {
+        "id": "moved",
+        "material": "sample-a",
+        "originalMaterial": "sample-a",
+        "density": {
+          "value": 1100,
+          "source": "cad",
+          "detail": "sample-a"
+        },
+        "rate": {
+          "value": 72,
+          "currency": "BRL",
+          "source": "cad",
+          "detail": "sample-a"
+        },
+        "volume": {
+          "value": 0.0002399999928474426,
+          "source": "mesh",
+          "method": "volume-closed-mesh"
+        },
+        "mass": {
+          "solid": {
+            "value": 0.26399999213218683,
+            "source": "cad",
+            "detail": "volume-closed-mesh × sample-a"
+          },
+          "slicer": null,
+          "measured": null,
+          "estimate": null
+        },
+        "costs": [
+          {
+            "value": 19.00799943351745,
+            "source": "cad",
+            "currency": "BRL",
+            "method": "solid",
+            "detail": "volume-closed-mesh × sample-a × sample-a"
+          }
+        ],
+        "time": {
+          "machine": null,
+          "production": null,
+          "recorded": null
+        }
+      },
+      {
+        "id": "rotated",
+        "material": "sample-a",
+        "originalMaterial": "sample-a",
+        "density": {
+          "value": 1100,
+          "source": "cad",
+          "detail": "sample-a"
+        },
+        "rate": {
+          "value": 72,
+          "currency": "BRL",
+          "source": "cad",
+          "detail": "sample-a"
+        },
+        "volume": {
+          "value": 0.00023999999284744252,
+          "source": "mesh",
+          "method": "volume-closed-mesh"
+        },
+        "mass": {
+          "solid": {
+            "value": 0.2639999921321868,
+            "source": "cad",
+            "detail": "volume-closed-mesh × sample-a"
+          },
+          "slicer": null,
+          "measured": null,
+          "estimate": null
+        },
+        "costs": [
+          {
+            "value": 19.007999433517448,
+            "source": "cad",
+            "currency": "BRL",
+            "method": "solid",
+            "detail": "volume-closed-mesh × sample-a × sample-a"
+          }
+        ],
+        "time": {
+          "machine": null,
+          "production": null,
+          "recorded": null
+        }
+      },
+      {
+        "id": "material",
+        "material": "sample-b",
+        "originalMaterial": "sample-b",
+        "density": {
+          "value": 1350,
+          "source": "cad",
+          "detail": "sample-b"
+        },
+        "rate": {
+          "value": 18,
+          "currency": "EUR",
+          "source": "cad",
+          "detail": "sample-b"
+        },
+        "volume": {
+          "value": 0.0002399999928474426,
+          "source": "mesh",
+          "method": "volume-closed-mesh"
+        },
+        "mass": {
+          "solid": {
+            "value": 0.32399999034404753,
+            "source": "cad",
+            "detail": "volume-closed-mesh × sample-b"
+          },
+          "slicer": null,
+          "measured": null,
+          "estimate": null
+        },
+        "costs": [
+          {
+            "value": 5.831999826192855,
+            "source": "cad",
+            "currency": "EUR",
+            "method": "solid",
+            "detail": "volume-closed-mesh × sample-b × sample-b"
+          }
+        ],
+        "time": {
+          "machine": {
+            "value": 360,
+            "source": "cad",
+            "detail": "GeoGen:Fabrication:MachineTimeSeconds"
+          },
+          "production": null,
+          "recorded": null
+        }
+      },
+      {
+        "id": "tolerance",
+        "material": "sample-a",
+        "originalMaterial": "sample-a",
+        "density": {
+          "value": 1100,
+          "source": "cad",
+          "detail": "sample-a"
+        },
+        "rate": {
+          "value": 72,
+          "currency": "BRL",
+          "source": "cad",
+          "detail": "sample-a"
+        },
+        "volume": {
+          "value": 0.0002399999928474426,
+          "source": "mesh",
+          "method": "volume-closed-mesh"
+        },
+        "mass": {
+          "solid": {
+            "value": 0.26399999213218683,
+            "source": "cad",
+            "detail": "volume-closed-mesh × sample-a"
+          },
+          "slicer": null,
+          "measured": null,
+          "estimate": null
+        },
+        "costs": [
+          {
+            "value": 19.00799943351745,
+            "source": "cad",
+            "currency": "BRL",
+            "method": "solid",
+            "detail": "volume-closed-mesh × sample-a × sample-a"
+          }
+        ],
+        "time": {
+          "machine": null,
+          "production": null,
+          "recorded": null
+        }
+      },
+      {
+        "id": "category",
+        "material": "sample-a",
+        "originalMaterial": "sample-a",
+        "density": {
+          "value": 1100,
+          "source": "cad",
+          "detail": "sample-a"
+        },
+        "rate": {
+          "value": 72,
+          "currency": "BRL",
+          "source": "cad",
+          "detail": "sample-a"
+        },
+        "volume": {
+          "value": 0.0002399999928474426,
+          "source": "mesh",
+          "method": "volume-closed-mesh"
+        },
+        "mass": {
+          "solid": {
+            "value": 0.26399999213218683,
+            "source": "cad",
+            "detail": "volume-closed-mesh × sample-a"
+          },
+          "slicer": null,
+          "measured": null,
+          "estimate": null
+        },
+        "costs": [
+          {
+            "value": 19.00799943351745,
+            "source": "cad",
+            "currency": "BRL",
+            "method": "solid",
+            "detail": "volume-closed-mesh × sample-a × sample-a"
+          }
+        ],
+        "time": {
+          "machine": null,
+          "production": null,
+          "recorded": null
+        }
+      },
+      {
+        "id": "metadata",
+        "material": "sample-a",
+        "originalMaterial": "sample-a",
+        "density": {
+          "value": 1100,
+          "source": "cad",
+          "detail": "sample-a"
+        },
+        "rate": {
+          "value": 72,
+          "currency": "BRL",
+          "source": "cad",
+          "detail": "sample-a"
+        },
+        "volume": {
+          "value": 0.0002399999928474426,
+          "source": "mesh",
+          "method": "volume-closed-mesh"
+        },
+        "mass": {
+          "solid": {
+            "value": 0.26399999213218683,
+            "source": "cad",
+            "detail": "volume-closed-mesh × sample-a"
+          },
+          "slicer": null,
+          "measured": null,
+          "estimate": null
+        },
+        "costs": [
+          {
+            "value": 19.00799943351745,
+            "source": "cad",
+            "currency": "BRL",
+            "method": "solid",
+            "detail": "volume-closed-mesh × sample-a × sample-a"
+          }
+        ],
+        "time": {
+          "machine": null,
+          "production": null,
+          "recorded": null
+        }
+      },
+      {
+        "id": "layer",
+        "material": "sample-d",
+        "originalMaterial": "sample-d",
+        "density": {
+          "value": 980,
+          "source": "cad",
+          "detail": "sample-d"
+        },
+        "rate": null,
+        "volume": {
+          "value": 0.0002399999928474426,
+          "source": "mesh",
+          "method": "volume-closed-mesh"
+        },
+        "mass": {
+          "solid": {
+            "value": 0.23519999299049374,
+            "source": "cad",
+            "detail": "volume-closed-mesh × sample-d"
+          },
+          "slicer": null,
+          "measured": null,
+          "estimate": null
+        },
+        "costs": [],
+        "time": {
+          "machine": null,
+          "production": null,
+          "recorded": null
+        }
+      },
+      {
+        "id": "block-a",
+        "material": "sample-a",
+        "originalMaterial": "sample-a",
+        "density": {
+          "value": 1100,
+          "source": "cad",
+          "detail": "sample-a"
+        },
+        "rate": {
+          "value": 72,
+          "currency": "BRL",
+          "source": "cad",
+          "detail": "sample-a"
+        },
+        "volume": {
+          "value": 0.0002399999928474426,
+          "source": "mesh",
+          "method": "volume-closed-mesh"
+        },
+        "mass": {
+          "solid": {
+            "value": 0.26399999213218683,
+            "source": "cad",
+            "detail": "volume-closed-mesh × sample-a"
+          },
+          "slicer": null,
+          "measured": null,
+          "estimate": null
+        },
+        "costs": [
+          {
+            "value": 19.00799943351745,
+            "source": "cad",
+            "currency": "BRL",
+            "method": "solid",
+            "detail": "volume-closed-mesh × sample-a × sample-a"
+          }
+        ],
+        "time": {
+          "machine": null,
+          "production": null,
+          "recorded": null
+        }
+      },
+      {
+        "id": "block-b",
+        "material": "sample-a",
+        "originalMaterial": "sample-a",
+        "density": {
+          "value": 1100,
+          "source": "cad",
+          "detail": "sample-a"
+        },
+        "rate": {
+          "value": 72,
+          "currency": "BRL",
+          "source": "cad",
+          "detail": "sample-a"
+        },
+        "volume": {
+          "value": 0.0002399999928474426,
+          "source": "mesh",
+          "method": "volume-closed-mesh"
+        },
+        "mass": {
+          "solid": {
+            "value": 0.26399999213218683,
+            "source": "cad",
+            "detail": "volume-closed-mesh × sample-a"
+          },
+          "slicer": null,
+          "measured": null,
+          "estimate": null
+        },
+        "costs": [
+          {
+            "value": 19.00799943351745,
+            "source": "cad",
+            "currency": "BRL",
+            "method": "solid",
+            "detail": "volume-closed-mesh × sample-a × sample-a"
+          }
+        ],
+        "time": {
+          "machine": null,
+          "production": null,
+          "recorded": null
+        }
+      },
+      {
+        "id": "compound",
+        "material": "sample-a",
+        "originalMaterial": "sample-a",
+        "density": {
+          "value": 1100,
+          "source": "cad",
+          "detail": "sample-a"
+        },
+        "rate": {
+          "value": 72,
+          "currency": "BRL",
+          "source": "cad",
+          "detail": "sample-a"
+        },
+        "volume": {
+          "value": 0.0004799999856948852,
+          "source": "mesh",
+          "method": "volume-closed-mesh"
+        },
+        "mass": {
+          "solid": {
+            "value": 0.5279999842643737,
+            "source": "cad",
+            "detail": "volume-closed-mesh × sample-a"
+          },
+          "slicer": null,
+          "measured": null,
+          "estimate": null
+        },
+        "costs": [
+          {
+            "value": 38.0159988670349,
+            "source": "cad",
+            "currency": "BRL",
+            "method": "solid",
+            "detail": "volume-closed-mesh × sample-a × sample-a"
+          }
+        ],
+        "time": {
+          "machine": null,
+          "production": null,
+          "recorded": null
+        }
+      },
+      {
+        "id": "tess",
+        "material": "sample-a",
+        "originalMaterial": "sample-a",
+        "density": {
+          "value": 1100,
+          "source": "cad",
+          "detail": "sample-a"
+        },
+        "rate": {
+          "value": 72,
+          "currency": "BRL",
+          "source": "cad",
+          "detail": "sample-a"
+        },
+        "volume": {
+          "value": 0.00023999999284744265,
+          "source": "mesh",
+          "method": "volume-closed-mesh"
+        },
+        "mass": {
+          "solid": {
+            "value": 0.2639999921321869,
+            "source": "cad",
+            "detail": "volume-closed-mesh × sample-a"
+          },
+          "slicer": null,
+          "measured": null,
+          "estimate": null
+        },
+        "costs": [
+          {
+            "value": 19.007999433517455,
+            "source": "cad",
+            "currency": "BRL",
+            "method": "solid",
+            "detail": "volume-closed-mesh × sample-a × sample-a"
+          }
+        ],
+        "time": {
+          "machine": null,
+          "production": null,
+          "recorded": null
+        }
+      },
+      {
+        "id": "open",
+        "material": "sample-c",
+        "originalMaterial": "sample-c",
+        "density": null,
+        "rate": {
+          "value": 40,
+          "currency": "BRL",
+          "source": "cad",
+          "detail": "sample-c"
+        },
+        "volume": null,
+        "mass": {
+          "solid": null,
+          "slicer": null,
+          "measured": null,
+          "estimate": null
+        },
+        "costs": [],
+        "time": {
+          "machine": null,
+          "production": null,
+          "recorded": null
+        }
+      },
+      {
+        "id": "new-id",
+        "material": "sample-a",
+        "originalMaterial": "sample-a",
+        "density": {
+          "value": 1100,
+          "source": "cad",
+          "detail": "sample-a"
+        },
+        "rate": {
+          "value": 72,
+          "currency": "BRL",
+          "source": "cad",
+          "detail": "sample-a"
+        },
+        "volume": {
+          "value": 0.0002399999928474426,
+          "source": "mesh",
+          "method": "volume-closed-mesh"
+        },
+        "mass": {
+          "solid": {
+            "value": 0.26399999213218683,
+            "source": "cad",
+            "detail": "volume-closed-mesh × sample-a"
+          },
+          "slicer": null,
+          "measured": null,
+          "estimate": null
+        },
+        "costs": [
+          {
+            "value": 19.00799943351745,
+            "source": "cad",
+            "currency": "BRL",
+            "method": "solid",
+            "detail": "volume-closed-mesh × sample-a × sample-a"
+          }
+        ],
+        "time": {
+          "machine": null,
+          "production": null,
+          "recorded": null
+        }
+      },
+      {
+        "id": "repeat-b1",
+        "material": "sample-a",
+        "originalMaterial": "sample-a",
+        "density": {
+          "value": 1100,
+          "source": "cad",
+          "detail": "sample-a"
+        },
+        "rate": {
+          "value": 72,
+          "currency": "BRL",
+          "source": "cad",
+          "detail": "sample-a"
+        },
+        "volume": {
+          "value": 0.0002399999928474426,
+          "source": "mesh",
+          "method": "volume-closed-mesh"
+        },
+        "mass": {
+          "solid": {
+            "value": 0.26399999213218683,
+            "source": "cad",
+            "detail": "volume-closed-mesh × sample-a"
+          },
+          "slicer": null,
+          "measured": null,
+          "estimate": null
+        },
+        "costs": [
+          {
+            "value": 19.00799943351745,
+            "source": "cad",
+            "currency": "BRL",
+            "method": "solid",
+            "detail": "volume-closed-mesh × sample-a × sample-a"
+          }
+        ],
+        "time": {
+          "machine": null,
+          "production": null,
+          "recorded": null
+        }
+      },
+      {
+        "id": "repeat-b2",
+        "material": "sample-a",
+        "originalMaterial": "sample-a",
+        "density": {
+          "value": 1100,
+          "source": "cad",
+          "detail": "sample-a"
+        },
+        "rate": {
+          "value": 72,
+          "currency": "BRL",
+          "source": "cad",
+          "detail": "sample-a"
+        },
+        "volume": {
+          "value": 0.0002399999928474426,
+          "source": "mesh",
+          "method": "volume-closed-mesh"
+        },
+        "mass": {
+          "solid": {
+            "value": 0.26399999213218683,
+            "source": "cad",
+            "detail": "volume-closed-mesh × sample-a"
+          },
+          "slicer": null,
+          "measured": null,
+          "estimate": null
+        },
+        "costs": [
+          {
+            "value": 19.00799943351745,
+            "source": "cad",
+            "currency": "BRL",
+            "method": "solid",
+            "detail": "volume-closed-mesh × sample-a × sample-a"
+          }
+        ],
+        "time": {
+          "machine": null,
+          "production": null,
+          "recorded": null
+        }
+      },
+      {
+        "id": "added",
+        "material": "sample-a",
+        "originalMaterial": "sample-a",
+        "density": {
+          "value": 1100,
+          "source": "cad",
+          "detail": "sample-a"
+        },
+        "rate": {
+          "value": 72,
+          "currency": "BRL",
+          "source": "cad",
+          "detail": "sample-a"
+        },
+        "volume": {
+          "value": 0.0002399999928474426,
+          "source": "mesh",
+          "method": "volume-closed-mesh"
+        },
+        "mass": {
+          "solid": {
+            "value": 0.26399999213218683,
+            "source": "cad",
+            "detail": "volume-closed-mesh × sample-a"
+          },
+          "slicer": null,
+          "measured": null,
+          "estimate": null
+        },
+        "costs": [
+          {
+            "value": 19.00799943351745,
+            "source": "cad",
+            "currency": "BRL",
+            "method": "solid",
+            "detail": "volume-closed-mesh × sample-a × sample-a"
+          }
+        ],
+        "time": {
+          "machine": null,
+          "production": null,
+          "recorded": null
+        }
+      },
+      {
+        "id": "scaled",
+        "material": "sample-a",
+        "originalMaterial": "sample-a",
+        "density": {
+          "value": 1100,
+          "source": "cad",
+          "detail": "sample-a"
+        },
+        "rate": {
+          "value": 72,
+          "currency": "BRL",
+          "source": "cad",
+          "detail": "sample-a"
+        },
+        "volume": {
+          "value": 0.0003055319908944368,
+          "source": "mesh",
+          "method": "volume-closed-mesh"
+        },
+        "mass": {
+          "solid": {
+            "value": 0.3360851899838805,
+            "source": "cad",
+            "detail": "volume-closed-mesh × sample-a"
+          },
+          "slicer": null,
+          "measured": null,
+          "estimate": null
+        },
+        "costs": [
+          {
+            "value": 24.198133678839394,
+            "source": "cad",
+            "currency": "BRL",
+            "method": "solid",
+            "detail": "volume-closed-mesh × sample-a × sample-a"
+          }
+        ],
+        "time": {
+          "machine": null,
+          "production": null,
+          "recorded": null
+        }
+      },
+      {
+        "id": "mirror",
+        "material": "sample-a",
+        "originalMaterial": "sample-a",
+        "density": {
+          "value": 1100,
+          "source": "cad",
+          "detail": "sample-a"
+        },
+        "rate": {
+          "value": 72,
+          "currency": "BRL",
+          "source": "cad",
+          "detail": "sample-a"
+        },
+        "volume": {
+          "value": 0.0002399999928474426,
+          "source": "mesh",
+          "method": "volume-closed-mesh"
+        },
+        "mass": {
+          "solid": {
+            "value": 0.26399999213218683,
+            "source": "cad",
+            "detail": "volume-closed-mesh × sample-a"
+          },
+          "slicer": null,
+          "measured": null,
+          "estimate": null
+        },
+        "costs": [
+          {
+            "value": 19.00799943351745,
+            "source": "cad",
+            "currency": "BRL",
+            "method": "solid",
+            "detail": "volume-closed-mesh × sample-a × sample-a"
+          }
+        ],
+        "time": {
+          "machine": null,
+          "production": null,
+          "recorded": null
+        }
+      },
+      {
+        "id": "assembly",
+        "material": "sample-a",
+        "originalMaterial": "sample-a",
+        "density": {
+          "value": 1100,
+          "source": "cad",
+          "detail": "sample-a"
+        },
+        "rate": {
+          "value": 72,
+          "currency": "BRL",
+          "source": "cad",
+          "detail": "sample-a"
+        },
+        "volume": {
+          "value": 0.0002399999928474426,
+          "source": "mesh",
+          "method": "volume-closed-mesh"
+        },
+        "mass": {
+          "solid": {
+            "value": 0.26399999213218683,
+            "source": "cad",
+            "detail": "volume-closed-mesh × sample-a"
+          },
+          "slicer": null,
+          "measured": null,
+          "estimate": null
+        },
+        "costs": [
+          {
+            "value": 19.00799943351745,
+            "source": "cad",
+            "currency": "BRL",
+            "method": "solid",
+            "detail": "volume-closed-mesh × sample-a × sample-a"
+          }
+        ],
+        "time": {
+          "machine": null,
+          "production": null,
+          "recorded": null
+        }
+      }
+    ],
+    "summary": {
+      "components": 21,
+      "occurrences": 21,
+      "types": 2,
+      "blocks": 1,
+      "uniqueGeometries": 6,
+      "area": {
+        "area-cad": {
+          "subtotal": 0.0236,
+          "included": 1,
+          "excluded": 20,
+          "percent": 4.761904761904762,
+          "reasons": {
+            "different-method": 20
+          }
+        },
+        "area-triangles": {
+          "subtotal": 0.4897531893017919,
+          "included": 20,
+          "excluded": 1,
+          "percent": 95.23809523809524,
+          "reasons": {
+            "different-method": 1
+          }
+        }
+      },
+      "volume": {
+        "volume-cad": {
+          "subtotal": 0.00024,
+          "included": 1,
+          "excluded": 20,
+          "percent": 4.761904761904762,
+          "reasons": {
+            "different-method": 19,
+            "open-mesh": 1
+          }
+        },
+        "volume-closed-mesh": {
+          "subtotal": 0.004955531857901573,
+          "included": 19,
+          "excluded": 2,
+          "percent": 90.47619047619048,
+          "reasons": {
+            "different-method": 1,
+            "open-mesh": 1
+          }
+        }
+      },
+      "areaCoverage": {
+        "subtotal": 21,
+        "included": 21,
+        "excluded": 0,
+        "percent": 100,
+        "reasons": {}
+      },
+      "volumeCoverage": {
+        "subtotal": 20,
+        "included": 20,
+        "excluded": 1,
+        "percent": 95.23809523809524,
+        "reasons": {
+          "open-mesh": 1
+        }
+      }
+    },
+    "fabrication": {
+      "mass": {
+        "solid": {
+          "subtotal": 5.746285042761898,
+          "included": 20,
+          "excluded": 1,
+          "percent": 95.23809523809524,
+          "reasons": {
+            "missing-volume": 1
+          }
+        },
+        "slicer": {
+          "subtotal": 0.12,
+          "included": 1,
+          "excluded": 20,
+          "percent": 4.761904761904762,
+          "reasons": {
+            "missing-record": 20
+          }
+        },
+        "measured": {
+          "subtotal": 0,
+          "included": 1,
+          "excluded": 20,
+          "percent": 4.761904761904762,
+          "reasons": {
+            "missing-record": 20
+          }
+        },
+        "estimate": {
+          "subtotal": null,
+          "included": 0,
+          "excluded": 21,
+          "percent": 0,
+          "reasons": {
+            "missing-record": 21
+          }
+        }
+      },
+      "time": {
+        "machine": {
+          "subtotal": 360,
+          "included": 1,
+          "excluded": 20,
+          "percent": 4.761904761904762,
+          "reasons": {
+            "missing-record": 20
+          }
+        },
+        "production": {
+          "subtotal": null,
+          "included": 0,
+          "excluded": 21,
+          "percent": 0,
+          "reasons": {
+            "missing-record": 21
+          }
+        },
+        "recorded": {
+          "subtotal": null,
+          "included": 0,
+          "excluded": 21,
+          "percent": 0,
+          "reasons": {
+            "missing-record": 21
+          }
+        }
+      },
+      "costs": {
+        "BRL solid": {
+          "subtotal": 373.4701242787696,
+          "included": 18,
+          "excluded": 3,
+          "percent": 85.71428571428571,
+          "reasons": {
+            "different-currency": 1,
+            "missing-cost": 1,
+            "missing-compatible-mass": 1
+          }
+        },
+        "BRL measured": {
+          "subtotal": 0,
+          "included": 1,
+          "excluded": 20,
+          "percent": 4.761904761904762,
+          "reasons": {
+            "missing-compatible-mass": 18,
+            "different-currency": 1,
+            "missing-cost": 1
+          }
+        },
+        "BRL slicer": {
+          "subtotal": 8.64,
+          "included": 1,
+          "excluded": 20,
+          "percent": 4.761904761904762,
+          "reasons": {
+            "missing-compatible-mass": 18,
+            "different-currency": 1,
+            "missing-cost": 1
+          }
+        },
+        "EUR solid": {
+          "subtotal": 5.831999826192855,
+          "included": 1,
+          "excluded": 20,
+          "percent": 4.761904761904762,
+          "reasons": {
+            "different-currency": 19,
+            "missing-cost": 1
+          }
+        }
+      },
+      "material": {
+        "subtotal": 21,
+        "included": 21,
+        "excluded": 0,
+        "percent": 100,
+        "reasons": {}
+      },
+      "density": {
+        "subtotal": 20,
+        "included": 20,
+        "excluded": 1,
+        "percent": 95.23809523809524,
+        "reasons": {
+          "missing-density": 1
+        }
+      }
+    },
+    "units": {
+      "mass": "kg",
+      "time": "s",
+      "volume": "m³",
+      "area": "m²"
+    }
+  }
+}

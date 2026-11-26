@@ -7,7 +7,9 @@ import { downloadFile } from "./download-file";
 
 const switches = ["grid", "axes", "ground", "shadows", "edges"] as const;
 
-export function DisplayOptions({ count, loadTime, onReset }: { count: number; loadTime: number; onReset: () => void }) {
+export function DisplayOptions({ count, loadTime, onReset, comparison = false }: {
+  count: number; loadTime: number; onReset: () => void; comparison?: boolean;
+}) {
   const settings = usePresentation((state) => state.display);
   const patch = usePresentation((state) => state.patchDisplay);
   const access = usePresentation((state) => state.access);
@@ -53,7 +55,7 @@ export function DisplayOptions({ count, loadTime, onReset }: { count: number; lo
         </select>
       </label>
       <div className="gg-v05-checks gg-v05-checks--columns">
-        {switches.map((name) => <label key={name}><input type="checkbox" checked={settings[name]} onChange={(event) => patch({ [name]: event.currentTarget.checked })} />{v05[name]}</label>)}
+        {switches.filter((name) => !comparison || name === "edges").map((name) => <label key={name}><input type="checkbox" checked={settings[name]} onChange={(event) => patch({ [name]: event.currentTarget.checked })} />{v05[name]}</label>)}
       </div>
       <label>{v05.light} · {Math.round(settings.light * 100)}%
         <input type="range" min="0.2" max="2" step="0.05" value={settings.light} onChange={(event) => patch({ light: Number(event.currentTarget.value) })} />

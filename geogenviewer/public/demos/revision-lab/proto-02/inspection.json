@@ -1,0 +1,266 @@
+{
+  "schemaVersion": "1.0.0",
+  "model": {
+    "projectId": "revision-lab",
+    "revisionId": "proto-02",
+    "fileName": "model.glb",
+    "bytes": 11084,
+    "sha256": "42dbdd4e16d129ba6fa7ed9ff91c1d19d0ff2c4772715fa278563f475ecf7fe8"
+  },
+  "sections": {
+    "shared": true,
+    "views": [
+      {
+        "planes": [
+          {
+            "id": "X",
+            "axis": "X",
+            "name": "Plano X",
+            "enabled": false,
+            "positionM": 0.05,
+            "flipped": false,
+            "gizmo": true,
+            "gizmoOpacity": 0.65
+          },
+          {
+            "id": "Y",
+            "axis": "Y",
+            "name": "Plano Y",
+            "enabled": false,
+            "positionM": 0.05,
+            "flipped": false,
+            "gizmo": true,
+            "gizmoOpacity": 0.65
+          },
+          {
+            "id": "Z",
+            "axis": "Z",
+            "name": "Plano Z",
+            "enabled": false,
+            "positionM": 0.05,
+            "flipped": false,
+            "gizmo": true,
+            "gizmoOpacity": 0.65
+          }
+        ],
+        "mode": "outline",
+        "fill": true,
+        "fillColor": "#b6c9d5",
+        "outlineColor": "#466a82",
+        "opacity": 1,
+        "lineWidth": 1.5
+      },
+      {
+        "planes": [
+          {
+            "id": "X",
+            "axis": "X",
+            "name": "Plano X",
+            "enabled": false,
+            "positionM": 0.05,
+            "flipped": false,
+            "gizmo": true,
+            "gizmoOpacity": 0.65
+          },
+          {
+            "id": "Y",
+            "axis": "Y",
+            "name": "Plano Y",
+            "enabled": false,
+            "positionM": 0.05,
+            "flipped": false,
+            "gizmo": true,
+            "gizmoOpacity": 0.65
+          },
+          {
+            "id": "Z",
+            "axis": "Z",
+            "name": "Plano Z",
+            "enabled": false,
+            "positionM": 0.05,
+            "flipped": false,
+            "gizmo": true,
+            "gizmoOpacity": 0.65
+          }
+        ],
+        "mode": "outline",
+        "fill": true,
+        "fillColor": "#b6c9d5",
+        "outlineColor": "#466a82",
+        "opacity": 1,
+        "lineWidth": 1.5
+      },
+      {
+        "planes": [
+          {
+            "id": "X",
+            "axis": "X",
+            "name": "Plano X",
+            "enabled": false,
+            "positionM": 0.05,
+            "flipped": false,
+            "gizmo": true,
+            "gizmoOpacity": 0.65
+          },
+          {
+            "id": "Y",
+            "axis": "Y",
+            "name": "Plano Y",
+            "enabled": false,
+            "positionM": 0.05,
+            "flipped": false,
+            "gizmo": true,
+            "gizmoOpacity": 0.65
+          },
+          {
+            "id": "Z",
+            "axis": "Z",
+            "name": "Plano Z",
+            "enabled": false,
+            "positionM": 0.05,
+            "flipped": false,
+            "gizmo": true,
+            "gizmoOpacity": 0.65
+          }
+        ],
+        "mode": "outline",
+        "fill": true,
+        "fillColor": "#b6c9d5",
+        "outlineColor": "#466a82",
+        "opacity": 1,
+        "lineWidth": 1.5
+      },
+      {
+        "planes": [
+          {
+            "id": "X",
+            "axis": "X",
+            "name": "Plano X",
+            "enabled": false,
+            "positionM": 0.05,
+            "flipped": false,
+            "gizmo": true,
+            "gizmoOpacity": 0.65
+          },
+          {
+            "id": "Y",
+            "axis": "Y",
+            "name": "Plano Y",
+            "enabled": false,
+            "positionM": 0.05,
+            "flipped": false,
+            "gizmo": true,
+            "gizmoOpacity": 0.65
+          },
+          {
+            "id": "Z",
+            "axis": "Z",
+            "name": "Plano Z",
+            "enabled": false,
+            "positionM": 0.05,
+            "flipped": false,
+            "gizmo": true,
+            "gizmoOpacity": 0.65
+          }
+        ],
+        "mode": "outline",
+        "fill": true,
+        "fillColor": "#b6c9d5",
+        "outlineColor": "#466a82",
+        "opacity": 1,
+        "lineWidth": 1.5
+      }
+    ]
+  },
+  "snap": {
+    "modes": [
+      "surface",
+      "vertex",
+      "edge",
+      "midpoint"
+    ],
+    "pixels": 12
+  },
+  "capture": {
+    "width": 1920,
+    "background": "white",
+    "color": "#f1f5f9",
+    "measurements": true,
+    "identifiers": false,
+    "gizmos": false,
+    "grid": false,
+    "axes": false,
+    "selection": false,
+    "scale": true
+  },
+  "measurements": [
+    {
+      "id": "width",
+      "name": "Comprimento da travessa",
+      "kind": "distance",
+      "pose": "rest",
+      "valueM": 0.11,
+      "anchors": [
+        {
+          "elementId": "size",
+          "localM": [
+            -0.055,
+            0.025,
+            0.03
+          ],
+          "nodePath": [],
+          "instanceId": null,
+          "snap": "vertex"
+        },
+        {
+          "elementId": "size",
+          "localM": [
+            0.055,
+            0.025,
+            0.03
+          ],
+          "nodePath": [],
+          "instanceId": null,
+          "snap": "vertex"
+        }
+      ],
+      "visible": true,
+      "provenance": "mesh",
+      "capturedIn": "inspect"
+    },
+    {
+      "id": "invalid",
+      "name": "Referência ausente",
+      "kind": "distance",
+      "pose": "rest",
+      "valueM": 0.08,
+      "anchors": [
+        {
+          "elementId": "missing-element",
+          "localM": [
+            -0.04,
+            0.025,
+            0.03
+          ],
+          "nodePath": [],
+          "instanceId": null,
+          "snap": "vertex"
+        },
+        {
+          "elementId": "missing-element",
+          "localM": [
+            0.04,
+            0.025,
+            0.03
+          ],
+          "nodePath": [],
+          "instanceId": null,
+          "snap": "vertex"
+        }
+      ],
+      "visible": true,
+      "provenance": "mesh",
+      "capturedIn": "inspect"
+    }
+  ]
+}

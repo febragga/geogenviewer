@@ -174,7 +174,7 @@ export const useInspection = create<InspectionState>((set, get) => ({
     const names = { distance: "Distância", delta: "Delta XYZ", point: "Coordenadas" };
     const record: Measurement = {
       id: crypto.randomUUID(), name: names[kind] + " " + (doc.measurements.length + 1), anchors, kind, pose,
-      valueM: measurementValue(kind, points), provenance: "mesh", visible: true, capturedIn: workspace,
+      valueM: measurementValue(kind, points), provenance: "mesh", visible: true, capturedIn: workspace === "compare" || workspace === "quantities" ? "explore" : workspace,
     };
     commit({ ...doc, measurements: [...doc.measurements, record] });
     set({ draft: null, status: "" });

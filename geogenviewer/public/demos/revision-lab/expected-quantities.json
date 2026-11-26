@@ -1,0 +1,11 @@
+{
+  "components": 21,
+  "occurrences": 21,
+  "blocks": 1,
+  "types": 2,
+  "openMesh": "open",
+  "prototype01SlicerKg": 0.1,
+  "prototype02SlicerKg": 0.12,
+  "knownCadVolumeM3": 0.00024,
+  "measuredKg": 0
+}

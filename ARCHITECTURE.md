@@ -196,3 +196,13 @@ O scene controller aplica os planos shader por passe WebGL e restaura os estados
 As medições persistem ponto local, caminho relativo ao componente e ocorrência. A projeção das anotações compartilha as regras da vista ativa com a composição Canvas 2D dos PNGs. A captura técnica tem metadados congelados no instante do render. Named Views V0.5 continuam legíveis e o formato estendido acrescenta estado de inspeção e layout.
 
 [Motor de cortes](V06_SECTION_ENGINE_SPEC.md) · [Motor de medidas](V06_MEASUREMENT_SPEC.md)
+
+## V0.7 — Comparação de revisões e fabricação
+
+A importação gera um snapshot de repouso com identidade de revisão, chave efêmera de importação e índice por componente. Cada revisão conserva seu `LoadedScenePackage`. Dois slots na interface suportam uma coleção futura sem acoplar o domínio a quantidade fixa. IDs CAD são internos ao pacote e a comparação usa pares com lado explícito.
+
+O Canvas e o renderer são compartilhados. Na comparação, uma segunda cena reaproveita os recursos dos pacotes com cópias dos nós renderizáveis. Um estado privado do rig controla câmeras sincronizadas e regiões. Essa opção permite materiais e visibilidade por revisão, preservando as poses de apresentação e o estado anterior. Dois Canvas exigiriam gerenciamento separado de contextos e contadores, além de mais alocações na GPU. Renderizar os objetos originais em duas poses exporia o estado de inspeção e montagem a mutações concorrentes.
+
+A análise ocorre em motores independentes de React. O cache de assinatura e métricas referencia geometrias importadas via `WeakMap`. O diff usa snapshots e lotes cooperativos com cancelamento quando os parâmetros mudam. Os quantitativos produzem registros por ocorrência e os documentos de análise restauram decisões leves por SHA-256, com schemas versionados. A implementação usa as dependências existentes.
+
+[Auditoria V0.7](V07_REVISION_ANALYTICS_AUDIT.md) · [Relatório de implementação](V07_IMPLEMENTATION_REPORT.md)

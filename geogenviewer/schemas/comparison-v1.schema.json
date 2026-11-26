@@ -1,0 +1,304 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GeoGenViewer comparison 1.0.0",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0.0"
+    },
+    "generatedAt": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{3}Z$"
+    },
+    "base": {
+      "$ref": "#/$defs/identity"
+    },
+    "comparison": {
+      "$ref": "#/$defs/identity"
+    },
+    "associated": {
+      "type": "boolean"
+    },
+    "toleranceM": {
+      "type": "number",
+      "minimum": 0
+    },
+    "alignment": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "boolean"
+        },
+        "translationM": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "number"
+          }
+        },
+        "rotationDeg": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "number"
+          }
+        }
+      },
+      "required": [
+        "source",
+        "translationM",
+        "rotationDeg"
+      ],
+      "additionalProperties": false
+    },
+    "manual": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "baseId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1
+          },
+          "comparisonId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1
+          },
+          "replacement": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "baseId",
+          "comparisonId"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "filter": {
+      "enum": [
+        "unchanged",
+        "added",
+        "removed",
+        "modified",
+        "unresolved",
+        null
+      ]
+    },
+    "differences": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "baseId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1
+          },
+          "comparisonId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1
+          },
+          "replacement": {
+            "type": "boolean"
+          },
+          "status": {
+            "enum": [
+              "unchanged",
+              "added",
+              "removed",
+              "modified",
+              "unresolved"
+            ]
+          },
+          "method": {
+            "enum": [
+              "persistent",
+              "manual",
+              "authored",
+              "heuristic",
+              "ambiguous",
+              "unmatched"
+            ]
+          },
+          "changes": {
+            "type": "array",
+            "items": {
+              "enum": [
+                "geometry",
+                "position",
+                "rotation",
+                "scale",
+                "material",
+                "layer",
+                "category",
+                "metadata",
+                "fabrication",
+                "assembly",
+                "replacement"
+              ]
+            }
+          },
+          "shape": {
+            "enum": [
+              "identical",
+              "mesh-different",
+              "above-tolerance",
+              "inconclusive",
+              null
+            ]
+          },
+          "transformInconclusive": {
+            "type": "boolean"
+          },
+          "confirmed": {
+            "type": "boolean"
+          },
+          "candidates": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "candidateCount": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "baseId",
+          "comparisonId",
+          "status",
+          "method",
+          "changes",
+          "shape",
+          "transformInconclusive",
+          "confirmed",
+          "candidates",
+          "candidateCount"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "generatedAt",
+    "base",
+    "comparison",
+    "associated",
+    "toleranceM",
+    "alignment",
+    "manual",
+    "filter"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "identity": {
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "revisionId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "prototypeId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "geometryKind": {
+          "enum": [
+            "physicalModel",
+            "fullScale",
+            "unknown"
+          ]
+        },
+        "scaleDenominator": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "sourceOrigin": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "number"
+          }
+        },
+        "sourceUnit": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "sourceUpAxis": {
+          "enum": [
+            "Y",
+            "Z",
+            null
+          ]
+        },
+        "metersPerSourceUnit": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        }
+      },
+      "required": [
+        "projectId",
+        "revisionId",
+        "prototypeId",
+        "sha256",
+        "geometryKind",
+        "scaleDenominator",
+        "sourceOrigin",
+        "sourceUnit",
+        "sourceUpAxis",
+        "metersPerSourceUnit"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

@@ -9,7 +9,7 @@ import { usePresentation } from "../state/presentation-store";
 import { useViewerStore } from "../state/viewer-store";
 import { layouts, presets, v05 } from "../v05-copy";
 
-export function ViewOptions({ loaded }: { loaded: LoadedScenePackage }) {
+export function ViewOptions({ loaded, comparison = false }: { loaded: LoadedScenePackage; comparison?: boolean }) {
   const active = usePresentation((state) => state.active);
   const layout = usePresentation((state) => state.layout);
   const maximized = usePresentation((state) => state.maximized);
@@ -53,11 +53,11 @@ export function ViewOptions({ loaded }: { loaded: LoadedScenePackage }) {
 
   return (
     <>
-      <label>{v05.layout}
+      {!comparison && <label>{v05.layout}
         <select value={layout} onChange={(event) => usePresentation.getState().setLayout(event.currentTarget.value as ViewLayout)}>
           {Object.entries(layouts).map(([id, title]) => <option key={id} value={id}>{title}</option>)}
         </select>
-      </label>
+      </label>}
       <label>{v05.orientation}
         <select key={active} value="" onChange={(event) => {
           if (event.currentTarget.value) access?.preset(event.currentTarget.value as ViewPreset);
@@ -67,11 +67,14 @@ export function ViewOptions({ loaded }: { loaded: LoadedScenePackage }) {
         </select>
       </label>
       <label>{v05.projection}
-        <select value={projection} onChange={(event) => access?.projection(event.currentTarget.value as Projection)}>
+        <select value={comparison ? "" : projection} onChange={(event) => {
+          if (event.currentTarget.value) access?.projection(event.currentTarget.value as Projection);
+        }}>
+          {comparison && <option value="">Escolher projeção</option>}
           <option value="perspective">{v05.perspective}</option><option value="orthographic">{v05.orthographic}</option>
         </select>
       </label>
-      {layout !== "single" && (
+      {!comparison && layout !== "single" && (
         <div className="gg-v05-checks">
           <label><input type="checkbox" checked={syncTarget} onChange={(event) => usePresentation.setState({ syncTarget: event.currentTarget.checked })} />{v05.syncTarget}</label>
           <label><input type="checkbox" checked={syncZoom} onChange={(event) => usePresentation.setState({ syncZoom: event.currentTarget.checked })} />{v05.syncZoom}</label>
@@ -95,9 +98,10 @@ export function ViewOptions({ loaded }: { loaded: LoadedScenePackage }) {
       </label>
       <label>{v05.name}<input maxLength={80} value={name} onChange={(event) => setName(event.currentTarget.value)} /></label>
       <div className="gg-v05-actions">
-        <button type="button" className="gg-btn gg-btn--primary" disabled={!name.trim() || !access} onClick={create}>{v05.save}</button>
+        <button type="button" className="gg-btn gg-btn--primary" disabled={comparison || !name.trim() || !access} onClick={create}>{v05.save}</button>
         <button type="button" className="gg-btn gg-btn--secondary" disabled={!view || !access} onClick={() => {
           if (!view?.pose || !view.visibility || !view.display) return;
+          if (comparison) { access?.apply(view.pose); return; }
           if (view.regions && access) {
             const { layout, active, maximized, poses } = view.regions;
             usePresentation.setState({ layout, active, maximized, display: view.display });
@@ -109,7 +113,7 @@ export function ViewOptions({ loaded }: { loaded: LoadedScenePackage }) {
           useInspection.getState().restorePreset(view.inspection, view.name);
           useViewerStore.setState({ ...view.visibility, beforeIsolation: null });
         }}>{v05.apply}</button>
-        <button type="button" className="gg-btn gg-btn--secondary" disabled={!view || !access} onClick={() => {
+        <button type="button" className="gg-btn gg-btn--secondary" disabled={comparison || !view || !access} onClick={() => {
           if (!view) return;
           const next = capture(view.id, view.name);
           if (next) save(views.map((item) => item.id === view.id ? next : item));

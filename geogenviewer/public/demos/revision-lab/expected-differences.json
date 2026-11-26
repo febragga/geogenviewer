@@ -1,0 +1,66 @@
+{
+  "toleranceM": 0.0001,
+  "sourceOffsetM": [
+    0.5,
+    0,
+    -0.25
+  ],
+  "stable": [
+    "same",
+    "block-a",
+    "block-b",
+    "compound",
+    "open"
+  ],
+  "modified": {
+    "size": [
+      "geometry",
+      "metadata",
+      "fabrication"
+    ],
+    "moved": [
+      "position"
+    ],
+    "rotated": [
+      "rotation"
+    ],
+    "material": [
+      "material",
+      "fabrication"
+    ],
+    "tolerance": [
+      "fabrication"
+    ],
+    "category": [
+      "category"
+    ],
+    "metadata": [
+      "metadata"
+    ],
+    "layer": [
+      "layer"
+    ],
+    "scaled": [
+      "scale"
+    ],
+    "mirror": [
+      "scale"
+    ],
+    "assembly": [
+      "assembly"
+    ]
+  },
+  "retessellated": "tess",
+  "removed": "removed",
+  "added": "added",
+  "replacedId": [
+    "old-id",
+    "new-id"
+  ],
+  "ambiguous": [
+    "repeat-a1",
+    "repeat-a2",
+    "repeat-b1",
+    "repeat-b2"
+  ]
+}

@@ -15,6 +15,18 @@ import type { InspectionScene } from "./inspection-scene";
 type ViewCamera = PerspectiveCamera | OrthographicCamera;
 type Rig = ReturnType<typeof createRig>;
 
+export type CameraRigState = Pick<ReturnType<typeof usePresentation.getState>,
+  "layout" | "maximized" | "poses" | "projections" | "active" | "setActive" | "syncTarget" | "syncZoom" | "shareVisibility" | "shareSelection"> & { syncOrientation?: boolean };
+export interface CameraRigStore {
+  getState: () => CameraRigState;
+  setState: (patch: Partial<CameraRigState>) => void;
+  subscribe: (listener: (state: CameraRigState, previous: CameraRigState) => void) => () => void;
+}
+export interface CameraRigOptions {
+  scene: Scene;
+  store: CameraRigStore;
+}
+
 interface Slot {
   perspective: PerspectiveCamera;
   orthographic: OrthographicCamera;
@@ -132,6 +144,7 @@ function createRig(
   gl: WebGLRenderer, scene: Scene, sphere: Sphere, invalidate: () => void,
   onContextLost: () => void, beforeDraw: (slot: number, selection?: boolean) => void,
   inspector: RefObject<InspectionScene | null>, motion: () => { moving: boolean; pose: string },
+  viewStore: CameraRigStore = usePresentation,
 ) {
   const canvas = gl.domElement;
   const radius = Math.max(sphere.radius, 0.000001);
@@ -159,9 +172,9 @@ function createRig(
   }
 
   function updateProjection(index: number, pose: CameraPose) {
-    const { projections } = usePresentation.getState();
+    const { projections } = viewStore.getState();
     if (projections[index] === pose.projection) return;
-    usePresentation.setState({ projections: projections.map((p, slot) => slot === index ? pose.projection : p) });
+    viewStore.setState({ projections: projections.map((p, slot) => slot === index ? pose.projection : p) });
   }
 
   const slots: Slot[] = viewSlots.map((preset, index) => {
@@ -174,7 +187,7 @@ function createRig(
     controls.maxDistance = radius * 120;
     controls.minZoom = 0.01;
     controls.maxZoom = 100;
-    const pose = usePresentation.getState().poses[index] ?? initialPose(preset, center, radius, 1);
+    const pose = viewStore.getState().poses[index] ?? initialPose(preset, center, radius, 1);
     controls.addEventListener("change", () => {
       if (applying) return;
       slots[index].transition = null;
@@ -186,12 +199,19 @@ function createRig(
   });
 
   function syncPeers(index: number) {
-    const { syncTarget, syncZoom } = usePresentation.getState();
-    if (!syncTarget && !syncZoom) return;
+    const { syncTarget, syncZoom, syncOrientation } = viewStore.getState() as CameraRigState;
+    if (!syncTarget && !syncZoom && !syncOrientation) return;
     for (const [peer, slot] of slots.entries()) {
       if (peer === index) continue;
       slot.transition = null;
-      apply(peer, synchronizePose(slots[index].pose, slot.pose, syncTarget, syncZoom));
+      const source = slots[index].pose;
+      const next = syncOrientation ? source : synchronizePose(source, slot.pose, syncTarget, syncZoom);
+      if (syncOrientation === false && syncZoom && next.projection === "perspective") {
+        const target = new Vector3(...next.target);
+        const distance = source.height / viewHeightAtDistance(1);
+        const position = new Vector3(...next.position).sub(target).setLength(distance).add(target);
+        apply(peer, { ...next, position: position.toArray(), height: source.height });
+      } else apply(peer, next);
     }
   }
 
@@ -209,8 +229,8 @@ function createRig(
   function activate(event: PointerEvent | WheelEvent) {
     if (pointers.size === 0) {
       const hit = pick(event.clientX, event.clientY, ndc);
-      if (hit) usePresentation.getState().setActive(hit.slot);
-      const active = usePresentation.getState().active;
+      if (hit) viewStore.getState().setActive(hit.slot);
+      const active = viewStore.getState().active;
       for (const [index, slot] of slots.entries()) slot.controls.enabled = index === active;
       slots[active].transition = null;
     }
@@ -222,7 +242,7 @@ function createRig(
   }
 
   function synchronizeControls() {
-    const active = usePresentation.getState().active;
+    const active = viewStore.getState().active;
     const activeControl = slots[active].controls;
     for (const slot of slots) slot.controls.stopListenToKeyEvents();
     activeControl.listenToKeyEvents(canvas);
@@ -239,24 +259,26 @@ function createRig(
   canvas.addEventListener("lostpointercapture", release);
   canvas.addEventListener("webglcontextlost", onContextLost);
   canvas.tabIndex = 0;
-  const unsubscribe = usePresentation.subscribe((state, old) => {
+  const unsubscribe = viewStore.subscribe((state, old) => {
     if (state.active !== old.active) synchronizeControls();
     if (state.layout !== old.layout || state.maximized !== old.maximized) resize(width, height, false);
     if (state.shareVisibility !== old.shareVisibility || state.shareSelection !== old.shareSelection) invalidate();
+    if ((state as CameraRigState).syncOrientation && !(old as CameraRigState).syncOrientation) syncPeers(state.active);
   });
   synchronizeControls();
 
   function resize(w: number, h: number, first: boolean) {
     width = Math.max(1, Math.floor(w));
     height = Math.max(1, Math.floor(h));
-    const { layout, maximized, poses } = usePresentation.getState();
+    const { layout, maximized, poses } = viewStore.getState();
     regions = viewRegions(layout, maximized, width, height);
     slots.forEach((slot, index) => {
       const nextAspect = aspect(index);
       if (!regions.some((region) => region.slot === index)) return;
       const previousAspect = slot.aspect;
-      if (first && !poses[index]) {
-        apply(index, initialPose(viewSlots[index], center, radius, nextAspect));
+      if (first) {
+        const locked = viewStore.getState().syncOrientation;
+        apply(index, poses[index] ?? initialPose(locked ? "perspective" : viewSlots[index], center, radius, nextAspect));
       } else {
         const scale = Math.min(1, previousAspect) / Math.min(1, nextAspect);
         const pose = slot.pose;
@@ -272,7 +294,7 @@ function createRig(
     invalidate();
   }
 
-  function activeSlot() { return usePresentation.getState().active; }
+  function activeSlot() { return viewStore.getState().active; }
   function activePose() { return slots[activeSlot()].pose; }
   function applyActive(pose: CameraPose) {
     const index = activeSlot();
@@ -315,8 +337,8 @@ function createRig(
         applyActive({ ...pose, projection, position: vector.add(new Vector3(...pose.target)).toArray() });
       }
     },
-    capture: (options: PngOptions) => {
-      const index = activeSlot();
+    capture: (options: PngOptions, slot?: number) => {
+      const index = slot ?? activeSlot();
       const region = regions.find((item) => item.slot === index) ?? { slot: index, x: 0, y: 0, width, height };
       const camera = slots[index].controls.object as ViewCamera;
       beforeDraw(index, options.technical?.selection);
@@ -348,7 +370,7 @@ function createRig(
   usePresentation.setState({ access });
 
   return {
-    pick, resize,
+    pick, resize, capture: access.capture,
     mode(pan: boolean) {
       for (const { controls } of slots) {
         controls.mouseButtons.LEFT = pan ? MOUSE.PAN : MOUSE.ROTATE;
@@ -424,7 +446,9 @@ function createRig(
     dispose() {
       unsubscribe();
       if (usePresentation.getState().access === access) {
-        usePresentation.setState({ access: null, poses: slots.map((slot) => slot.pose) });
+        const poses = slots.map((slot) => slot.pose);
+        if (viewStore === usePresentation) usePresentation.setState({ access: null, poses });
+        else { viewStore.setState({ poses }); usePresentation.setState({ access: null }); }
       }
       for (const slot of slots) slot.controls.dispose();
       canvas.removeEventListener("pointerdown", activate, true);
@@ -438,18 +462,18 @@ function createRig(
 }
 
 export function useViewportCameras(sphere: Sphere, onContextLost: () => void, onDraw: (slot: number, selection?: boolean) => void,
-  inspector: RefObject<InspectionScene | null>, motion: () => { moving: boolean; pose: string }) {
+  inspector: RefObject<InspectionScene | null>, motion: () => { moving: boolean; pose: string }, options?: CameraRigOptions) {
   const { gl, scene, invalidate } = useThree();
   const width = useThree((state) => state.size.width);
   const height = useThree((state) => state.size.height);
   const rig = useRef<Rig | null>(null);
   const first = useRef(true);
   useEffect(() => {
-    const next = createRig(gl, scene, sphere, invalidate, onContextLost, onDraw, inspector, motion);
+    const next = createRig(gl, options?.scene ?? scene, sphere, invalidate, onContextLost, onDraw, inspector, motion, options?.store);
     rig.current = next;
     first.current = true;
     return () => { next.dispose(); rig.current = null; };
-  }, [gl, scene, sphere, invalidate, onContextLost, onDraw, inspector, motion]);
+  }, [gl, scene, sphere, invalidate, onContextLost, onDraw, inspector, motion, options]);
   useEffect(() => {
     rig.current?.resize(width, height, first.current);
     first.current = false;

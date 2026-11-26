@@ -17,7 +17,7 @@ Entregar um visualizador capaz de demonstrar o protótipo da Casa Gerassi em tab
 | v0.4 | Vista explodida e propriedades | P0 | Concluído localmente |
 | v0.5 | Experiência do viewer, gestão de vistas e montagem | P1 | Implementado localmente |
 | v0.6 | Corte, medições e documentação técnica | P1 | Implementado localmente |
-| v0.7 | Protótipos, comparações e quantitativos | P2 | A fazer |
+| v0.7 | Protótipos, comparações e quantitativos | P2 | Implementada na branch de feature. Ver [relatório](V07_IMPLEMENTATION_REPORT.md). |
 | v0.8 | Knolling, catálogo e documentação | P2 | A fazer |
 | v0.9 | Desempenho, robustez e acessibilidade | P1 | A fazer |
 | v1.0 | Publicação estável e validação | P1 | A fazer |
@@ -80,7 +80,14 @@ A sprint amplia o marco de montagem anterior com gestão de vistas, filtros e mo
 - [x] Vistas salvas compatíveis com V0.5, fixture sintética, seis resoluções e benchmark.
 - [ ] Repetir a inspeção em tablet físico e validar o fluxo com o exportador homologado. [Relatório de testes](V06_TEST_REPORT.md)
 
-### v0.7–v0.8 — Fabricação e pesquisa
+### v0.7 — Comparação e análise de fabricação
+
+- Revisões simultâneas com confirmação de projeto, identificação de ambiguidades e associação manual.
+- Comparação geométrica aproximada e alinhada em pose de repouso, com distinção de tesselação, transformação e metadados.
+- Quantitativos e cenários com cobertura, proveniência, métodos de massa e moedas preservados.
+- Exportações locais, restauração por identidade, testes e benchmark das fixtures sintéticas. [Relatório de implementação](V07_IMPLEMENTATION_REPORT.md).
+
+### v0.8 — Knolling, catálogo e documentação
 - [ ] Comparação de duas versões com correspondência de IDs e câmera sincronizada.
 - [ ] Quantitativos por instância, material e classe; volume/peso/custo apenas quando dados suficientes.
 - [ ] Knolling: disposição organizada sem sobreposição visual, agrupamento por tipos, retorno à montagem.

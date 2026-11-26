@@ -93,9 +93,9 @@ export function ViewerTopbar({
         </div>
       </div>
 
-      {modelName && <label className="gg-workspace-picker">
+      {(modelName || workspace === "compare") && <label className="gg-workspace-picker">
         <span className="visually-hidden">{v05.workspace}</span>
-        <select value={workspace} onChange={(event) => setWorkspace(event.currentTarget.value as Workspace)}>
+        <select aria-label={v05.workspace} value={workspace} onChange={(event) => setWorkspace(event.currentTarget.value as Workspace)}>
           {Object.entries(workspaces).map(([id, label]) => <option value={id} key={id}>{label}</option>)}
         </select>
       </label>}

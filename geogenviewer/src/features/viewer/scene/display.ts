@@ -60,7 +60,7 @@ export class SceneDisplay {
     });
   }
 
-  apply(settings: DisplaySettings, selected: ReadonlySet<string>, hovered: string | null, hidden: ReadonlySet<string>, isolated: ReadonlySet<string> | null, ghosts: ReadonlySet<string>) {
+  apply(settings: DisplaySettings, selected: ReadonlySet<string>, hovered: string | null, hidden: ReadonlySet<string>, isolated: ReadonlySet<string> | null, ghosts: ReadonlySet<string>, overrides?: ReadonlyMap<string, Color>) {
     const settingsKey = [settings.mode, settings.opacity].join(":");
     if (settings.opacity !== this.materialOpacity) {
       for (const entry of this.objects) {
@@ -76,7 +76,7 @@ export class SceneDisplay {
       const future = id !== null && ghosts.has(id);
       object.visible = entry.visible && (id === null || (!hidden.has(id) && (!isolated || isolated.has(id))));
       const highlight: Highlight = id && selected.has(id) ? "selected" : id && id === hovered ? "hovered" : "";
-      const color = this.semanticColor(id, settings.mode);
+      const color = (id ? overrides?.get(id) : undefined) ?? this.semanticColor(id, settings.mode);
       const key = [settingsKey, highlight, future, color?.getHexString()].join(":");
       if (key !== entry.key && object.visible) {
         const map = (material: Material) => this.variant(material, object.isMesh, settings, color, highlight, future, key);
