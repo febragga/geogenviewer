@@ -12,7 +12,6 @@ import { usePresentation, type PngOptions } from "../state/presentation-store";
 import { useViewerStore } from "../state/viewer-store";
 import { useInspection } from "../state/inspection-store";
 import { SceneDisplay } from "./display";
-import { initialPose } from "./camera-state";
 import { activeClipping, type InspectionScene } from "./inspection-scene";
 import { useViewportCameras, type CameraRigState } from "./viewport-cameras";
 import type { CameraCommand, NavigationMode } from "./viewport";
@@ -235,12 +234,8 @@ export function ComparisonScene({ base, comparison, state, primaryKey, compact, 
   useEffect(() => { cameras.current?.mode(mode === "pan"); }, [cameras, mode]);
 
   useEffect(() => {
-    const sphere = bounds.getBoundingSphere(new Sphere());
-    const pose = initialPose("perspective", sphere.center.toArray(), sphere.radius, 1);
-    const access = usePresentation.getState().access;
-    access?.applySlot(0, pose);
-    access?.applySlot(1, pose);
-  }, [bounds]);
+    cameras.current?.command("reset", bounds.getBoundingSphere(new Sphere()));
+  }, [bounds, cameras]);
 
   useEffect(() => {
     if (!acceptCommand(command)) return;

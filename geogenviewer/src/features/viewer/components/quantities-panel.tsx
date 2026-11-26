@@ -56,7 +56,7 @@ function QuantitiesSummary({ summary, fabrication }: { summary: QuantitySummary;
   const row = (name: string, value: number, description?: string) => <div key={name}>
     <dt>{name}</dt><dd>{formatNumber(value)}{description ? " " + description : ""}</dd>
   </div>;
-  const metric = (name: string, report: Coverage, unit = "") => <div key={name}>
+  const metric = (name: string, report: Coverage, unit = "") => <div key={name + " · " + unit}>
     <dt>{name}</dt><dd>{report.subtotal === null ? "—" : formatNumber(report.subtotal) + " " + unit}<br />
       <CoverageReport report={report} /></dd>
   </div>;
@@ -93,6 +93,7 @@ function ComparisonMetrics({ base, comparison }: {
   base: { quantities: QuantitySummary; fabrication: FabricationSummary };
   comparison: { quantities: QuantitySummary; fabrication: FabricationSummary };
 }) {
+  const [metric, setMetric] = useState(v07.components);
   const metrics = [
     { label: v07.components, a: base.quantities.components, b: comparison.quantities.components, warning: false },
     { label: v07.occurrences, a: base.quantities.occurrences, b: comparison.quantities.occurrences, warning: false },
@@ -109,7 +110,19 @@ function ComparisonMetrics({ base, comparison }: {
   add(v07.area, base.quantities.area, comparison.quantities.area, (key) => (methodLabels[key] ?? key) + " (m²)");
   add("Massa", base.fabrication.mass, comparison.fabrication.mass, (key) => massLabels[key as keyof typeof massLabels] + " (kg)");
   add(v07.costSubtotal, base.fabrication.costs, comparison.fabrication.costs, (key) => key);
-  return <div className="gg-v07-table-scroll" tabIndex={0} role="region" aria-label={v07.compareQuantities}>
+  const comparable = metrics.filter(({ a, b }) => Number.isFinite(a) && Number.isFinite(b));
+  const active = comparable.find((entry) => entry.label === metric) ?? comparable[0];
+  const max = Math.max(active.a, active.b) || 1;
+  return <>
+    <Choice label={v07.property} value={active.label} onChange={setMetric}
+      options={Object.fromEntries(comparable.map(({ label }) => [label, label]))} />
+    <ul className="gg-v07-chart" aria-label={v07.compareQuantities}>
+      {[[v07.base, active.a], [v07.comparison, active.b]].map(([label, value]) => <li key={label}>
+        <span>{label}</span><span>{formatNumber(Number(value))}</span>
+        <span className="gg-v07-chart__track" aria-hidden="true"><span style={{ width: 100 * Number(value) / max + "%" }} /></span>
+      </li>)}
+    </ul>
+    <div className="gg-v07-table-scroll" tabIndex={0} role="region" aria-label={v07.compareQuantities}>
     {metrics.some((row) => row.warning) && <p className="gg-v07-note">{v07.compareCoverage}</p>}
     <table className="gg-v07-table"><thead><tr><th scope="col">{v07.property}</th><th scope="col">{v07.base}</th>
       <th scope="col">{v07.comparison}</th><th scope="col">{v07.delta}</th></tr></thead>
@@ -122,7 +135,8 @@ function ComparisonMetrics({ base, comparison }: {
         </tr>;
       })}</tbody>
     </table>
-  </div>;
+    </div>
+  </>;
 }
 
 function Charts({ rows, fabrication, peers }: {
