@@ -124,7 +124,7 @@ function buildHierarchyMaps(
   groupMap: Record<string, GroupRecord>;
   rootGroupIds: string[];
 } {
-  const layerMap: Record<string, LayerRecord> = {};
+  const layerMap: Record<string, LayerRecord> = Object.create(null);
   const rootLayerIds: string[] = [];
   for (const l of layers) {
     layerMap[l.id] = {
@@ -146,7 +146,7 @@ function buildHierarchyMaps(
     }
   }
 
-  const groupMap: Record<string, GroupRecord> = {};
+  const groupMap: Record<string, GroupRecord> = Object.create(null);
   const rootGroupIds: string[] = [];
   for (const g of groups) {
     groupMap[g.id] = {
@@ -206,7 +206,7 @@ export async function importGlbBasicPackage(
   try {
     const binarySha256 = await optionalBinaryHash(glbBytes);
     const warnings: string[] = [];
-    const components: Record<string, ComponentRecord> = {};
+    const components: Record<string, ComponentRecord> = Object.create(null);
     const componentOrder: string[] = [];
     const rootComponentIds: string[] = [];
     const objectByComponentId = new Map<string, Object3D>();
@@ -526,6 +526,7 @@ export async function importGlbWithManifestPackage(
     });
 
     const objectByComponentId = new Map<string, Object3D>();
+    const ownerByNode = new Map<Object3D, string>();
     for (const el of manifest.elements) {
       let matched: Object3D | undefined;
       if (strategy === "extras") {
@@ -561,7 +562,28 @@ export async function importGlbWithManifestPackage(
           `Elemento "${el.id}" (${el.name}) declarado no manifesto não foi encontrado no GLB pela estratégia "${strategy}".`
         );
       }
+      const owner = ownerByNode.get(matched);
+      if (owner) {
+        throw new ManifestValidationError(
+          "DUPLICATE_NODE_OWNER",
+          `Os elementos "${owner}" e "${el.id}" apontam para o mesmo nó GLB.`
+        );
+      }
+      if (!subtreeHasMesh(matched)) {
+        throw new ManifestValidationError("MISSING_ELEMENT_MESH", `O elemento "${el.id}" está vinculado a um nó GLB sem malhas.`);
+      }
+      ownerByNode.set(matched, el.id);
       objectByComponentId.set(el.id, matched);
+    }
+    for (const [id, obj] of objectByComponentId) {
+      for (let parent = obj.parent; parent; parent = parent.parent) {
+        if (ownerByNode.has(parent)) {
+          throw new ManifestValidationError(
+            "NESTED_GLB_ID",
+            `O elemento "${id}" aponta para uma sub-malha de "${ownerByNode.get(parent)}".`
+          );
+        }
+      }
     }
 
     if (strategy === "extras" && glbById.size > manifest.elements.length) {
@@ -575,7 +597,7 @@ export async function importGlbWithManifestPackage(
     const { layerMap, rootLayerIds, groupMap, rootGroupIds } =
       buildHierarchyMaps(manifest.layers, manifest.groups);
 
-    const materialMap: Record<string, MaterialRecord> = {};
+    const materialMap: Record<string, MaterialRecord> = Object.create(null);
     for (const m of manifest.materials) {
       materialMap[m.id] = {
         id: m.id,
@@ -586,7 +608,7 @@ export async function importGlbWithManifestPackage(
     }
 
     const geomCounts = countSharedGeometries(objectByComponentId);
-    const components: Record<string, ComponentRecord> = {};
+    const components: Record<string, ComponentRecord> = Object.create(null);
     const componentOrder: string[] = [];
     const rootComponentIds: string[] = [];
 

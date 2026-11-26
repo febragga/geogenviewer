@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { copy } from "../copy";
 import { MoonIcon, SunIcon } from "./icons";
 
-const STORAGE_KEY = "geogen-color-scheme";
+import { applyThemePreference, THEME_KEY, useAppSettings } from "../state/settings-store";
 
 function getSystemScheme(): "light" | "dark" {
   return window.matchMedia("(prefers-color-scheme: dark)").matches
@@ -20,10 +20,7 @@ function getEffectiveScheme(): "light" | "dark" {
 }
 
 export function applyColorScheme(value: "light" | "dark" | null) {
-  const meta = document.querySelector('meta[name="color-scheme"]');
-  if (meta) {
-    meta.setAttribute("content", value ?? "light dark");
-  }
+  applyThemePreference(value ?? "system");
 }
 
 export function toggleColorScheme() {
@@ -31,32 +28,20 @@ export function toggleColorScheme() {
   const target: "light" | "dark" = current === "dark" ? "light" : "dark";
   const system = getSystemScheme();
 
-  if (target === system) {
-    try {
-      localStorage.removeItem(STORAGE_KEY);
-    } catch {
-      // Ignore storage restrictions while still applying scheme
-    }
-    applyColorScheme(null);
-  } else {
-    try {
-      localStorage.setItem(STORAGE_KEY, target);
-    } catch {
-      // Ignore storage restrictions while still applying scheme
-    }
-    applyColorScheme(target);
-  }
+  useAppSettings.getState().hydrate();
+  useAppSettings.getState().patchPreferences({ theme: target === system ? "system" : target });
 }
 
 export function ThemeToggle({ className = "" }: { className?: string }) {
   useEffect(() => {
     const onStorage = (event: StorageEvent) => {
-      if (event.key !== STORAGE_KEY) return;
+      if (event.key !== THEME_KEY) return;
       const next =
         event.newValue === "light" || event.newValue === "dark"
           ? event.newValue
           : null;
       applyColorScheme(next);
+      useAppSettings.setState({ theme: next ?? "system" });
     };
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);

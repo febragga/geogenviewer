@@ -1,0 +1,241 @@
+{
+  "dimensions": [
+    {
+      "viewport": [
+        1920,
+        1080
+      ],
+      "width": 1370,
+      "height": 1036,
+      "overflow": 0,
+      "contexts": 1
+    },
+    {
+      "viewport": [
+        1440,
+        900
+      ],
+      "width": 936,
+      "height": 856,
+      "overflow": 0,
+      "contexts": 1
+    },
+    {
+      "viewport": [
+        1280,
+        800
+      ],
+      "width": 832,
+      "height": 756,
+      "overflow": 0,
+      "contexts": 1
+    },
+    {
+      "viewport": [
+        1024,
+        768
+      ],
+      "width": 666,
+      "height": 715,
+      "overflow": 0,
+      "contexts": 1
+    },
+    {
+      "viewport": [
+        768,
+        1024
+      ],
+      "width": 768,
+      "height": 549,
+      "overflow": 0,
+      "contexts": 1
+    },
+    {
+      "viewport": [
+        390,
+        844
+      ],
+      "width": 390,
+      "height": 447,
+      "overflow": 0,
+      "contexts": 1
+    }
+  ],
+  "accessibility": {
+    "knolling": [],
+    "catalog-table": [],
+    "component-sheet": [],
+    "catalog-1024": [],
+    "catalog-768": [],
+    "catalog-390": []
+  },
+  "downloads": [
+    {
+      "file": "knolling.png",
+      "bytes": 85752,
+      "durationMs": 443
+    },
+    {
+      "file": "knolling-callouts.png",
+      "bytes": 90418,
+      "durationMs": 381
+    },
+    {
+      "file": "knolling.json",
+      "bytes": 3340,
+      "durationMs": 138
+    },
+    {
+      "file": "ficha-peca.png",
+      "bytes": 131747,
+      "durationMs": 279
+    },
+    {
+      "file": "ficha-comparativa.png",
+      "bytes": 191372,
+      "durationMs": 279
+    },
+    {
+      "file": "manual-imprimivel.pdf",
+      "bytes": 97556
+    },
+    {
+      "file": "manual-montagem.png",
+      "bytes": 112608,
+      "durationMs": 295
+    },
+    {
+      "file": "peca.png",
+      "bytes": 56128,
+      "durationMs": 292
+    },
+    {
+      "file": "catalogo.csv",
+      "bytes": 1765,
+      "durationMs": 270
+    },
+    {
+      "file": "catalog.json",
+      "bytes": 5230,
+      "durationMs": 205
+    },
+    {
+      "file": "documentation.json",
+      "bytes": 18658,
+      "durationMs": 257
+    },
+    {
+      "file": "bench-100.png",
+      "bytes": 110863,
+      "durationMs": 278
+    },
+    {
+      "file": "bench-1000.png",
+      "bytes": 111588,
+      "durationMs": 348
+    },
+    {
+      "file": "bench-10000.png",
+      "bytes": 112322,
+      "durationMs": 513
+    }
+  ],
+  "benchmark": [
+    {
+      "count": 100,
+      "loadAndLayoutMs": 481,
+      "firstThumbnailMs": 221,
+      "filterMs": 84,
+      "sheetMs": 912,
+      "captureMs": 278,
+      "contexts": 1,
+      "figures": {
+        "FPS em atividade": "30",
+        "Draw calls": "2",
+        "Triângulos": "1200",
+        "Geometrias": "2",
+        "Materiais": "2",
+        "Componentes": "100",
+        "Carga do modelo": "36 ms"
+      },
+      "overlay": {
+        "FPS em atividade": "3",
+        "Draw calls": "2",
+        "Triângulos": "1200",
+        "Geometrias": "2",
+        "Materiais": "2",
+        "Componentes": "100",
+        "Carga do modelo": "36 ms"
+      }
+    },
+    {
+      "count": 1000,
+      "loadAndLayoutMs": 590,
+      "firstThumbnailMs": 243,
+      "filterMs": 92,
+      "sheetMs": 501,
+      "captureMs": 348,
+      "contexts": 1,
+      "figures": {
+        "FPS em atividade": "51",
+        "Draw calls": "2",
+        "Triângulos": "12000",
+        "Geometrias": "2",
+        "Materiais": "2",
+        "Componentes": "1000",
+        "Carga do modelo": "57 ms"
+      },
+      "overlay": {
+        "FPS em atividade": "3",
+        "Draw calls": "2",
+        "Triângulos": "12000",
+        "Geometrias": "2",
+        "Materiais": "2",
+        "Componentes": "1000",
+        "Carga do modelo": "57 ms"
+      }
+    },
+    {
+      "count": 10000,
+      "loadAndLayoutMs": 1004,
+      "firstThumbnailMs": 295,
+      "filterMs": 273,
+      "sheetMs": 688,
+      "captureMs": 513,
+      "contexts": 1,
+      "figures": {
+        "FPS em atividade": "38",
+        "Draw calls": "2",
+        "Triângulos": "120000",
+        "Geometrias": "2",
+        "Materiais": "2",
+        "Componentes": "10000",
+        "Carga do modelo": "187 ms"
+      },
+      "overlay": {
+        "FPS em atividade": "2",
+        "Draw calls": "2",
+        "Triângulos": "120000",
+        "Geometrias": "2",
+        "Materiais": "2",
+        "Componentes": "10000",
+        "Carga do modelo": "187 ms"
+      }
+    }
+  ],
+  "problems": [],
+  "lab": {
+    "FPS em atividade": "31",
+    "Draw calls": "22",
+    "Triângulos": "252",
+    "Geometrias": "16",
+    "Materiais": "3",
+    "Componentes": "15",
+    "Carga do modelo": "26 ms"
+  },
+  "thumbnailCache": {
+    "before": 2,
+    "sameStyle": 2,
+    "technical": 3
+  }
+}

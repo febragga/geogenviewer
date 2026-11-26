@@ -95,7 +95,12 @@ export function pointSurvives(point: Vector3, planes: readonly Plane[]) {
 }
 
 export function firstVisibleHit(hits: readonly Intersection[], planes: readonly Plane[], selectable: (hit: Intersection) => boolean) {
-  return hits.find((hit) => hit.object.visible && pointSurvives(hit.point, planes) && selectable(hit));
+  return hits.find((hit) => {
+    for (let object: typeof hit.object | null = hit.object; object; object = object.parent) {
+      if (!object.visible) return false;
+    }
+    return pointSurvives(hit.point, planes) && selectable(hit);
+  });
 }
 
 export function clippedBounds(bounds: Box3, planes: readonly Plane[]) {

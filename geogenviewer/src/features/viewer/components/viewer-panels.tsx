@@ -8,28 +8,42 @@ import {
   type ViewerSceneGraph,
 } from "../../../lib/geogen/domain/model";
 import { compareRestBounds } from "../../../lib/geogen/inspection/measurements";
+import { USER_ORGANIZATION_PALETTE } from "../../../lib/geogen/organization/model";
+import { resolveOrganizationView } from "../../../lib/geogen/organization/operations";
 import { copy } from "../copy";
 import { useViewerStore, type TreeTab } from "../state/viewer-store";
 import { useAssembly } from "../state/assembly-store";
+import { useOrganizationStore } from "../state/organization-store";
 import { useEffectiveVisibility } from "../state/visibility-state";
 import { buildTreeRows, type TreeRowItem } from "../tree/build-rows";
+import type { ContextMenuState } from "./context-menu";
 import {
   ChevronDownIcon,
   ChevronRightIcon,
   ClearSelectionIcon,
   CloseIcon,
   CompositeIcon,
+  CopyIcon,
   CubeIcon,
+  DownloadIcon,
+  EditIcon,
   EyeIcon,
   EyeOffIcon,
   FitViewIcon,
+  FolderPlusIcon,
   GroupIcon,
   HierarchyIcon,
   IsolateIcon,
   LayersIcon,
+  MoreVerticalIcon,
   PartialEyeIcon,
+  PlusIcon,
+  RedoIcon,
   SearchIcon,
   SlidersIcon,
+  TrashIcon,
+  UndoIcon,
+  UploadIcon,
   VerifiedIcon,
 } from "./icons";
 
@@ -71,13 +85,26 @@ function formatBoundsMm(bounds: [number, number, number]): string {
 
 export function StructureContent({
   onFrameIds,
+  onOpenContextMenu,
 }: {
   onFrameIds: (ids: string[]) => void;
+  onOpenContextMenu?: (state: ContextMenuState) => void;
 }) {
   const searchInputId = useId();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const importOrgRef = useRef<HTMLInputElement>(null);
+  const deleteDialogRef = useRef<HTMLDialogElement>(null);
   const [scrollTop, setScrollTop] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(420);
+
+  const [newItemKind, setNewItemKind] = useState<"layer" | "group" | null>(null);
+  const [newItemParentId, setNewItemParentId] = useState<string | null>(null);
+  const [newItemName, setNewItemName] = useState("");
+  const [newItemColor, setNewItemColor] = useState<string>(USER_ORGANIZATION_PALETTE[0]);
+  const [renamingTarget, setRenamingTarget] = useState<{ kind: "layer" | "group"; id: string; name: string } | null>(null);
+  const [deletingLayer, setDeletingLayer] = useState<{ id: string; name: string; parentId: string | null; count: number } | null>(null);
+  const [dragOverKey, setDragOverKey] = useState<string | null>(null);
+  const [orgMessage, setOrgMessage] = useState<string | null>(null);
 
   const sceneGraph = useViewerStore((s) => s.sceneGraph);
   const selectedIds = useViewerStore((s) => s.selectedIds);
@@ -90,6 +117,44 @@ export function StructureContent({
   const searchQuery = useViewerStore((s) => s.searchQuery);
   const multiSelectMode = useViewerStore((s) => s.multiSelectMode);
 
+  const orgDoc = useOrganizationStore((s) => s.doc);
+  const orgPast = useOrganizationStore((s) => s.past);
+  const orgFuture = useOrganizationStore((s) => s.future);
+  const lastImportNotice = useOrganizationStore((s) => s.lastImportNotice);
+  const persistenceNotice = useOrganizationStore((s) => s.persistenceNotice);
+  const setOrgSource = useOrganizationStore((s) => s.setActiveSource);
+  const copyFromImported = useOrganizationStore((s) => s.copyFromImported);
+  const createLayer = useOrganizationStore((s) => s.createLayer);
+  const renameLayer = useOrganizationStore((s) => s.renameLayer);
+  const recolorLayer = useOrganizationStore((s) => s.recolorLayer);
+  const toggleUserLayerVis = useOrganizationStore((s) => s.toggleLayerVisibility);
+  const moveLayer = useOrganizationStore((s) => s.moveLayer);
+  const reorderLayer = useOrganizationStore((s) => s.reorderLayer);
+  const deleteLayer = useOrganizationStore((s) => s.deleteLayer);
+  const assignOccurrencesToLayer = useOrganizationStore((s) => s.assignOccurrencesToLayer);
+  const createGroup = useOrganizationStore((s) => s.createGroup);
+  const renameGroup = useOrganizationStore((s) => s.renameGroup);
+  const recolorGroup = useOrganizationStore((s) => s.recolorGroup);
+  const deleteGroup = useOrganizationStore((s) => s.deleteGroup);
+  const addOccurrencesToGroup = useOrganizationStore((s) => s.addOccurrencesToGroup);
+  const undoOrg = useOrganizationStore((s) => s.undo);
+  const redoOrg = useOrganizationStore((s) => s.redo);
+  const exportOrgJson = useOrganizationStore((s) => s.exportJson);
+  const importOrgJson = useOrganizationStore((s) => s.importJson);
+  const clearImportNotice = useOrganizationStore((s) => s.clearImportNotice);
+
+  const resolvedOrg = useMemo(
+    () => (sceneGraph ? resolveOrganizationView(sceneGraph, orgDoc) : null),
+    [orgDoc, sceneGraph]
+  );
+
+  useEffect(() => {
+    const dlg = deleteDialogRef.current;
+    if (!dlg) return;
+    if (deletingLayer && !dlg.open) dlg.showModal();
+    else if (!deletingLayer && dlg.open) dlg.close();
+  }, [deletingLayer]);
+
   const setTreeTab = useViewerStore((s) => s.setTreeTab);
   const setSearchQuery = useViewerStore((s) => s.setSearchQuery);
   const select = useViewerStore((s) => s.select);
@@ -101,10 +166,20 @@ export function StructureContent({
   const toggleComponentVisibility = useViewerStore((s) => s.toggleComponentVisibility);
   const toggleCollectionVisibility = useViewerStore((s) => s.toggleCollectionVisibility);
   const showAll = useViewerStore((s) => s.showAll);
+  const hiddenGroupKeys = useViewerStore((s) => s.hiddenGroupKeys);
+  const toggleGroupVisibility = useViewerStore((s) => s.toggleGroupVisibility);
 
   const rows = useMemo(
-    () => buildTreeRows(sceneGraph, treeTab, searchQuery, expandedIds, new Map(manifest?.blocks?.map((block) => [block.id, block.name]))),
-    [expandedIds, manifest, sceneGraph, searchQuery, treeTab]
+    () =>
+      buildTreeRows(
+        sceneGraph,
+        treeTab,
+        searchQuery,
+        expandedIds,
+        new Map(manifest?.blocks?.map((block) => [block.id, block.name])),
+        resolvedOrg
+      ),
+    [expandedIds, manifest, resolvedOrg, sceneGraph, searchQuery, treeTab]
   );
 
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
@@ -165,21 +240,42 @@ export function StructureContent({
   const hasVisibilityOverrides =
     hiddenIds.length > 0 || isolatedIds !== null;
 
+  function openMenuForRow(row: TreeRowItem, clientX: number, clientY: number) {
+    if (!onOpenContextMenu) return;
+    const ids =
+      row.kind === "component"
+        ? selectedSet.has(row.id) && selectedIds.length > 1
+          ? selectedIds
+          : [row.id]
+        : row.targetComponentIds;
+    onOpenContextMenu({
+      x: clientX,
+      y: clientY,
+      targetIds: ids,
+      label: ids.length > 1 ? `${ids.length} componentes` : row.label,
+    });
+  }
+
   function renderRow(row: TreeRowItem) {
-    const vis = computeVisibilityState(
-      row.targetComponentIds,
-      hiddenSet,
-      isolatedSet
-    );
+    const isUserNode = row.origin === "user" && (row.kind === "layer" || row.kind === "group") && row.id !== "__unassigned__";
+    const userLayerRec = isUserNode && row.kind === "layer" ? orgDoc.userLayers.find((l) => l.id === row.id) : null;
+    const vis =
+      userLayerRec && !userLayerRec.visible
+        ? "hidden"
+        : computeVisibilityState(row.targetComponentIds, hiddenSet, isolatedSet);
     const isRowSelected =
       row.kind === "component"
         ? selectedSet.has(row.id)
         : row.targetComponentIds.length > 0 &&
           row.targetComponentIds.every((id) => selectedSet.has(id));
     const isRowHovered = row.kind === "component" && hoveredId === row.id;
+    const isRenaming = renamingTarget && renamingTarget.id === row.id && renamingTarget.kind === row.kind;
 
-    const visLabel =
-      vis === "visible"
+    const groupKey = row.kind === "group" ? (row.origin ?? "cad") + ":" + row.id : null;
+    const groupHidden = groupKey ? hiddenGroupKeys.includes(groupKey) : null;
+    const visLabel = groupHidden !== null
+      ? `${groupHidden ? copy.treeVisibilityShow : copy.treeVisibilityHide} ${row.label}`
+      : vis === "visible"
         ? `${copy.treeVisibilityHide} ${row.label}`
         : vis === "hidden"
           ? `${copy.treeVisibilityShow} ${row.label}`
@@ -194,8 +290,57 @@ export function StructureContent({
         aria-expanded={row.hasChildren ? row.isExpanded : undefined}
         className={`gg-tree-row ${isRowSelected ? "gg-tree-row--selected" : ""} ${
           isRowHovered ? "gg-tree-row--hovered" : ""
-        } ${vis === "hidden" ? "gg-tree-row--hidden" : ""}`}
+        } ${vis === "hidden" ? "gg-tree-row--hidden" : ""} ${
+          dragOverKey === row.key ? "gg-tree-row--dragover" : ""
+        }`}
         style={{ paddingLeft: `${8 + row.depth * 14}px` }}
+        draggable={row.kind === "component" || isUserNode}
+        onDragStart={(event) => {
+          if (row.kind === "component") {
+            const dragIds = selectedSet.has(row.id) && selectedIds.length > 1 ? selectedIds : [row.id];
+            event.dataTransfer.setData("application/x-geogen-drag", JSON.stringify({ kind: "occurrences", ids: dragIds }));
+            event.dataTransfer.effectAllowed = "move";
+          } else if (isUserNode && row.kind === "layer") {
+            event.dataTransfer.setData("application/x-geogen-drag", JSON.stringify({ kind: "layer", id: row.id }));
+            event.dataTransfer.effectAllowed = "move";
+          }
+        }}
+        onDragOver={(event) => {
+          if (!isUserNode && row.id !== "__unassigned__") return;
+          if (!event.dataTransfer.types.includes("application/x-geogen-drag")) return;
+          event.preventDefault();
+          event.dataTransfer.dropEffect = "move";
+          setDragOverKey(row.key);
+        }}
+        onDragLeave={() => {
+          if (dragOverKey === row.key) setDragOverKey(null);
+        }}
+        onDrop={(event) => {
+          setDragOverKey(null);
+          const raw = event.dataTransfer.getData("application/x-geogen-drag");
+          if (!raw) return;
+          event.preventDefault();
+          try {
+            const payload = JSON.parse(raw) as { kind: "occurrences" | "layer"; ids?: string[]; id?: string };
+            if (payload.kind === "occurrences" && payload.ids?.length) {
+              if (row.kind === "layer") {
+                assignOccurrencesToLayer(payload.ids, row.id === "__unassigned__" ? null : row.id);
+              } else if (row.kind === "group") {
+                addOccurrencesToGroup(row.id, payload.ids);
+              }
+            } else if (payload.kind === "layer" && payload.id && row.kind === "layer") {
+              if (row.id === "__unassigned__") moveLayer(payload.id, null);
+              else if (payload.id !== row.id) moveLayer(payload.id, row.id);
+            }
+          } catch {
+            /* ignore malformed drag payload */
+          }
+        }}
+        onContextMenu={(event) => {
+          if (!onOpenContextMenu) return;
+          event.preventDefault();
+          openMenuForRow(row, event.clientX, event.clientY);
+        }}
         onMouseEnter={() => {
           if (row.kind === "component") setHoveredId(row.id);
         }}
@@ -222,45 +367,156 @@ export function StructureContent({
           <span className="gg-tree-chevron-spacer" aria-hidden="true" />
         )}
 
-        <button
-          type="button"
-          className="gg-tree-select-btn"
-          onClick={(event) => {
-            const multi =
-              multiSelectMode || event.shiftKey || event.ctrlKey || event.metaKey;
-            if (row.kind === "component") {
-              select(row.id, multi ? "toggle" : "replace");
-            } else {
-              selectMany(row.targetComponentIds, multi ? "add" : "replace");
-            }
-          }}
-        >
-          {row.colorHex ? (
-            <span
-              className="gg-swatch"
-              style={{ backgroundColor: row.colorHex }}
-              aria-hidden="true"
+        {isRenaming ? (
+          <form
+            className="gg-tree-rename-form"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (renamingTarget.kind === "layer") renameLayer(renamingTarget.id, renamingTarget.name);
+              else renameGroup(renamingTarget.id, renamingTarget.name);
+              setRenamingTarget(null);
+            }}
+          >
+            <input
+              type="text"
+              className="gg-input"
+              value={renamingTarget.name}
+              autoFocus
+              maxLength={80}
+              onChange={(event) => setRenamingTarget({ ...renamingTarget, name: event.currentTarget.value })}
+              onBlur={() => setRenamingTarget(null)}
             />
-          ) : row.kind === "layer" ? (
-            <LayersIcon size={13} strokeWidth={1.75} className="gg-tree-icon" />
-          ) : row.kind === "group" ? (
-            <GroupIcon size={13} strokeWidth={1.75} className="gg-tree-icon" />
-          ) : row.isComposite ? (
-            <CompositeIcon size={13} strokeWidth={1.75} className="gg-tree-icon" />
-          ) : (
-            <CubeIcon size={13} strokeWidth={1.75} className="gg-tree-icon" />
-          )}
+          </form>
+        ) : (
+          <button
+            type="button"
+            className="gg-tree-select-btn"
+            onClick={(event) => {
+              const multi =
+                multiSelectMode || event.shiftKey || event.ctrlKey || event.metaKey;
+              if (row.kind === "component") {
+                select(row.id, multi ? "toggle" : "replace");
+              } else {
+                selectMany(row.targetComponentIds, multi ? "add" : "replace");
+              }
+            }}
+          >
+            {row.colorHex ? (
+              <span
+                className="gg-swatch"
+                style={{ backgroundColor: row.colorHex }}
+                aria-hidden="true"
+              />
+            ) : row.kind === "layer" ? (
+              <LayersIcon size={13} strokeWidth={1.75} className="gg-tree-icon" />
+            ) : row.kind === "group" ? (
+              <GroupIcon size={13} strokeWidth={1.75} className="gg-tree-icon" />
+            ) : row.isComposite ? (
+              <CompositeIcon size={13} strokeWidth={1.75} className="gg-tree-icon" />
+            ) : (
+              <CubeIcon size={13} strokeWidth={1.75} className="gg-tree-icon" />
+            )}
 
-          <span className="gg-tree-label" title={`${row.label} (${row.id})`}>
-            {row.label}
-          </span>
+            <span className="gg-tree-label" title={`${row.label} (${row.id})`}>
+              {row.label}
+            </span>
 
-          {row.secondaryLabel && (
-            <span className="gg-tree-id gg-mono">{row.secondaryLabel}</span>
-          )}
-        </button>
+            {row.secondaryLabel && (
+              <span className="gg-tree-id gg-mono" title={row.secondaryLabel}>
+                {row.secondaryLabel}
+              </span>
+            )}
+          </button>
+        )}
 
         <div className="gg-tree-row__actions">
+          {isUserNode && (
+            <>
+              <label className="gg-tree-color-pick" title="Alterar cor">
+                <span className="visually-hidden">Alterar cor de {row.label}</span>
+                <input
+                  type="color"
+                  value={row.colorHex ?? "#3B82F6"}
+                  onChange={(event) => {
+                    if (row.kind === "layer") recolorLayer(row.id, event.currentTarget.value);
+                    else recolorGroup(row.id, event.currentTarget.value);
+                  }}
+                />
+              </label>
+              {row.kind === "layer" && (
+                <button
+                  type="button"
+                  className="gg-tree-action-btn"
+                  title="Nova subcamada"
+                  aria-label={`Nova subcamada em ${row.label}`}
+                  onClick={() => {
+                    setNewItemKind("layer");
+                    setNewItemParentId(row.id);
+                    setNewItemName("");
+                    setNewItemColor(USER_ORGANIZATION_PALETTE[orgDoc.userLayers.length % USER_ORGANIZATION_PALETTE.length]);
+                  }}
+                >
+                  <PlusIcon size={12} strokeWidth={1.75} />
+                </button>
+              )}
+              <button
+                type="button"
+                className="gg-tree-action-btn"
+                title="Renomear"
+                aria-label={`Renomear ${row.label}`}
+                onClick={() => setRenamingTarget({ kind: row.kind === "layer" ? "layer" : "group", id: row.id, name: row.label })}
+              >
+                <EditIcon size={12} strokeWidth={1.75} />
+              </button>
+              {row.kind === "layer" && (
+                <button
+                  type="button"
+                  className="gg-tree-action-btn"
+                  title="Subir na ordem"
+                  aria-label={`Subir ${row.label}`}
+                  onClick={() => reorderLayer(row.id, -1)}
+                >
+                  ↑
+                </button>
+              )}
+              <button
+                type="button"
+                className="gg-tree-action-btn"
+                title="Excluir"
+                aria-label={`Excluir ${row.label}`}
+                onClick={() => {
+                  if (row.kind === "layer") {
+                    setDeletingLayer({
+                      id: row.id,
+                      name: row.label,
+                      parentId: userLayerRec?.parentId ?? null,
+                      count: row.targetComponentIds.length,
+                    });
+                  } else {
+                    deleteGroup(row.id);
+                  }
+                }}
+              >
+                <TrashIcon size={12} strokeWidth={1.75} />
+              </button>
+            </>
+          )}
+
+          {onOpenContextMenu && (row.kind === "component" || isUserNode) && (
+            <button
+              type="button"
+              className="gg-tree-action-btn"
+              aria-label={`Ações para ${row.label}`}
+              title="Mais ações"
+              onClick={(event) => {
+                const rect = event.currentTarget.getBoundingClientRect();
+                openMenuForRow(row, rect.left, rect.bottom + 4);
+              }}
+            >
+              <MoreVerticalIcon size={12} strokeWidth={1.75} />
+            </button>
+          )}
+
           <button
             type="button"
             className="gg-tree-action-btn"
@@ -279,11 +535,15 @@ export function StructureContent({
             }`}
             aria-label={visLabel}
             aria-pressed={
-              vis === "hidden" ? true : vis === "partial" ? "mixed" : false
+              groupHidden ?? (vis === "hidden" ? true : vis === "partial" ? "mixed" : false)
             }
-            disabled={row.targetComponentIds.length === 0}
+            disabled={!isUserNode && row.targetComponentIds.length === 0}
             onClick={() => {
-              if (row.kind === "component") {
+              if (userLayerRec) {
+                toggleUserLayerVis(userLayerRec.id);
+              } else if (groupKey) {
+                toggleGroupVisibility(groupKey);
+              } else if (row.kind === "component") {
                 toggleComponentVisibility(row.id);
               } else {
                 toggleCollectionVisibility(row.targetComponentIds);
@@ -363,6 +623,191 @@ export function StructureContent({
             </select>
           </label>
 
+          {(treeTab === "layers" || treeTab === "groups") && (
+            <div className="gg-org-bar">
+              <div className="gg-org-bar__sources" role="group" aria-label="Origem da organização">
+                <button
+                  type="button"
+                  className="gg-org-source-btn"
+                  aria-pressed={orgDoc.activeSource === "cad"}
+                  onClick={() => setOrgSource("cad")}
+                >
+                  Importada do CAD
+                </button>
+                <button
+                  type="button"
+                  className="gg-org-source-btn"
+                  aria-pressed={orgDoc.activeSource === "user"}
+                  onClick={() => setOrgSource("user")}
+                >
+                  Personalizada
+                </button>
+              </div>
+              <div className="gg-org-bar__actions">
+                <button
+                  type="button"
+                  className="gg-btn gg-btn--secondary gg-btn--xs"
+                  onClick={() => {
+                    setOrgSource("user");
+                    setNewItemKind(treeTab === "layers" ? "layer" : "group");
+                    setNewItemParentId(null);
+                    setNewItemName("");
+                    setNewItemColor(USER_ORGANIZATION_PALETTE[(orgDoc.userLayers.length + orgDoc.userGroups.length) % USER_ORGANIZATION_PALETTE.length]);
+                  }}
+                >
+                  <FolderPlusIcon size={12} strokeWidth={1.75} aria-hidden="true" />
+                  <span>{treeTab === "layers" ? "+ Camada" : "+ Grupo"}</span>
+                </button>
+                {(Object.keys(sceneGraph.layers).length > 0 || Object.keys(sceneGraph.groups).length > 0) && (
+                  <button
+                    type="button"
+                    className="gg-btn gg-btn--ghost gg-btn--xs"
+                    title="Clonar camadas e grupos importados para edição do usuário"
+                    onClick={() => {
+                      if ((orgDoc.userLayers.length || orgDoc.userGroups.length) &&
+                          !window.confirm("Substituir a organização personalizada pela estrutura CAD?")) return;
+                      try {
+                        copyFromImported(sceneGraph);
+                        setOrgMessage("Estrutura importada copiada para camadas/grupos do usuário.");
+                      } catch (error) {
+                        setOrgMessage(error instanceof Error ? error.message : String(error));
+                      }
+                    }}
+                  >
+                    <CopyIcon size={12} strokeWidth={1.75} aria-hidden="true" />
+                    <span>Copiar CAD</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="gg-btn gg-btn--ghost gg-btn--icon-sm"
+                  title="Desfazer organização"
+                  aria-label="Desfazer organização"
+                  disabled={orgPast.length === 0}
+                  onClick={undoOrg}
+                >
+                  <UndoIcon size={12} strokeWidth={1.75} />
+                </button>
+                <button
+                  type="button"
+                  className="gg-btn gg-btn--ghost gg-btn--icon-sm"
+                  title="Refazer organização"
+                  aria-label="Refazer organização"
+                  disabled={orgFuture.length === 0}
+                  onClick={redoOrg}
+                >
+                  <RedoIcon size={12} strokeWidth={1.75} />
+                </button>
+                <button
+                  type="button"
+                  className="gg-btn gg-btn--ghost gg-btn--icon-sm"
+                  title="Exportar organization.json"
+                  aria-label="Exportar organization.json"
+                  onClick={() => {
+                    const blob = new Blob([exportOrgJson()], { type: "application/json;charset=utf-8" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = "organization.json";
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  }}
+                >
+                  <DownloadIcon size={12} strokeWidth={1.75} />
+                </button>
+                <button
+                  type="button"
+                  className="gg-btn gg-btn--ghost gg-btn--icon-sm"
+                  title="Importar organization.json"
+                  aria-label="Importar organization.json"
+                  onClick={() => importOrgRef.current?.click()}
+                >
+                  <UploadIcon size={12} strokeWidth={1.75} />
+                </button>
+                <input
+                  ref={importOrgRef}
+                  type="file"
+                  accept=".json,application/json"
+                  hidden
+                  onChange={async (event) => {
+                    const file = event.currentTarget.files?.[0];
+                    event.currentTarget.value = "";
+                    if (!file || !sceneGraph) return;
+                    try {
+                      const binding = useOrganizationStore.getState().binding;
+                      if (file.size > 12 * 1024 * 1024) throw new Error("O arquivo organization.json excede 12 MiB.");
+                      const text = await file.text();
+                      if (binding !== useOrganizationStore.getState().binding) return;
+                      const result = importOrgJson(text, sceneGraph);
+                      setOrgMessage(
+                        result.warnings[0] ?? `Organização importada (${result.matchedOccurrences} vínculos).`
+                      );
+                    } catch (err) {
+                      setOrgMessage(err instanceof Error ? err.message : "Falha ao importar organization.json.");
+                    }
+                  }}
+                />
+              </div>
+
+              {newItemKind && (
+                <form
+                  className="gg-org-create-form"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    const trimmed = newItemName.trim();
+                    if (!trimmed) return;
+                    if (newItemKind === "layer") {
+                      createLayer({ name: trimmed, color: newItemColor, parentId: newItemParentId, memberIds: selectedIds });
+                    } else {
+                      createGroup({ name: trimmed, color: newItemColor, memberIds: selectedIds });
+                    }
+                    setNewItemKind(null);
+                    setNewItemName("");
+                  }}
+                >
+                  <input
+                    type="color"
+                    aria-label="Cor"
+                    value={newItemColor}
+                    onChange={(event) => setNewItemColor(event.currentTarget.value)}
+                  />
+                  <input
+                    type="text"
+                    className="gg-input"
+                    placeholder={newItemKind === "layer" ? "Nome da camada…" : "Nome do grupo…"}
+                    value={newItemName}
+                    maxLength={80}
+                    autoFocus
+                    onChange={(event) => setNewItemName(event.currentTarget.value)}
+                  />
+                  <button type="submit" className="gg-btn gg-btn--primary gg-btn--xs" disabled={!newItemName.trim()}>
+                    Salvar
+                  </button>
+                  <button type="button" className="gg-btn gg-btn--ghost gg-btn--xs" onClick={() => setNewItemKind(null)}>
+                    ×
+                  </button>
+                </form>
+              )}
+
+              {persistenceNotice && <p className="gg-org-notice" role="status">{persistenceNotice}</p>}
+              {(orgMessage || lastImportNotice) && (
+                <div className="gg-org-notice" role="status">
+                  <span>{orgMessage ?? lastImportNotice}</span>
+                  <button
+                    type="button"
+                    className="gg-mini-link-btn"
+                    onClick={() => {
+                      setOrgMessage(null);
+                      clearImportNotice();
+                    }}
+                  >
+                    Fechar
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="gg-tree-meta-bar">
             <span className="gg-tree-meta-bar__summary">
               {sceneGraph.mode === "manifest-full"
@@ -417,8 +862,12 @@ export function StructureContent({
                   {searchQuery.trim()
                     ? copy.treeEmptySearch
                     : treeTab === "layers"
-                      ? copy.treeEmptyLayers
-                      : copy.treeEmptyGroups}
+                      ? orgDoc.activeSource === "user"
+                        ? "Nenhuma camada personalizada ainda. Crie uma camada ou copie a estrutura do CAD."
+                        : copy.treeEmptyLayers
+                      : orgDoc.activeSource === "user"
+                        ? "Nenhum grupo personalizado ainda. Crie um grupo ou copie do CAD."
+                        : copy.treeEmptyGroups}
                 </p>
               </div>
             ) : useVirtual ? (
@@ -434,6 +883,55 @@ export function StructureContent({
               <div className="gg-tree-list">{rows.map(renderRow)}</div>
             )}
           </div>
+
+          <dialog
+            ref={deleteDialogRef}
+            className="gg-org-dialog"
+            aria-labelledby="gg-delete-layer-title"
+            onClose={() => setDeletingLayer(null)}
+          >
+            {deletingLayer && (
+              <div className="gg-org-dialog__body">
+                <h3 id="gg-delete-layer-title">Excluir camada “{deletingLayer.name}”</h3>
+                <p>
+                  {deletingLayer.count > 0
+                    ? `Esta camada possui ${deletingLayer.count} ocorrência(s) vinculada(s). O que deseja fazer com elas?`
+                    : "Confirmar exclusão desta camada personalizada?"}
+                </p>
+                <div className="gg-org-dialog__actions">
+                  {deletingLayer.count > 0 && deletingLayer.parentId && (
+                    <button
+                      type="button"
+                      className="gg-btn gg-btn--primary gg-btn--xs"
+                      onClick={() => {
+                        deleteLayer(deletingLayer.id, "move-to-parent");
+                        setDeletingLayer(null);
+                      }}
+                    >
+                      Mover para camada superior
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="gg-btn gg-btn--secondary gg-btn--xs"
+                    onClick={() => {
+                      deleteLayer(deletingLayer.id, "unassign");
+                      setDeletingLayer(null);
+                    }}
+                  >
+                    {deletingLayer.count > 0 ? "Remover atribuição de camada" : "Excluir camada"}
+                  </button>
+                  <button
+                    type="button"
+                    className="gg-btn gg-btn--ghost gg-btn--xs"
+                    onClick={() => setDeletingLayer(null)}
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            )}
+          </dialog>
         </>
       )}
     </div>
@@ -477,6 +975,14 @@ function SingleComponentDetails({
   onIsolateSelected: () => void;
   onClearSelection: () => void;
 }) {
+  const orgDoc = useOrganizationStore((s) => s.doc);
+  const assignOccurrencesToLayer = useOrganizationStore((s) => s.assignOccurrencesToLayer);
+  const addOccurrencesToGroup = useOrganizationStore((s) => s.addOccurrencesToGroup);
+  const removeOccurrencesFromGroup = useOrganizationStore((s) => s.removeOccurrencesFromGroup);
+  const userLayerId = orgDoc.componentLayerAssignments[comp.id] ?? "";
+  const userLayer = userLayerId ? orgDoc.userLayers.find((l) => l.id === userLayerId) : null;
+  const userGroups = orgDoc.userGroups.filter((g) => g.memberIds.includes(comp.id));
+
   const layer = comp.layerId ? sceneGraph.layers[comp.layerId] : null;
   const groupNames = comp.groupIds
     .map((gid) => sceneGraph.groups[gid]?.name ?? gid)
@@ -575,12 +1081,77 @@ function SingleComponentDetails({
             <dd>{comp.category ?? copy.propNotInformed}</dd>
           </div>
           <div className="gg-kv-row">
-            <dt>{copy.propLayer}</dt>
+            <dt>{copy.propLayer} (CAD)</dt>
             <dd>{layer ? layer.fullPath : copy.propNotInformed}</dd>
           </div>
           <div className="gg-kv-row">
-            <dt>{copy.propGroup}</dt>
+            <dt>Camada do usuário</dt>
+            <dd className="gg-chip-row">
+              {userLayer && (
+                <span
+                  className="gg-swatch"
+                  style={{ backgroundColor: userLayer.color }}
+                  aria-hidden="true"
+                />
+              )}
+              <select
+                className="gg-kv-select"
+                aria-label="Camada do usuário do componente"
+                value={userLayerId}
+                onChange={(event) => assignOccurrencesToLayer([comp.id], event.currentTarget.value || null)}
+              >
+                <option value="">Sem camada atribuída</option>
+                {orgDoc.userLayers.map((ul) => (
+                  <option key={ul.id} value={ul.id}>{ul.name}</option>
+                ))}
+              </select>
+            </dd>
+          </div>
+          <div className="gg-kv-row">
+            <dt>{copy.propGroup} (CAD)</dt>
             <dd>{groupNames.length > 0 ? groupNames.join(", ") : copy.propNotInformed}</dd>
+          </div>
+          <div className="gg-kv-row gg-kv-row--stacked">
+            <dt>Grupos do usuário</dt>
+            <dd className="gg-chip-row">
+              {userGroups.length > 0 ? (
+                userGroups.map((ug) => (
+                  <span key={ug.id} className="gg-badge gg-badge--neutral">
+                    <span className="gg-swatch" style={{ backgroundColor: ug.color }} aria-hidden="true" />
+                    <span>{ug.name}</span>
+                    <button
+                      type="button"
+                      className="gg-chip-remove"
+                      aria-label={`Remover de ${ug.name}`}
+                      onClick={() => removeOccurrencesFromGroup(ug.id, [comp.id])}
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))
+              ) : (
+                <span className="gg-helper-note">{copy.propNotInformed}</span>
+              )}
+              {orgDoc.userGroups.some((g) => !g.memberIds.includes(comp.id)) && (
+                <select
+                  className="gg-kv-select"
+                  aria-label="Adicionar componente a grupo do usuário"
+                  value=""
+                  onChange={(event) => {
+                    if (event.currentTarget.value) {
+                      addOccurrencesToGroup(event.currentTarget.value, [comp.id]);
+                    }
+                  }}
+                >
+                  <option value="">+ Adicionar a grupo…</option>
+                  {orgDoc.userGroups
+                    .filter((g) => !g.memberIds.includes(comp.id))
+                    .map((g) => (
+                      <option key={g.id} value={g.id}>{g.name}</option>
+                    ))}
+                </select>
+              )}
+            </dd>
           </div>
           <div className="gg-kv-row">
             <dt>{copy.propMaterial}</dt>
@@ -606,13 +1177,13 @@ function SingleComponentDetails({
         </dl>
       </section>
 
-      <section className="gg-panel-section gg-panel-section--muted" aria-labelledby="prop-mesh-head">
-        <div className="gg-panel-section__head">
+      <details className="gg-panel-section gg-panel-section--muted gg-panel-details" open>
+        <summary className="gg-panel-section__head">
           <h2 id="prop-mesh-head" className="gg-panel-section__title">
             {copy.propertiesMeshSection}
           </h2>
           <ProvenanceBadge source="mesh" />
-        </div>
+        </summary>
         <dl className="gg-kv-list">
           <div className="gg-kv-row">
             <dt>{copy.propMeshes}</dt>
@@ -632,16 +1203,16 @@ function SingleComponentDetails({
           </div>
         </dl>
         <p className="gg-helper-note">{copy.propBoundsNote}</p>
-      </section>
+      </details>
 
       {hasCadMetrics && cad && (
-        <section className="gg-panel-section gg-panel-section--muted" aria-labelledby="prop-cad-head">
-          <div className="gg-panel-section__head">
+        <details className="gg-panel-section gg-panel-section--muted gg-panel-details" open>
+          <summary className="gg-panel-section__head">
             <h2 id="prop-cad-head" className="gg-panel-section__title">
               {copy.propertiesCadSection}
             </h2>
             <ProvenanceBadge source="cad" />
-          </div>
+          </summary>
           <dl className="gg-kv-list">
             {cad.geometryType && (
               <div className="gg-kv-row">
@@ -740,17 +1311,17 @@ function SingleComponentDetails({
               </div>
             )}
           </dl>
-        </section>
+        </details>
       )}
 
       {(userTextEntries.length > 0 || extraPropsEntries.length > 0) && (
-        <section className="gg-panel-section gg-panel-section--muted" aria-labelledby="prop-ut-head">
-          <div className="gg-panel-section__head">
+        <details className="gg-panel-section gg-panel-section--muted gg-panel-details">
+          <summary className="gg-panel-section__head">
             <h2 id="prop-ut-head" className="gg-panel-section__title">
-              {copy.propertiesUserTextSection}
+              {copy.propertiesUserTextSection} ({userTextEntries.length + extraPropsEntries.length})
             </h2>
             <ProvenanceBadge source="manifest" />
-          </div>
+          </summary>
           <dl className="gg-kv-list">
             {userTextEntries.map(([key, val]) => (
               <div key={`ut:${key}`} className="gg-kv-row gg-kv-row--stacked">
@@ -765,7 +1336,7 @@ function SingleComponentDetails({
               </div>
             ))}
           </dl>
-        </section>
+        </details>
       )}
     </div>
   );
@@ -783,6 +1354,11 @@ export function PropertiesContent({
   const clearSelection = useViewerStore((s) => s.clearSelection);
   const hideIds = useViewerStore((s) => s.hideIds);
   const isolateIds = useViewerStore((s) => s.isolateIds);
+  const orgDoc = useOrganizationStore((s) => s.doc);
+  const assignOccurrencesToLayer = useOrganizationStore((s) => s.assignOccurrencesToLayer);
+  const addOccurrencesToGroup = useOrganizationStore((s) => s.addOccurrencesToGroup);
+  const createLayer = useOrganizationStore((s) => s.createLayer);
+  const createGroup = useOrganizationStore((s) => s.createGroup);
 
   if (!sceneGraph) {
     return (
@@ -818,6 +1394,24 @@ export function PropertiesContent({
     const sumTriangles = selectedComponents.reduce(
       (acc, c) => acc + c.triangleCount,
       0
+    );
+    const summarizeField = (values: (string | null | undefined)[]) => {
+      const normalized = new Set(values.map((v) => v?.trim() || "—"));
+      if (normalized.size === 1) return Array.from(normalized)[0];
+      return `Vários (${normalized.size})`;
+    };
+    const commonCategory = summarizeField(selectedComponents.map((c) => c.category));
+    const commonMaterial = summarizeField(
+      selectedComponents.map((c) => c.materialNames[0] ?? c.materialId)
+    );
+    const commonCadLayer = summarizeField(
+      selectedComponents.map((c) => (c.layerId ? sceneGraph.layers[c.layerId]?.name : null))
+    );
+    const commonUserLayer = summarizeField(
+      selectedComponents.map((c) => {
+        const lid = orgDoc.componentLayerAssignments[c.id];
+        return lid ? orgDoc.userLayers.find((l) => l.id === lid)?.name ?? lid : null;
+      })
     );
 
     return (
@@ -869,6 +1463,22 @@ export function PropertiesContent({
           <p className="gg-helper-note">{copy.propertiesMultiHint}</p>
           <dl className="gg-kv-list">
             <div className="gg-kv-row">
+              <dt>{copy.propCategory}</dt>
+              <dd>{commonCategory}</dd>
+            </div>
+            <div className="gg-kv-row">
+              <dt>{copy.propMaterial}</dt>
+              <dd>{commonMaterial}</dd>
+            </div>
+            <div className="gg-kv-row">
+              <dt>{copy.propLayer} (CAD)</dt>
+              <dd>{commonCadLayer}</dd>
+            </div>
+            <div className="gg-kv-row">
+              <dt>Camada do usuário</dt>
+              <dd>{commonUserLayer}</dd>
+            </div>
+            <div className="gg-kv-row">
               <dt>{copy.propMeshes}</dt>
               <dd className="gg-mono gg-tabular">{sumMeshes}</dd>
             </div>
@@ -877,6 +1487,60 @@ export function PropertiesContent({
               <dd className="gg-mono gg-tabular">{formatNumber(sumTriangles, 0)} tri.</dd>
             </div>
           </dl>
+        </section>
+
+        <section className="gg-panel-section gg-panel-section--muted" aria-label="Organizar seleção">
+          <div className="gg-panel-section__head">
+            <h2 className="gg-panel-section__title">Organização do usuário</h2>
+          </div>
+          <div className="gg-v05-fields">
+            <label>
+              Atribuir camada do usuário
+              <select
+                value=""
+                onChange={(event) => {
+                  const val = event.currentTarget.value;
+                  if (val === "__new__") {
+                    createLayer({ name: `Camada (${selectedIds.length})` });
+                    const latest = useOrganizationStore.getState().doc;
+                    const created = latest.userLayers[latest.userLayers.length - 1];
+                    if (created) assignOccurrencesToLayer(selectedIds, created.id);
+                  } else if (val === "__clear__") {
+                    assignOccurrencesToLayer(selectedIds, null);
+                  } else if (val) {
+                    assignOccurrencesToLayer(selectedIds, val);
+                  }
+                }}
+              >
+                <option value="">Escolher camada…</option>
+                {orgDoc.userLayers.map((ul) => (
+                  <option key={ul.id} value={ul.id}>{ul.name}</option>
+                ))}
+                <option value="__new__">+ Criar nova camada com seleção</option>
+                <option value="__clear__">Remover atribuição de camada</option>
+              </select>
+            </label>
+            <label>
+              Adicionar a grupo do usuário
+              <select
+                value=""
+                onChange={(event) => {
+                  const val = event.currentTarget.value;
+                  if (val === "__new__") {
+                    createGroup({ name: `Grupo (${selectedIds.length})`, memberIds: selectedIds });
+                  } else if (val) {
+                    addOccurrencesToGroup(val, selectedIds);
+                  }
+                }}
+              >
+                <option value="">Escolher grupo…</option>
+                {orgDoc.userGroups.map((ug) => (
+                  <option key={ug.id} value={ug.id}>{ug.name}</option>
+                ))}
+                <option value="__new__">+ Criar novo grupo com seleção</option>
+              </select>
+            </label>
+          </div>
         </section>
 
         <section className="gg-panel-section gg-panel-section--muted" aria-label={copy.propertiesMultiTitle}>
@@ -1044,9 +1708,11 @@ export function PanelHeader({
 
 export function LeftHierarchyPanel({
   onFrameIds,
+  onOpenContextMenu,
   onClose,
 }: {
   onFrameIds: (ids: string[]) => void;
+  onOpenContextMenu?: (state: ContextMenuState) => void;
   onClose: () => void;
 }) {
   return (
@@ -1056,7 +1722,7 @@ export function LeftHierarchyPanel({
         title={copy.panelStructure}
         onClose={onClose}
       />
-      <StructureContent onFrameIds={onFrameIds} />
+      <StructureContent onFrameIds={onFrameIds} onOpenContextMenu={onOpenContextMenu} />
     </section>
   );
 }
@@ -1087,11 +1753,13 @@ export function MobileBottomSheet({
   activeTab,
   onTabChange,
   onFrameIds,
+  onOpenContextMenu,
   onClose,
 }: {
   activeTab: "structure" | "properties" | null;
   onTabChange: (tab: "structure" | "properties") => void;
   onFrameIds: (ids: string[]) => void;
+  onOpenContextMenu?: (state: ContextMenuState) => void;
   onClose: () => void;
 }) {
   return (
@@ -1144,7 +1812,7 @@ export function MobileBottomSheet({
           </div>
           <div className="gg-bottom-sheet__content">
             {activeTab === "structure" ? (
-              <StructureContent onFrameIds={onFrameIds} />
+              <StructureContent onFrameIds={onFrameIds} onOpenContextMenu={onOpenContextMenu} />
             ) : (
               <PropertiesContent onFrameIds={onFrameIds} />
             )}

@@ -1,0 +1,146 @@
+{
+  "runtime": "v22.14.0",
+  "platform": "win32",
+  "arch": "x64",
+  "note": "CPU / Three.js sem WebGL. picking mede o lote renderizado isoladamente. heap após GC é aproximação.",
+  "rows": [
+    {
+      "count": 100,
+      "shape": "repeated",
+      "buildMs": 1.453,
+      "slots": 100,
+      "batches": 1,
+      "estimatedGeometryDraws": 1,
+      "applyMs": {
+        "p50": 0.129,
+        "p95": 0.294
+      },
+      "transformsMs": {
+        "p50": 0.01,
+        "p95": 0.01
+      },
+      "pickingMs": {
+        "p50": 0.081,
+        "p95": 0.169
+      },
+      "heapDeltaMiB": 0.66,
+      "restoredOriginals": 100,
+      "expectedHit": "36"
+    },
+    {
+      "count": 100,
+      "shape": "mixed",
+      "buildMs": 0.272,
+      "slots": 75,
+      "batches": 2,
+      "estimatedGeometryDraws": 27,
+      "applyMs": {
+        "p50": 0.031,
+        "p95": 0.059
+      },
+      "transformsMs": {
+        "p50": 0.016,
+        "p95": 0.028
+      },
+      "pickingMs": {
+        "p50": 0.02,
+        "p95": 0.032
+      },
+      "heapDeltaMiB": 0.063,
+      "restoredOriginals": 100,
+      "expectedHit": "36"
+    },
+    {
+      "count": 1000,
+      "shape": "repeated",
+      "buildMs": 1.88,
+      "slots": 1000,
+      "batches": 1,
+      "estimatedGeometryDraws": 1,
+      "applyMs": {
+        "p50": 0.189,
+        "p95": 0.237
+      },
+      "transformsMs": {
+        "p50": 0.06,
+        "p95": 0.069
+      },
+      "pickingMs": {
+        "p50": 0.079,
+        "p95": 0.177
+      },
+      "heapDeltaMiB": 1.771,
+      "restoredOriginals": 1000,
+      "expectedHit": "36"
+    },
+    {
+      "count": 1000,
+      "shape": "mixed",
+      "buildMs": 2.409,
+      "slots": 750,
+      "batches": 2,
+      "estimatedGeometryDraws": 252,
+      "applyMs": {
+        "p50": 0.156,
+        "p95": 0.222
+      },
+      "transformsMs": {
+        "p50": 0.081,
+        "p95": 0.099
+      },
+      "pickingMs": {
+        "p50": 0.076,
+        "p95": 0.157
+      },
+      "heapDeltaMiB": -0.082,
+      "restoredOriginals": 1000,
+      "expectedHit": "36"
+    },
+    {
+      "count": 10000,
+      "shape": "repeated",
+      "buildMs": 13.947,
+      "slots": 10000,
+      "batches": 1,
+      "estimatedGeometryDraws": 1,
+      "applyMs": {
+        "p50": 0.843,
+        "p95": 1.045
+      },
+      "transformsMs": {
+        "p50": 0.84,
+        "p95": 1.449
+      },
+      "pickingMs": {
+        "p50": 0.667,
+        "p95": 0.803
+      },
+      "heapDeltaMiB": 17.193,
+      "restoredOriginals": 10000,
+      "expectedHit": "36"
+    },
+    {
+      "count": 10000,
+      "shape": "mixed",
+      "buildMs": 11.262,
+      "slots": 7500,
+      "batches": 2,
+      "estimatedGeometryDraws": 2502,
+      "applyMs": {
+        "p50": 1.001,
+        "p95": 1.482
+      },
+      "transformsMs": {
+        "p50": 0.763,
+        "p95": 1.241
+      },
+      "pickingMs": {
+        "p50": 0.49,
+        "p95": 0.532
+      },
+      "heapDeltaMiB": -1.244,
+      "restoredOriginals": 10000,
+      "expectedHit": "36"
+    }
+  ]
+}

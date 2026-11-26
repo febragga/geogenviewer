@@ -5,9 +5,9 @@ import { authored, type Revision } from "../revisions/revision.ts";
 import type { AssemblyTimeline } from "../assembly/timeline.ts";
 import { normalizeSearch } from "../domain/visibility.ts";
 
-export type CatalogGroup = "category" | "layer" | "material" | "group" | "type" | "assembly" | "prototype";
-export type CatalogSort = "name" | "part" | "type" | "category" | "layer" | "material" | "length" | "projected" | "area" | "volume" | "mass" | "assembly";
-export type CatalogScope = "all" | "selected" | "visible" | "filtered" | "layer" | "group" | "category" | "material" | "type" | "assembly" | "modified";
+export type CatalogGroup = "category" | "layer" | "material" | "group" | "userLayer" | "userGroup" | "type" | "assembly" | "prototype";
+export type CatalogSort = "name" | "part" | "type" | "category" | "layer" | "userLayer" | "material" | "length" | "projected" | "area" | "volume" | "mass" | "assembly";
+export type CatalogScope = "all" | "selected" | "visible" | "filtered" | "layer" | "group" | "userLayer" | "userGroup" | "category" | "material" | "type" | "assembly" | "modified";
 export interface TypeSettings {
   overrides: Record<string, string>;
   confirmed: string[];
@@ -15,8 +15,10 @@ export interface TypeSettings {
 }
 export const defaultTypes: TypeSettings = { overrides: {}, confirmed: [], blocks: false };
 
-export function catalogEntries(revision: Revision, timeline: AssemblyTimeline, status: ReadonlyMap<string, DiffStatus>, fabrication: FabricationSettings = defaultFabrication, ids?: ReadonlySet<string>) {
-  const quantities = collectQuantities(revision, ids);
+import type { ResolvedOrganizationView } from "../organization/model.ts";
+
+export function catalogEntries(revision: Revision, timeline: AssemblyTimeline, status: ReadonlyMap<string, DiffStatus>, fabrication: FabricationSettings = defaultFabrication, ids?: ReadonlySet<string>, organization?: ResolvedOrganizationView | null) {
+  const quantities = collectQuantities(revision, ids, "", organization);
   const analysis = analyzeFabrication(revision, quantities, fabrication);
   return quantities.map((row, index) => {
     const { occurrence } = row;
@@ -96,15 +98,23 @@ export function occurrenceItems(rows: readonly CatalogEntry[]): CatalogItem[] {
 export function catalogGroup(row: CatalogEntry, group: CatalogGroup) {
   if (group === "assembly") return row.stepLabel;
   if (group === "group") return [...row.groups].sort(collator.compare)[0] ?? null;
+  if (group === "userGroup") return [...row.userGroups].sort(collator.compare)[0] ?? null;
   return row[group];
 }
 
+const searchTextCache = new WeakMap<CatalogEntry, string>();
+
 export function projectSearch(row: CatalogEntry, query: string) {
   if (!query) return true;
-  const { record, id } = row.occurrence;
-  const properties = [...Object.entries(record.cad?.properties ?? {}), ...Object.entries(record.cad?.userText ?? {})];
-  return normalizeSearch([id, record.name, row.part, row.type, row.layer, ...row.groups, row.category,
-    row.material, ...record.materialNames, row.prototype, row.stepLabel, row.status, ...properties.flat()].join(" ")).includes(query);
+  let haystack = searchTextCache.get(row);
+  if (haystack === undefined) {
+    const { record, id } = row.occurrence;
+    const properties = [...Object.entries(record.cad?.properties ?? {}), ...Object.entries(record.cad?.userText ?? {})];
+    haystack = normalizeSearch([id, record.name, row.part, row.type, row.layer, row.userLayer, ...row.groups, ...row.userGroups, row.category,
+      row.material, ...record.materialNames, row.prototype, row.stepLabel, row.status, ...properties.flat()].join(" "));
+    searchTextCache.set(row, haystack);
+  }
+  return haystack.includes(normalizeSearch(query));
 }
 
 export interface ScopeContext {
@@ -117,6 +127,7 @@ export function scopeCatalog(rows: readonly CatalogEntry[], scope: CatalogScope,
     if (scope === "selected" || scope === "visible" || scope === "filtered") return ctx[scope].has(row.occurrence.id);
     if (scope === "modified") return row.status === "modified";
     if (scope === "group") return row.groups.includes(value);
+    if (scope === "userGroup") return row.userGroups.includes(value);
     return catalogGroup(row, scope) === (value || null);
   });
 }

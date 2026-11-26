@@ -1,0 +1,133 @@
+{
+  "dimensions": [
+    {
+      "size": "1440 × 900",
+      "canvas": [
+        882,
+        856
+      ],
+      "count": 1,
+      "contextLost": false,
+      "overflow": 0,
+      "toolbarOverflow": 0,
+      "popupFits": true
+    },
+    {
+      "size": "1920 × 1080",
+      "canvas": [
+        1362,
+        1036
+      ],
+      "count": 1,
+      "contextLost": false,
+      "overflow": 0,
+      "toolbarOverflow": 0,
+      "popupFits": true
+    },
+    {
+      "size": "1280 × 800",
+      "canvas": [
+        908,
+        756
+      ],
+      "count": 1,
+      "contextLost": false,
+      "overflow": 0,
+      "toolbarOverflow": 0,
+      "popupFits": true
+    },
+    {
+      "size": "1024 × 768 touch",
+      "canvas": [
+        1024,
+        715
+      ],
+      "count": 1,
+      "contextLost": false,
+      "overflow": 0,
+      "toolbarOverflow": 0,
+      "popupFits": true
+    },
+    {
+      "size": "768 × 1024 touch",
+      "canvas": [
+        768,
+        971
+      ],
+      "count": 1,
+      "contextLost": false,
+      "overflow": 0,
+      "toolbarOverflow": 0,
+      "popupFits": true
+    },
+    {
+      "size": "390 × 844 touch",
+      "canvas": [
+        390,
+        791
+      ],
+      "count": 1,
+      "contextLost": false,
+      "overflow": 0,
+      "toolbarOverflow": 0,
+      "popupFits": true
+    }
+  ],
+  "graphics": {
+    "labSingle": {
+      "FPS em atividade": "47",
+      "Draw calls": "19",
+      "Triângulos": "584",
+      "Geometrias": "17",
+      "Materiais": "5",
+      "Componentes": "17",
+      "Carga do modelo": "21 ms"
+    },
+    "labFilled": {
+      "FPS em atividade": "9",
+      "Draw calls": "21",
+      "Triângulos": "2178",
+      "Geometrias": "24",
+      "Materiais": "7",
+      "Componentes": "17",
+      "Carga do modelo": "21 ms"
+    },
+    "labQuad": {
+      "FPS em atividade": "—",
+      "Draw calls": "82",
+      "Triângulos": "7118",
+      "Geometrias": "24",
+      "Materiais": "7",
+      "Componentes": "17",
+      "Carga do modelo": "21 ms"
+    },
+    "pavilionSingle": {
+      "FPS em atividade": "—",
+      "Draw calls": "24",
+      "Triângulos": "276",
+      "Geometrias": "2",
+      "Materiais": "7",
+      "Componentes": "18",
+      "Carga do modelo": "13 ms"
+    },
+    "pavilionQuad": {
+      "FPS em atividade": "—",
+      "Draw calls": "96",
+      "Triângulos": "1104",
+      "Geometrias": "2",
+      "Materiais": "7",
+      "Componentes": "18",
+      "Carga do modelo": "13 ms"
+    }
+  },
+  "captureTimesMs": [
+    538,
+    334
+  ],
+  "accessibility": {
+    "section": [],
+    "measurement": [],
+    "capture": []
+  },
+  "problems": []
+}

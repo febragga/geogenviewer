@@ -1,15 +1,17 @@
 import type { MeasuredScalar } from "../domain/model.ts";
+import type { ResolvedOrganizationView } from "../organization/model.ts";
 import { meshMetrics } from "./geometry.ts";
 import { authored, type Occurrence, type Revision } from "./revision.ts";
 
 export type QuantityScope = "all" | "visible" | "selected" | "filtered" | "modified" | "category" | "material";
-export type Grouping = "category" | "layer" | "material" | "block" | "part" | "type" | "prototype" | "property" | "group";
+export type Grouping = "category" | "layer" | "material" | "block" | "part" | "type" | "prototype" | "property" | "group" | "userLayer" | "userGroup";
 export type QuantityValue = MeasuredScalar & { method: string };
 
 export interface QuantityRow {
   occurrence: Occurrence;
   category: string;
   layer: string | null;
+  userLayer: string | null;
   material: string | null;
   prototype: string | null;
   block: string | null;
@@ -19,6 +21,7 @@ export interface QuantityRow {
   volume: QuantityValue | null;
   volumeExclusion: string | null;
   groups: string[];
+  userGroups: string[];
   property: string | null;
 }
 
@@ -31,7 +34,23 @@ export function numeric(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : null;
 }
 
-export function collectQuantities(revision: Revision, ids?: ReadonlySet<string>, property = ""): QuantityRow[] {
+function resolveUserLayerPath(org: ResolvedOrganizationView | null | undefined, layerId: string | null): string | null {
+  if (!org || !layerId) return null;
+  const parts: string[] = [];
+  for (let cur: string | null = layerId; cur && parts.length < 16; cur = org.layers[cur]?.parentId ?? null) {
+    const rec = org.layers[cur];
+    if (!rec) break;
+    parts.unshift(rec.name);
+  }
+  return parts.length ? parts.join(" / ") : null;
+}
+
+export function collectQuantities(
+  revision: Revision,
+  ids?: ReadonlySet<string>,
+  property = "",
+  organization?: ResolvedOrganizationView | null
+): QuantityRow[] {
   const graph = revision.scene.sceneGraph;
   const rows: QuantityRow[] = [];
   for (const occurrence of revision.occurrences.values()) {
@@ -46,8 +65,11 @@ export function collectQuantities(revision: Revision, ids?: ReadonlySet<string>,
     const part = authored(record, "GeoGen:PartId");
     const type = authored(record, "GeoGen:TypeCode");
     const propertyValue = property ? authored(record, property) : null;
+    const userLayerId = organization?.componentLayerId[occurrence.id] ?? null;
+    const userGroupIds = organization?.componentGroupIds[occurrence.id] ?? [];
     rows.push({
       occurrence, category: record.category, layer: record.layerId ? graph.layers[record.layerId]?.fullPath ?? record.layerId : null,
+      userLayer: resolveUserLayerPath(organization, userLayerId),
       material, prototype: cad?.fabrication?.prototypeId ?? revision.identity.prototypeId, block: record.blockDefinitionId,
       part: typeof part === "string" && part.trim() ? part : null, type: typeof type === "string" && type.trim() ? type : null,
       area: area ?? (metrics?.areaM2 != null ? { value: metrics.areaM2, source: "mesh", method: "area-triangles" } : null),
@@ -56,6 +78,7 @@ export function collectQuantities(revision: Revision, ids?: ReadonlySet<string>,
       volumeExclusion: volume || authoredVolume !== null || metrics?.volumeM3 != null ? null :
         cad?.isClosed === false ? "open-mesh" : metrics?.volumeExclusion ?? "missing-geometry",
       groups: record.groupIds.map((id) => graph.groups[id]?.name ?? id),
+      userGroups: userGroupIds.map((id) => organization?.groups[id]?.name ?? id),
       property: propertyValue === null ? null : String(propertyValue),
     });
   }
@@ -105,12 +128,20 @@ export function summarizeQuantities(input: readonly QuantityRow[]) {
 export function groupQuantities(rows: readonly QuantityRow[], field: Grouping) {
   const groups = new Map<string | null, QuantityRow[]>();
   for (const row of rows) {
-    const keys = field === "group" ? (row.groups.length ? [...new Set(row.groups)] : [null]) : [row[field]];
+    const keys =
+      field === "group"
+        ? (row.groups.length ? [...new Set(row.groups)] : [null])
+        : field === "userGroup"
+          ? (row.userGroups.length ? [...new Set(row.userGroups)] : [null])
+          : [row[field]];
     for (const key of keys) {
       let group = groups.get(key);
       if (!group) groups.set(key, group = []);
       group.push(row);
     }
   }
-  return { groups, overlapping: field === "group" && rows.some((row) => new Set(row.groups).size > 1) };
+  const overlapping =
+    (field === "group" && rows.some((row) => new Set(row.groups).size > 1)) ||
+    (field === "userGroup" && rows.some((row) => new Set(row.userGroups).size > 1));
+  return { groups, overlapping };
 }

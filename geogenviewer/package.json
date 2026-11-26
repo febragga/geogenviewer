@@ -1,6 +1,6 @@
 {
     "name": "geogenviewer",
-    "version": "0.8.0",
+    "version": "0.9.1",
     "private": true,
     "scripts": {
         "dev": "next dev",
@@ -14,6 +14,9 @@
         "test:v06": "node scripts/verify-v06.mjs",
         "test:v07": "node scripts/verify-v07.mjs",
         "test:v08": "node scripts/verify-v08.mjs",
+        "test:v09": "node scripts/verify-v09.mjs",
+        "test:v091": "node scripts/verify-v091.mjs",
+        "benchmark:v091": "node --expose-gc --experimental-strip-types scripts/benchmark-v091.mjs",
         "benchmark:v08": "node --expose-gc --experimental-strip-types scripts/benchmark-v08.mjs",
         "fixture:catalog": "node scripts/generate-catalog-lab.mjs",
         "benchmark:v07": "node --expose-gc --experimental-strip-types scripts/benchmark-v07.mjs",

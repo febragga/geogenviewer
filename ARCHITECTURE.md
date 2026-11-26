@@ -106,6 +106,12 @@ Usar DPR adaptativo, render sob demanda com invalidação durante animações, e
 
 Não executar scripts importados, HTML de metadados ou Python no navegador. Renderizar strings como texto. Limites iniciais configuráveis de 100 MiB para GLB e 10 MiB para manifesto, sujeitos a revisão após testes; não garantir segurança de memória apenas pelo tamanho comprimido. Rejeitar JSON inválido, referências externas, ciclos e extensões obrigatórias não suportadas. Não enviar modelos locais à Vercel, analytics, CDN ou IA. Proteger dados compartilhados por autenticação real quando essa fase for autorizada.
 
+## 7.1 Consolidação V0.9.1
+
+O manifesto e as matrizes de repouso permanecem nas fronteiras de importação e identidade. A organização personalizada guarda chaves de projeto, revisão e binário fora do manifesto. A visibilidade compõe as máscaras individuais, de grupo e de camada aos filtros e ao estado da apresentação.
+
+O renderer mantém um Canvas e decide o caminho de malha por compatibilidade. A alternativa de agrupar geometrias ou materiais apenas por semântica impediria verificar equivalência de atributos, picking e transformações. As malhas repetidas elegíveis compartilham um draw por lote. Transparência, arestas e poses incompatíveis podem manter renderizáveis originais ativos. [Revisão de arquitetura](V091_ARCHITECTURE_REVIEW.md) · [Renderização](V091_RENDERING_SPEC.md)
+
 ## 8. Deploy e DNS
 
 - Repositório GitHub independente, privado inicialmente; Vercel project separado. Preview para branches e produção somente após autorização.

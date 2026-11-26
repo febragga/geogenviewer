@@ -22,7 +22,8 @@ export const qualities: Record<GraphicsQuality, string> = {
   performance: "Desempenho", balanced: "Equilibrada", high: "Alta",
 };
 export const filterFields: Record<FilterField, string> = {
-  layer: "Camadas e subcamadas", group: "Grupos", category: "Categorias", material: "Materiais",
+  layer: "Camadas CAD", group: "Grupos CAD", userLayer: "Camadas do usuário", userGroup: "Grupos do usuário",
+  category: "Categorias", material: "Materiais",
   geometry: "Tipos geométricos", block: "Definições de bloco", instance: "Instâncias",
   selection: "Seleção", assembly: "Estado de montagem",
 };
@@ -35,6 +36,13 @@ export const assemblyStates = {
 
 export const v05 = {
   workspace: "Workspace", views: "Vistas", projection: "Projeção", orientation: "Orientação",
+  homeView: "Vista inicial",
+  rotate90Ccw: "Girar 90° anti-horário",
+  rotate90Cw: "Girar 90° horário",
+  perspShort: "Persp.",
+  orthoShort: "Orto.",
+  toggleProjection: "Alternar projeção perspectiva/ortográfica",
+  navCubeLabel: "Cubo de navegação 3D",
   perspective: "Perspectiva", orthographic: "Ortográfica", layout: "Distribuição", named: "Vistas salvas",
   syncTarget: "Sincronizar alvo", syncZoom: "Sincronizar zoom ortográfico", maximize: "Maximizar vista",
   restoreLayout: "Restaurar layout", display: "Exibição", filters: "Filtros", settings: "Apresentação",

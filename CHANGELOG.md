@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.9.1] · 26/11/2026 — Auditoria e estabilização
+
+- Pré-validação GLB e vínculo único de malhas a ocorrências do manifesto CAD.
+- Organização com escopo por hash, projeto e revisão, máscaras de grupos independentes e histórico atômico ao criar uma camada com a seleção.
+- Fallback de renderização para transparência, transformações incompatíveis e exibição técnica. Picking com limites atualizados e ancoragem na malha original.
+- Preferências de tema compartilhadas entre home e viewer, metadados de produção e versão centralizada.
+- Cancelamento e recuperação, diagnóstico de armazenamento e indicação do limite de ilustrações do manual.
+- [Auditoria](V091_ENGINEERING_AUDIT.md) · [Checklist V1.0](V1_RELEASE_CANDIDATE_CHECKLIST.md)
+
+## [0.9.0] · 26/11/2026 — Product Design, Performance, Robustez e Organização do Usuário
+
+- Identidade visual oficial com marca triangular `#3B82F6`, versão centralizada `0.9.0` e web manifest completos.
+- Home Launchpad renovada com showcase interativo (*Montado*, *Explodido*, *Knolling*), biblioteca de 6 demonstrações, **Projetos Recentes** em metadados leves e documentação técnica em abas.
+- Cubo de Navegação 3D sólido chanfrado em SVG (26 faces/arestas/cantos em contexto WebGL único, arrasto contínuo, Home, rotação 90° e toggle `Persp./Orto.`) e navegação de workspaces agrupada em 4 famílias.
+- Sistema independente de **Camadas e Grupos do Usuário** (`schemas/organization-v1.schema.json`), com separação estrita do CAD, camada única por ocorrência, grupos sobrepostos, Undo/Redo, modal explícito de exclusão, drag-and-drop, Menu de Contexto e integração com Filtros, Quantitativos, Knolling, Catálogo e Cor por camada.
+- Diálogo consolidado de **Configurações** (tema, fundo independente da viewport, Cubo 3D, qualidade, modo automático para modelos grandes e unidades), `CommandPalette` ampliado e cancelamento de carregamento com `AbortController`.
+- Otimização WebGL com `InstancedBatchManager` (`10.001` → `2` draw calls nos benchmarks de 10.000 peças, mantendo `24`/`96` draw calls no pavilhão de 18 peças), cache de matriz pai no `KnollingPose`, cache de busca em `catalog.ts` e cache de projeção/medição em `DocumentationOverlay`/`callouts.ts`.
+
 ## [0.8.0] · 26/11/2026 — Knolling, catálogo e documentação
 
 - Organização de ocorrências e tipos em cinco modos, três planos CAD, orientação configurável e transição reversível.

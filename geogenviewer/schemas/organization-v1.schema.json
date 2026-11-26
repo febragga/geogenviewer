@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://geogenviewer.fernandobragaportfolio.com.br/schemas/organization-v1.schema.json",
+  "title": "GeoGenViewer User Organization Document v1.0.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "projectId",
+    "revisionId",
+    "modelSha256",
+    "updatedAt",
+    "activeSource",
+    "userLayers",
+    "userGroups",
+    "componentLayerAssignments",
+    "hiddenLayerIds"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0.0"
+    },
+    "projectId": {
+      "type": ["string", "null"],
+      "maxLength": 160
+    },
+    "revisionId": {
+      "type": ["string", "null"],
+      "maxLength": 160
+    },
+    "modelSha256": {
+      "type": ["string", "null"],
+      "pattern": "^[0-9a-fA-F]{64}$"
+    },
+    "updatedAt": {
+      "type": "string",
+      "maxLength": 64
+    },
+    "activeSource": {
+      "enum": ["cad", "user"]
+    },
+    "userLayers": {
+      "type": "array",
+      "maxItems": 2000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name", "color", "parentId", "order", "visible"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1, "maxLength": 120 },
+          "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+          "color": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+          "parentId": { "type": ["string", "null"], "maxLength": 120 },
+          "order": { "type": "integer", "minimum": 0 },
+          "visible": { "type": "boolean" }
+        }
+      }
+    },
+    "userGroups": {
+      "type": "array",
+      "maxItems": 2000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name", "color", "parentId", "order", "memberIds"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1, "maxLength": 120 },
+          "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+          "color": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+          "parentId": { "type": ["string", "null"], "maxLength": 120 },
+          "order": { "type": "integer", "minimum": 0 },
+          "memberIds": {
+            "type": "array",
+            "maxItems": 100000,
+            "items": { "type": "string", "minLength": 1, "maxLength": 160 }
+          }
+        }
+      }
+    },
+    "componentLayerAssignments": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 120
+      }
+    },
+    "hiddenLayerIds": {
+      "type": "array",
+      "maxItems": 2000,
+      "items": { "type": "string", "minLength": 1, "maxLength": 120 }
+    }
+  }
+}

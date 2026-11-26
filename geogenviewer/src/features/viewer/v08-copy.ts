@@ -49,16 +49,16 @@ export const v08 = {
 } as const;
 
 export const catalogGroups: Record<CatalogGroup, string> = {
-  category: "Categoria", layer: "Camada", material: "Material de fabricação", group: "Grupo", type: "Tipo autorado",
+  category: "Categoria", layer: "Camada CAD", userLayer: "Camada do usuário", material: "Material de fabricação", group: "Grupo CAD", userGroup: "Grupo do usuário", type: "Tipo autorado",
   assembly: "Etapa de montagem", prototype: "Protótipo",
 };
 export const catalogScopes: Record<CatalogScope, string> = {
   all: "Modelo completo", selected: "Peças selecionadas", visible: "Elementos visíveis", filtered: "Filtros do visualizador",
-  layer: "Camada", group: "Grupo", category: "Categoria", material: "Material de fabricação", type: "Tipo",
+  layer: "Camada CAD", userLayer: "Camada do usuário", group: "Grupo CAD", userGroup: "Grupo do usuário", category: "Categoria", material: "Material de fabricação", type: "Tipo",
   assembly: "Etapa de montagem", modified: "Peças modificadas",
 };
 export const catalogSort: Record<CatalogSort, string> = {
-  name: "Nome", part: "Part ID", type: "Type ID", category: "Categoria", layer: "Camada", material: "Material de fabricação",
+  name: "Nome", part: "Part ID", type: "Type ID", category: "Categoria", layer: "Camada CAD", userLayer: "Camada do usuário", material: "Material de fabricação",
   length: "Comprimento autorado", projected: "Área projetada", area: "Área", volume: "Volume", mass: "Massa disponível", assembly: "Etapa",
 };
 export const layoutModes: Record<LayoutMode, string> = {

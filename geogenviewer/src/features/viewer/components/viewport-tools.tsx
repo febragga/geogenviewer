@@ -21,6 +21,8 @@ export function ViewportTools({ loaded, loadTime, onFit, onReset, comparison = f
   const maximized = usePresentation((state) => state.maximized);
   const projection = usePresentation((state) => state.projections[state.active]);
   const regions = viewRegions(layout, maximized, 100, 100);
+  const modelKey = JSON.stringify([loaded.manifest?.project.id, loaded.sceneGraph.revisionId,
+    loaded.binarySha256, loaded.sceneGraph.fileName, loaded.sceneGraph.fileSizeBytes]);
   return (
     <>
       {!comparison && layout !== "single" && <div className="gg-view-regions" aria-label="Viewports">
@@ -35,8 +37,8 @@ export function ViewportTools({ loaded, loadTime, onFit, onReset, comparison = f
         ))}
       </div>}
       <div className="gg-v05-tools" role="group" aria-label="Ferramentas da viewport">
-        <ViewerPopover label={v05.views} icon={<Layers2 size={15} />}><ViewOptions loaded={loaded} comparison={comparison} documentation={documentation} /></ViewerPopover>
-        <ViewerPopover label={v05.filters} icon={<Filter size={15} />}><FilterOptions loaded={loaded} onFit={onFit} /></ViewerPopover>
+        <ViewerPopover label={v05.views} icon={<Layers2 size={15} />}><ViewOptions key={modelKey} loaded={loaded} comparison={comparison} documentation={documentation} /></ViewerPopover>
+        <ViewerPopover label={v05.filters} icon={<Filter size={15} />}><FilterOptions key={modelKey} loaded={loaded} onFit={onFit} /></ViewerPopover>
         <ViewerPopover label={v05.display} title={v05.settings} icon={<SlidersHorizontal size={15} />}>
           <DisplayOptions count={loaded.sceneGraph.componentOrder.length} loadTime={loadTime} onReset={onReset} comparison={comparison} />
         </ViewerPopover>

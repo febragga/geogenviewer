@@ -13,6 +13,27 @@ const requiredExtensions = new Set([
   "KHR_materials_transmission", "KHR_materials_volume",
 ]);
 
+const nodeTransforms = { translation: 3, rotation: 4, scale: 3, matrix: 16 } as const;
+type JsonObject = Record<string, unknown>;
+
+function asObject(value: unknown): JsonObject {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) throw new Error(invalidGlb);
+  return value as JsonObject;
+}
+
+function optionalArray(value: unknown): unknown[] {
+  if (value === undefined) return [];
+  if (!Array.isArray(value)) throw new Error(invalidGlb);
+  return value;
+}
+
+function nodeIndices(value: unknown, count: number): number[] {
+  const indices = optionalArray(value);
+  if (!indices.every((index): index is number => typeof index === "number" &&
+      Number.isInteger(index) && index >= 0 && index < count)) throw new Error(invalidGlb);
+  return indices;
+}
+
 export function validateGlb(bytes: ArrayBuffer) {
   if (bytes.byteLength > maxGlbBytes) throw new Error("O arquivo excede 100 MiB.");
   if (bytes.byteLength < 20) throw new Error(invalidGlb);
@@ -31,43 +52,81 @@ export function validateGlb(bytes: ArrayBuffer) {
     if (length % 4 || length > bytes.byteLength - offset - 8) throw new Error(invalidGlb);
     offset += 8 + length;
   }
-  const json = new TextDecoder("utf-8", { fatal: true }).decode(new Uint8Array(bytes, 20, jsonLength));
-  const document = JSON.parse(json);
-  if (document?.asset?.version !== "2.0" || (document.asset.minVersion && document.asset.minVersion !== "2.0")) {
+  let document: JsonObject;
+  try {
+    const json = new TextDecoder("utf-8", { fatal: true }).decode(new Uint8Array(bytes, 20, jsonLength));
+    document = asObject(JSON.parse(json));
+  } catch {
+    throw new Error(invalidGlb);
+  }
+  // GLTFLoader merges extras into userData. Inspect own keys before handing it the JSON.
+  const pending: [object, number][] = [[document, 0]];
+  while (pending.length) {
+    const [obj, depth] = pending.pop()!;
+    if (depth > 64) throw new Error("O JSON do GLB é profundo demais.");
+    for (const key in obj) {
+      if (!Object.hasOwn(obj, key)) continue;
+      if (key === "__proto__" || key === "constructor" || key === "prototype") throw new Error(invalidGlb);
+      const child: unknown = (obj as JsonObject)[key];
+      if (child && typeof child === "object") pending.push([child, depth + 1]);
+    }
+  }
+  const asset = asObject(document.asset);
+  if (asset.version !== "2.0" || (asset.minVersion !== undefined && asset.minVersion !== "2.0")) {
     throw new Error("A versão glTF do arquivo é incompatível.");
   }
-  for (const resource of [...(document.buffers ?? []), ...(document.images ?? [])]) {
-    if (resource.uri !== undefined && (typeof resource.uri !== "string" || !resource.uri.startsWith("data:"))) {
+  for (const value of [...optionalArray(document.buffers), ...optionalArray(document.images)]) {
+    const { uri } = asObject(value);
+    if (uri !== undefined && (typeof uri !== "string" || !uri.startsWith("data:"))) {
       throw new Error("O GLB precisa conter todos os buffers e imagens.");
     }
   }
-  if (document.extensionsRequired?.some((name: string) =>
+  const required = optionalArray(document.extensionsRequired);
+  if (required.some((name) => typeof name === "string" &&
     ["KHR_draco_mesh_compression", "EXT_meshopt_compression", "KHR_meshopt_compression", "KHR_texture_basisu"].includes(name))) {
     throw new Error("Exporte o GLB sem compressão Draco, Meshopt ou Basis Universal.");
   }
-  if (document.extensionsRequired?.some((name: string) => !requiredExtensions.has(name))) {
+  if (required.some((name) => typeof name !== "string" || !requiredExtensions.has(name))) {
     throw new Error("O GLB exige uma extensão incompatível com este visualizador.");
   }
-  const nodes = document.nodes ?? [];
-  if (!Array.isArray(nodes)) throw new Error(invalidGlb);
+  const nodes = optionalArray(document.nodes);
   const parents = new Set<number>();
-  for (const node of nodes) {
-    for (const child of node?.children ?? []) {
+  const childrenByNode = nodes.map((value) => {
+    const node = asObject(value);
+    for (const [key, length] of Object.entries(nodeTransforms)) {
+      const tuple = node[key];
+      if (tuple !== undefined && (!Array.isArray(tuple) || tuple.length !== length ||
+          !tuple.every((n) => typeof n === "number" && Number.isFinite(n)))) {
+        throw new Error("O GLB contém uma transformação inválida.");
+      }
+    }
+    const children = nodeIndices(node.children, nodes.length);
+    for (const child of children) {
       if (parents.has(child)) throw new Error("O GLB contém uma hierarquia com pais duplicados.");
       parents.add(child);
     }
+    return children;
+  });
+  const scenes = optionalArray(document.scenes);
+  for (const value of scenes) {
+    const roots = nodeIndices(asObject(value).nodes, nodes.length);
+    if (new Set(roots).size !== roots.length || roots.some((id) => parents.has(id))) {
+      throw new Error("O GLB contém raízes de cena inválidas.");
+    }
   }
+  if (document.scene !== undefined) nodeIndices([document.scene], scenes.length);
+
   const active = new Set<number>();
   const heights = new Map<number, number>();
   function height(index: number, depth: number): number {
-    if (!Number.isInteger(index) || !nodes[index] || active.has(index) || depth > 256) {
+    if (active.has(index) || depth > 256) {
       throw new Error("O GLB contém uma hierarquia inválida ou profunda demais.");
     }
     const known = heights.get(index);
     if (known !== undefined) return known;
     active.add(index);
     let result = 0;
-    for (const child of nodes[index].children ?? []) result = Math.max(result, 1 + height(child, depth + 1));
+    for (const child of childrenByNode[index]) result = Math.max(result, 1 + height(child, depth + 1));
     if (result > 256) throw new Error("O GLB contém uma hierarquia profunda demais.");
     active.delete(index);
     heights.set(index, result);
@@ -127,7 +186,12 @@ export async function importGlb(bytes: ArrayBuffer) {
     if (bounds.isEmpty() || !Number.isFinite(bounds.getBoundingSphere(new Sphere()).radius)) {
       throw new Error("A cena não contém geometria com dimensões válidas.");
     }
-    return { scene, bounds, dispose: () => disposeScenes(scenes) };
+    let disposed = false;
+    return { scene, bounds, dispose() {
+      if (disposed) return;
+      disposed = true;
+      disposeScenes(scenes);
+    } };
   } catch (error) {
     disposeScenes(scenes);
     throw error;

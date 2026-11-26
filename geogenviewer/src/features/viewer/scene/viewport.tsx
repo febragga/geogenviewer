@@ -22,6 +22,8 @@ import { activeClipping, InspectionScene } from "./inspection-scene";
 import { AssemblyPose } from "../../../lib/geogen/assembly/pose";
 import { useAssembly } from "../state/assembly-store";
 import { usePresentation } from "../state/presentation-store";
+import { useOrganizationStore } from "../state/organization-store";
+import { resolveOrganizationView } from "../../../lib/geogen/organization/operations";
 import { useViewerStore } from "../state/viewer-store";
 import { viewportScope } from "../state/viewport-scopes";
 import { resolveVisibility } from "../state/visibility-state";
@@ -99,6 +101,7 @@ function SceneController({
   onExplodedBoundsChange,
   onSelect,
   onHover,
+  onContextMenu,
   onContextLost,
   acceptCommand,
   revision,
@@ -121,6 +124,7 @@ function SceneController({
   onExplodedBoundsChange: (bounds: [number, number, number] | null) => void;
   onSelect: (id: string | null, options: { multi: boolean }) => void;
   onHover: (id: string | null) => void;
+  onContextMenu?: (id: string | null, x: number, y: number) => void;
   onContextLost: () => void;
   acceptCommand: (command: CameraCommand) => boolean;
   revision: Revision;
@@ -132,6 +136,7 @@ function SceneController({
   const beforeDraw = useRef<(slot: number, selection?: boolean) => void>(null);
   const onDraw = useCallback((slot: number, selection?: boolean) => beforeDraw.current?.(slot, selection), []);
   const inspector = useRef<InspectionScene | null>(null);
+  const sceneDisplayRef = useRef<SceneDisplay | null>(null);
   const motion = useCallback(() => {
     const state = useAssembly.getState();
     const workspace = useViewerStore.getState().workspace;
@@ -150,12 +155,14 @@ function SceneController({
     invalidate();
   }, [knolling, annotationVersion, invalidate]);
   const display = usePresentation((state) => state.display);
+  const orgDoc = useOrganizationStore((state) => state.doc);
   const lastAppliedAssembly = useRef<{ time: number; timeline: ReturnType<typeof useAssembly.getState>["timeline"]; ghost: boolean; solo: number | null } | null>(null);
 
 
   const callbacksRef = useRef({
     onSelect,
     onHover,
+    onContextMenu,
     multiSelectMode,
     onExplodeAnimationLiveFactor,
     onExplodeAnimationSettled,
@@ -168,6 +175,7 @@ function SceneController({
     callbacksRef.current = {
       onSelect,
       onHover,
+      onContextMenu,
       multiSelectMode,
       onExplodeAnimationLiveFactor,
       onExplodeAnimationSettled,
@@ -175,6 +183,7 @@ function SceneController({
     };
   }, [
     multiSelectMode,
+    onContextMenu,
     onExplodeAnimationLiveFactor,
     onExplodeAnimationSettled,
     onExplodedBoundsChange,
@@ -328,7 +337,8 @@ function SceneController({
   );
 
   useEffect(() => {
-    const sceneDisplay = new SceneDisplay(scenePackage);
+    const sceneDisplay = new SceneDisplay(scenePackage, rootScene);
+    sceneDisplayRef.current = sceneDisplay;
     const runtime = new InspectionScene(gl, rootScene, scenePackage, invalidate);
     inspector.current = runtime;
     let last: readonly unknown[] = [];
@@ -340,26 +350,30 @@ function SceneController({
       const hovered = selection && (slot === view.active || view.shareSelection) ? scene.hoveredId : null;
       const config = useInspection.getState().doc?.sections;
       const technical = config && sectionAt(config, slot).mode === "technical" && activeClipping(slot).length > 0;
+      const org = useOrganizationStore.getState().doc;
       const inputs = [
-        view.display, technical, selection, scene.workspace, scope.selectedIds, hovered, scope.filters, scope.hiddenIds,
-        scope.isolatedIds, assembly.timeline, assembly.stepIndex, assembly.ghost, assembly.solo, knollRef.current?.mask,
+        view.display, technical, selection, scene.workspace, scope.selectedIds, hovered, scope.filters, scope.hiddenIds, scope.hiddenGroupKeys,
+        scope.isolatedIds, assembly.timeline, assembly.stepIndex, assembly.ghost, assembly.solo, knollRef.current?.mask, org,
       ];
       const changed = inputs.some((value, index) => value !== last[index]);
       if (changed) {
         last = inputs;
-        const { denied, ghosts } = resolveVisibility(scenePackage.sceneGraph, scope, scene.workspace, assembly);
+        const userFilterOrg = resolveOrganizationView(scenePackage.sceneGraph, { ...org, activeSource: "user" });
+        const filterOrg = { ...userFilterOrg, source: org.activeSource };
+        const { denied, ghosts } = resolveVisibility(scenePackage.sceneGraph, scope, scene.workspace, assembly, filterOrg);
         const layout = knollRef.current;
         if (scene.workspace === "knolling" && layout) {
           for (const id of scenePackage.sceneGraph.componentOrder) if (!layout.mask.has(id)) denied.add(id);
         }
         const displaySettings = technical ? { ...view.display, mode: "technical" as const } : view.display;
-        sceneDisplay.apply(displaySettings, new Set(selection ? scope.selectedIds : []), hovered, denied, scope.isolatedIds ? new Set(scope.isolatedIds) : null, ghosts);
+        sceneDisplay.apply(displaySettings, new Set(selection ? scope.selectedIds : []), hovered, denied, scope.isolatedIds ? new Set(scope.isolatedIds) : null, ghosts, undefined, filterOrg);
         if (!view.shareVisibility) syncReferenceLines(explodeRef.current.showReferenceLines, Array.from(denied), scope.isolatedIds);
       }
     };
     return () => {
       beforeDraw.current = null;
       inspector.current = null;
+      sceneDisplayRef.current = null;
       runtime.dispose();
       sceneDisplay.dispose();
       assemblyPose.reset();
@@ -372,7 +386,7 @@ function SceneController({
     onDraw(usePresentation.getState().active);
     syncReferenceLines(explodeRef.current.showReferenceLines, hiddenIds, isolatedIds);
     invalidate();
-  }, [display, hiddenIds, hoveredId, invalidate, isolatedIds, onDraw, scenePackage, selectedIds, syncReferenceLines, workspace]);
+  }, [display, hiddenIds, hoveredId, invalidate, isolatedIds, onDraw, orgDoc, scenePackage, selectedIds, syncReferenceLines, workspace]);
 
   useEffect(() => {
     if (workspace === "assembly") return useAssembly.subscribe(() => invalidate());
@@ -388,6 +402,7 @@ function SceneController({
     const previous = lastAppliedAssembly.current;
     if (!previous || previous.time !== time || previous.timeline !== timeline || previous.ghost !== ghost || previous.solo !== solo) {
       assemblyPose.apply(timeline, time, solo, ghost);
+      sceneDisplayRef.current?.syncBatchTransforms();
       lastAppliedAssembly.current = { time, timeline, ghost, solo };
     }
     if (playback.status === "playing") invalidate();
@@ -410,6 +425,7 @@ function SceneController({
     if (workspace !== "knolling" || !layout) return;
     const motion = useKnollingMotion.getState();
     knollPose.apply(layout.result, motion.frame(performance.now()));
+    sceneDisplayRef.current?.syncBatchTransforms();
     if (motion.playing) invalidate();
   }, -1);
 
@@ -426,6 +442,7 @@ function SceneController({
 
     const effectiveFactor = explode.enabled ? explode.factor : 0;
     controller.applyFactor(effectiveFactor);
+    sceneDisplayRef.current?.syncBatchTransforms();
 
     syncReferenceLines(
       explode.showReferenceLines,
@@ -470,6 +487,7 @@ function SceneController({
     if (prefersReduced || Math.abs(target - controller.factor) < 1e-4) {
       animRef.current.active = false;
       controller.applyFactor(target);
+      sceneDisplayRef.current?.syncBatchTransforms();
       syncReferenceLines(
         explodeRef.current.showReferenceLines,
         visibilityRef.current.hiddenIds,
@@ -511,6 +529,7 @@ function SceneController({
     const nextFactor = anim.from + (anim.to - anim.from) * eased;
 
     controller.applyFactor(nextFactor);
+    sceneDisplayRef.current?.syncBatchTransforms();
     callbacksRef.current.onExplodeAnimationLiveFactor?.(nextFactor);
 
     syncReferenceLines(
@@ -562,16 +581,19 @@ function SceneController({
       onDraw(hitRegion.slot);
       scenePackage.model.scene.updateMatrixWorld();
       raycaster.setFromCamera(pointerNdc, hitRegion.camera);
-      const hits = raycaster.intersectObject(scenePackage.model.scene, true);
+      const hits = sceneDisplayRef.current?.intersections(raycaster) ??
+        raycaster.intersectObject(scenePackage.model.scene, true);
       const { ghost, timeline, stepIndex, solo } = useAssembly.getState();
       const workspace = useViewerStore.getState().workspace;
       const ghostEnabled = workspace === "assembly" && ghost && solo === null;
       const planes = activeClipping(hitRegion.slot);
+      const resolveCandidateId = (candidate: (typeof hits)[number]) =>
+        sceneDisplayRef.current?.resolveHit(candidate) ?? scenePackage.resolveComponentId(candidate.object);
       const hit = firstVisibleHit(hits, planes, (candidate) => {
-        const id = scenePackage.resolveComponentId(candidate.object);
+        const id = resolveCandidateId(candidate);
         return Boolean(id && (!ghostEnabled || (timeline.byElement.get(id) ?? -1) <= stepIndex));
       });
-      const id = hit ? scenePackage.resolveComponentId(hit.object) : null;
+      const id = hit ? resolveCandidateId(hit) : null;
       if (measuring && runtime) {
         const snap = useInspection.getState().doc?.snap;
         const result = hit && id && snap ? snapOnHit(hit, hitRegion.camera, hitRegion.width, hitRegion.height,
@@ -579,7 +601,8 @@ function SceneController({
           snap, planes, event.shiftKey) : null;
         runtime.setCandidate(hitRegion.slot, result);
         if (confirm && result && hit && id) {
-          const anchor = runtime.anchor(hit, id, result.point, result.mode);
+          const sourceHit = sceneDisplayRef.current?.sourceIntersection(hit) ?? hit;
+          const anchor = runtime.anchor(sourceHit, id, result.point, result.mode);
           if (anchor) useInspection.getState().confirm(anchor, workspace);
         }
       }
@@ -649,11 +672,24 @@ function SceneController({
       if (activePointers.size === 0) multiTouch = false;
     }
 
+    function onCanvasContextMenu(event: MouseEvent) {
+      if (!callbacksRef.current.onContextMenu) return;
+      event.preventDefault();
+      const fakePointer = {
+        clientX: event.clientX,
+        clientY: event.clientY,
+        shiftKey: event.shiftKey,
+      } as unknown as PointerEvent;
+      const hitId = pick(fakePointer, false);
+      callbacksRef.current.onContextMenu(hitId, event.clientX, event.clientY);
+    }
+
     canvas.addEventListener("pointerdown", onPointerDown);
     canvas.addEventListener("pointermove", onPointerMove);
     canvas.addEventListener("pointerleave", onPointerLeave);
     canvas.addEventListener("pointerup", onPointerUp);
     canvas.addEventListener("pointercancel", onPointerCancel);
+    canvas.addEventListener("contextmenu", onCanvasContextMenu);
 
     return () => {
       canvas.style.cursor = "";
@@ -662,6 +698,7 @@ function SceneController({
       canvas.removeEventListener("pointerleave", onPointerLeave);
       canvas.removeEventListener("pointerup", onPointerUp);
       canvas.removeEventListener("pointercancel", onPointerCancel);
+      canvas.removeEventListener("contextmenu", onCanvasContextMenu);
     };
   }, [cameras, gl, onDraw, scenePackage]);
 
@@ -697,6 +734,7 @@ export default function Viewport({
   onExplodedBoundsChange,
   onSelect,
   onHover,
+  onContextMenu,
   onContextLost,
   fallback,
   comparison,
@@ -720,6 +758,7 @@ export default function Viewport({
   onExplodedBoundsChange: (bounds: [number, number, number] | null) => void;
   onSelect: (id: string | null, options: { multi: boolean }) => void;
   onHover: (id: string | null) => void;
+  onContextMenu?: (id: string | null, x: number, y: number) => void;
   onContextLost: () => void;
   fallback: ReactNode;
   comparison?: CompareSceneProps;
@@ -806,6 +845,7 @@ export default function Viewport({
           onExplodedBoundsChange={onExplodedBoundsChange}
           onSelect={onSelect}
           onHover={onHover}
+          onContextMenu={onContextMenu}
           onContextLost={onContextLost}
         />
         </>}

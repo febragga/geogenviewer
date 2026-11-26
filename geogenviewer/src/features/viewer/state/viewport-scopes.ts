@@ -4,6 +4,7 @@ import type { VisibilitySnapshot } from "./local-preferences";
 
 interface Scope extends VisibilitySnapshot {
   selectedIds: string[];
+  hiddenGroupKeys: string[];
   beforeIsolation: ViewerStoreState["beforeIsolation"];
 }
 
@@ -11,7 +12,7 @@ let scopes: Scope[] = [];
 
 function snapshot(state: ViewerStoreState): Scope {
   return {
-    selectedIds: state.selectedIds, hiddenIds: state.hiddenIds, isolatedIds: state.isolatedIds,
+    selectedIds: state.selectedIds, hiddenIds: state.hiddenIds, hiddenGroupKeys: state.hiddenGroupKeys, isolatedIds: state.isolatedIds,
     filters: state.filters, beforeIsolation: state.beforeIsolation,
   };
 }
@@ -24,6 +25,7 @@ export function viewportScope(slot: number): Scope {
   return {
     selectedIds: view.shareSelection ? viewer.selectedIds : local.selectedIds,
     hiddenIds: view.shareVisibility ? viewer.hiddenIds : local.hiddenIds,
+    hiddenGroupKeys: view.shareVisibility ? viewer.hiddenGroupKeys : local.hiddenGroupKeys,
     isolatedIds: view.shareVisibility ? viewer.isolatedIds : local.isolatedIds,
     filters: view.shareVisibility ? viewer.filters : local.filters,
     beforeIsolation: view.shareVisibility ? viewer.beforeIsolation : local.beforeIsolation,
@@ -63,6 +65,7 @@ export function connectViewportScopes() {
       useViewerStore.setState({
         selectedIds: state.shareSelection ? current.selectedIds : next.selectedIds,
         hiddenIds: state.shareVisibility ? current.hiddenIds : next.hiddenIds,
+        hiddenGroupKeys: state.shareVisibility ? current.hiddenGroupKeys : next.hiddenGroupKeys,
         isolatedIds: state.shareVisibility ? current.isolatedIds : next.isolatedIds,
         filters: state.shareVisibility ? current.filters : next.filters,
         beforeIsolation: state.shareVisibility ? current.beforeIsolation : next.beforeIsolation,

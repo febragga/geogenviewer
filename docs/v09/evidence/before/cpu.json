@@ -1,0 +1,69 @@
+{
+  "environment": {
+    "node": "v22.14.0",
+    "platform": "win32",
+    "arch": "x64"
+  },
+  "measurements": [
+    {
+      "count": 100,
+      "importMs": 6.376,
+      "catalogMs": 1.024,
+      "groupingMs": 0.803,
+      "layoutMs": 1.34,
+      "updateMs": 0.704,
+      "sixPoseUpdatesMs": 3.783,
+      "filterMs": 0.625,
+      "sheetDataMs": 0.131,
+      "annotationModelMs": 0.281,
+      "disposeMs": 0.157,
+      "types": 2,
+      "matches": 1,
+      "labels": 100,
+      "placed": 100,
+      "usedGeometries": 1,
+      "disposedGeometries": 1,
+      "heapDeltaMiB": 7.471
+    },
+    {
+      "count": 1000,
+      "importMs": 37.169,
+      "catalogMs": 4.465,
+      "groupingMs": 2.069,
+      "layoutMs": 7.366,
+      "updateMs": 5.181,
+      "sixPoseUpdatesMs": 12.89,
+      "filterMs": 4.967,
+      "sheetDataMs": 0.622,
+      "annotationModelMs": 1.605,
+      "disposeMs": 0.396,
+      "types": 2,
+      "matches": 1,
+      "labels": 1000,
+      "placed": 1000,
+      "usedGeometries": 1,
+      "disposedGeometries": 1,
+      "heapDeltaMiB": 10.745
+    },
+    {
+      "count": 10000,
+      "importMs": 281.893,
+      "catalogMs": 32.481,
+      "groupingMs": 16.873,
+      "layoutMs": 30.607,
+      "updateMs": 25.42,
+      "sixPoseUpdatesMs": 63.712,
+      "filterMs": 48.92,
+      "sheetDataMs": 7.514,
+      "annotationModelMs": 8.384,
+      "disposeMs": 1.933,
+      "types": 2,
+      "matches": 1,
+      "labels": 10000,
+      "placed": 10000,
+      "usedGeometries": 1,
+      "disposedGeometries": 1,
+      "heapDeltaMiB": 117.609
+    }
+  ]
+}

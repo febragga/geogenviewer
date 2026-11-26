@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import type { LoadedScenePackage } from "../../../lib/geogen/importers/package";
+import type { Filters } from "../../../lib/geogen/domain/visibility";
 import { type Projection, type ViewLayout, type ViewPreset } from "../scene/camera-state";
-import { preferenceKey, readLocalList, writeLocalList, type NamedView } from "../state/local-preferences";
+import { preferenceKey, readLocalList, validNamedView, writeLocalList, type NamedView } from "../state/local-preferences";
 import { useInspection } from "../state/inspection-store";
 import { usePresentation } from "../state/presentation-store";
 import { useViewerStore } from "../state/viewer-store";
+import { useOrganizationStore } from "../state/organization-store";
 import { layouts, presets, v05 } from "../v05-copy";
 import { createDocumentation, parseDocumentation, type DocumentationSettings } from "../../../lib/geogen/documentation/document";
 import type { Revision } from "../../../lib/geogen/revisions/revision";
@@ -27,8 +29,11 @@ export function ViewOptions({ loaded, comparison = false, documentation }: {
   const shareSelection = usePresentation((state) => state.shareSelection);
   const shareVisibility = usePresentation((state) => state.shareVisibility);
   const access = usePresentation((state) => state.access);
-  const key = preferenceKey("views", loaded.manifest, loaded.sceneGraph.fileName, loaded.sceneGraph.fileSizeBytes);
-  const [views, setViews] = useState(() => readLocalList<NamedView>(key));
+  const key = preferenceKey("views", loaded.manifest, loaded.sceneGraph.fileName, loaded.sceneGraph.fileSizeBytes, loaded.binarySha256 ?? null);
+  const [views, setViews] = useState(() => readLocalList<NamedView>(key, undefined, validNamedView));
+  const [legacy] = useState(() => !loaded.manifest && readLocalList(
+    preferenceKey("views", undefined, loaded.sceneGraph.fileName, loaded.sceneGraph.fileSizeBytes)
+  ).length > 0);
   const [chosen, setChosen] = useState("");
   const [name, setName] = useState("");
   const [status, setStatus] = useState("");
@@ -43,7 +48,7 @@ export function ViewOptions({ loaded, comparison = false, documentation }: {
     const pose = access?.pose(active);
     if (!pose) return;
     const { display, layout, maximized } = usePresentation.getState();
-    const { filters, hiddenIds, isolatedIds } = useViewerStore.getState();
+    const { filters, hiddenIds, hiddenGroupKeys, isolatedIds } = useViewerStore.getState();
     const poses = Array.from({ length: 4 }, (_, slot) => access?.pose(slot) ?? null);
     const inspection = useInspection.getState().preset();
     let publication;
@@ -51,7 +56,7 @@ export function ViewOptions({ loaded, comparison = false, documentation }: {
       try { publication = createDocumentation(documentation.revision, documentation.settings, "knolling"); }
       catch (error) { setStatus(error instanceof Error ? error.message : String(error)); return; }
     }
-    return { id, name: title, pose, display, visibility: { filters, hiddenIds, isolatedIds },
+    return { id, name: title, pose, display, visibility: { filters, hiddenIds, hiddenGroupKeys, isolatedIds },
       regions: { layout, active, maximized, poses }, inspection, documentation: publication } satisfies NamedView;
   }
 
@@ -140,7 +145,25 @@ export function ViewOptions({ loaded, comparison = false, documentation }: {
             usePresentation.setState({ display: view.display });
           }
           useInspection.getState().restorePreset(view.inspection, view.name);
-          useViewerStore.setState({ ...view.visibility, beforeIsolation: null });
+          const org = useOrganizationStore.getState().doc;
+          const layerIds = new Set(org.userLayers.map(({ id }) => id));
+          const groupIds = new Set(org.userGroups.map(({ id }) => id));
+          const ids = new Set(loaded.sceneGraph.componentOrder);
+          const { userLayer, userGroup, ...baseFilters } = view.visibility.filters;
+          const filters: Filters = baseFilters;
+          const validLayers = userLayer?.filter((id) => layerIds.has(id));
+          const validGroups = userGroup?.filter((id) => groupIds.has(id));
+          if (validLayers?.length) filters.userLayer = validLayers;
+          if (validGroups?.length) filters.userGroup = validGroups;
+          useViewerStore.setState({
+            filters,
+            beforeIsolation: null,
+            hiddenIds: view.visibility.hiddenIds.filter((id) => ids.has(id)),
+            isolatedIds: view.visibility.isolatedIds?.filter((id) => ids.has(id)) ?? null,
+            hiddenGroupKeys: (view.visibility.hiddenGroupKeys ?? []).filter((key) =>
+              key.startsWith("user:") ? groupIds.has(key.slice(5)) :
+                key.startsWith("cad:") && Object.hasOwn(loaded.sceneGraph.groups, key.slice(4))),
+          });
         }}>{v05.apply}</button>
         <button type="button" className="gg-btn gg-btn--secondary" disabled={comparison || !view || !access} onClick={() => {
           if (!view) return;
@@ -163,6 +186,7 @@ export function ViewOptions({ loaded, comparison = false, documentation }: {
           setName("");
         }}>{v05.remove}</button>
       </div>
+      {legacy && <p className="gg-v05-hint">Vistas antigas deste GLB seguem armazenadas sem vínculo ao conteúdo do arquivo.</p>}
       {status && <p role="status">{status}</p>}
     </>
   );

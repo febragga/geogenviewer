@@ -5,6 +5,8 @@ import { ListTree } from "lucide-react";
 import { parseFabrication, documentMaxBytes, type FabricationDocument } from "../../../lib/geogen/revisions/documents";
 import { analyzeFabrication, defaultFabrication, summarizeFabrication, type FabricationRow, type FabricationSettings } from "../../../lib/geogen/revisions/fabrication";
 import { collectQuantities, groupQuantities, summarizeQuantities, type coverage, type QuantityRow } from "../../../lib/geogen/revisions/quantities";
+import { resolveOrganizationView } from "../../../lib/geogen/organization/operations";
+import { useOrganizationStore } from "../state/organization-store";
 import { numericDelta, quantitiesCsv } from "../../../lib/geogen/revisions/reports";
 import type { Revision } from "../../../lib/geogen/revisions/revision";
 import { coverageReasons, groupLabels, massLabels, provenanceLabels, scopeLabels, timeLabels, v07 } from "../v07-copy";
@@ -278,7 +280,9 @@ export function QuantitiesPanel({ configs, onConfig, base, comparison, analysis,
   const [order, setOrder] = useState<keyof typeof orderLabels>("component");
   const [descending, setDescending] = useState(false);
   const [error, setError] = useState("");
-  const all = useMemo(() => collectQuantities(revision, undefined, config.property), [revision, config.property]);
+  const orgDoc = useOrganizationStore((state) => state.doc);
+  const userOrg = useMemo(() => (side === "base" ? resolveOrganizationView(revision.scene.sceneGraph, { ...orgDoc, activeSource: "user" }) : null), [revision, side, orgDoc]);
+  const all = useMemo(() => collectQuantities(revision, undefined, config.property, userOrg), [revision, config.property, userOrg]);
   const scopeValues = useMemo(() => config.scope === "category" || config.scope === "material" ?
     [...new Set(all.flatMap((row) => row[config.scope as "category" | "material"] ?? []))].sort() : [], [all, config.scope]);
   const scopeValue = scopeValues.includes(config.scopeValue) ? config.scopeValue : scopeValues[0] ?? "";

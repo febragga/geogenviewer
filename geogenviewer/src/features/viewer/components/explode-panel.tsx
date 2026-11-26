@@ -108,7 +108,6 @@ export function ExplodePanel({
         <div className="gg-panel__title-group">
           <ExplodeIcon size={14} strokeWidth={1.75} />
           <span>{copy.explodeTitle}</span>
-          <span className="gg-badge gg-badge--accent gg-mono">v0.4</span>
         </div>
         <button
           type="button"

@@ -32,12 +32,14 @@ const initialDisplay: CompareDisplay = { mode: "side", side: "base", visible: { 
 export function useSecondaryRevision() {
   const current = useRef<Revision | null>(null);
   const token = useRef(0);
+  const abort = useRef<AbortController | null>(null);
   const retired = useRef<Revision[]>([]);
   const [revision, setRevision] = useState<Revision | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   useEffect(() => () => {
     token.current++;
+    abort.current?.abort();
     current.current?.scene.dispose();
     for (const revision of retired.current.splice(0)) revision.scene.dispose();
     current.current = null;
@@ -49,6 +51,8 @@ export function useSecondaryRevision() {
 
   function release(dispose = true) {
     token.current++;
+    abort.current?.abort();
+    abort.current = null;
     const previous = current.current;
     current.current = null;
     setRevision(null);
@@ -58,12 +62,15 @@ export function useSecondaryRevision() {
     return previous;
   }
 
-  async function load(read: () => Promise<{ glb: ArrayBuffer; manifest: ArrayBuffer | null; name: string }>) {
+  async function load(read: (signal: AbortSignal) => Promise<{ glb: ArrayBuffer; manifest: ArrayBuffer | null; name: string }>) {
+    abort.current?.abort();
+    const controller = new AbortController();
+    abort.current = controller;
     const request = ++token.current;
     setBusy(true);
     setError("");
     try {
-      const { glb, manifest, name } = await read();
+      const { glb, manifest, name } = await read(controller.signal);
       if (request !== token.current) return;
       const scene = manifest ? await importGlbWithManifestPackage(glb, manifest, name) : await importGlbBasicPackage(glb, name);
       if (request !== token.current) { scene.dispose(); return; }
@@ -76,7 +83,10 @@ export function useSecondaryRevision() {
     } catch (cause) {
       if (token.current === request) setError(cause instanceof Error ? cause.message : String(cause));
     } finally {
-      if (token.current === request) setBusy(false);
+      if (token.current === request) {
+        abort.current = null;
+        setBusy(false);
+      }
     }
   }
 
@@ -93,10 +103,10 @@ export function useSecondaryRevision() {
   }
 
   async function demo(kind: "revision" | "catalog" = "revision") {
-    return load(async () => {
+    return load(async (signal) => {
       const directory = kind === "catalog" ? "/demos/catalog-lab/rev-02/" : "/demos/revision-lab/proto-02/";
       const [glb, manifest] = await Promise.all(["model.glb", "manifest.json"].map(async (file) => {
-        const response = await fetch(directory + file);
+        const response = await fetch(directory + file, { signal });
         if (!response.ok) throw new Error("O protótipo sintético está indisponível.");
         return response.arrayBuffer();
       }));

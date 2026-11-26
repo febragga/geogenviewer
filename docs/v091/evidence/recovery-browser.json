@@ -1,0 +1,37 @@
+{
+  "layerAndGroup": {
+    "pillars": 4,
+    "occurrencesAssigned": 4,
+    "validRestore": true,
+    "wrongHashRejected": true,
+    "isolateKnollingCatalog": true
+  },
+  "recovery": {
+    "badGlbPreserved": true,
+    "badManifestPreserved": true,
+    "asyncCancelPreserved": true,
+    "artificialContextLossRecovered": true,
+    "storageBlocked": true
+  },
+  "assets": {
+    "/manifest.webmanifest": "application/manifest+json",
+    "/favicon.ico": "image/x-icon",
+    "/icon.svg": "image/svg+xml",
+    "/apple-icon.png": "image/png",
+    "/icons/icon-192.png": "image/png",
+    "/icons/icon-512.png": "image/png",
+    "/brand/geogenviewer-og.png": "image/png"
+  },
+  "accessibility": [
+    {
+      "name": "camada-glb",
+      "violations": []
+    },
+    {
+      "name": "erro-importacao",
+      "violations": []
+    }
+  ],
+  "problems": [],
+  "external": []
+}

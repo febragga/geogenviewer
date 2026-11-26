@@ -1,7 +1,7 @@
-import { Vector3, type Camera, type Matrix4, type Plane } from "three";
+import { Matrix4, Vector3, type Camera, type Plane } from "three";
 import type { CatalogEntry } from "./catalog.ts";
 import type { Rect } from "./knolling.ts";
-import type { Revision, Triple } from "../revisions/revision.ts";
+import type { Occurrence, Revision, Triple } from "../revisions/revision.ts";
 
 export type CalloutKind = "part" | "number" | "technical" | "assembly" | "custom";
 export type Leader = "line" | "dot" | "arrow" | "dash" | "none";
@@ -10,13 +10,37 @@ export interface Callout {
   offset: [number, number]; leader: Leader; visible: boolean;
 }
 
+const _anchorMin = new Vector3();
+const _anchorMax = new Vector3();
+const _anchorInv = new Matrix4();
+const anchorCache = new WeakMap<Occurrence, Triple>();
+
+function localCenterAnchor(occurrence: Occurrence): Triple {
+  const cached = anchorCache.get(occurrence);
+  if (cached) return cached;
+  const b = occurrence.record.meshMinMaxMeters;
+  _anchorMin.fromArray(b.min);
+  _anchorMax.fromArray(b.max);
+  _anchorMin.lerp(_anchorMax, 0.5);
+  const matrix = occurrence.rest;
+  const anchor: Triple = matrix.determinant()
+    ? _anchorMin.applyMatrix4(_anchorInv.copy(matrix).invert()).toArray()
+    : [0, 0, 0];
+  anchorCache.set(occurrence, anchor);
+  return anchor;
+}
+
 export function makeCallout(row: CatalogEntry, id: string, kind: CalloutKind = "part"): Callout {
-  const b = row.occurrence.record.meshMinMaxMeters;
-  const point = new Vector3().fromArray(b.min).lerp(new Vector3().fromArray(b.max), 0.5);
-  const matrix = row.occurrence.rest;
-  return { id, elementId: row.occurrence.id, kind, text: "",
-    anchor: matrix.determinant() ? point.applyMatrix4(matrix.clone().invert()).toArray() : [0, 0, 0],
-    offset: [16, -22], leader: "dot", visible: true };
+  return {
+    id,
+    elementId: row.occurrence.id,
+    kind,
+    text: "",
+    anchor: localCenterAnchor(row.occurrence),
+    offset: [16, -22],
+    leader: "dot",
+    visible: true,
+  };
 }
 
 export function calloutText(entry: CatalogEntry, label: Callout, index: number, quantity?: number) {
@@ -82,8 +106,9 @@ export function projectCallouts(entries: readonly Annotation[], camera: Camera, 
   }
   for (const rect of reserved) remember(rect, cells(rect));
   let inspected = 0;
+  const inspectionCap = limit * 8;
   for (const { callout, text, selected } of entries) {
-    if (++inspected > limit * 24) break;
+    if (++inspected > inspectionCap) break;
     const matrix = matrixOf(callout.elementId);
     if (!matrix) continue;
     point.fromArray(callout.anchor).applyMatrix4(matrix);
