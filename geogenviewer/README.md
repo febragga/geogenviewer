@@ -1,4 +1,4 @@
-# GeoGenViewer
+# GeoGenViewer (`v0.6.0`)
 
 Visualizador local de modelos arquitetônicos GLB, com inspeção de componentes, gestão de vistas, corte, medição, apresentação, vista explodida e sequência de montagem.
 

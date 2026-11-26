@@ -1,8 +1,8 @@
 # GeoGenViewer — roadmap
 
-**Revisão** 0.6 · 25/11/2026
+**Revisão** 0.6.0 · 25/11/2026
 
-**Estado** V0.6 implementada localmente. Validação do exportador no Rhino 8 e do visualizador em tablet físico pendentes.
+**Estado** Versão `0.6.0` consolidada na branch `main`. Validação do `GeoGenExporter` no Rhino 8 real, teste em tablet físico e inspeção com modelo real autorizado da Casa Gerassi permanecem pendentes.
 
 ## 1. Prioridade
 

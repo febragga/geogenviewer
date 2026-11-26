@@ -1,23 +1,29 @@
 # GeoGenViewer — handoff
 
-- **Data** 25/11/2026
-- **Branch** `feat/v0.6-spatial-inspection`
-- **Base** `42f0b89` em `feat/v0.5-viewer-experience-assembly`
-- **Responsável** Fernando Braga
+- **Versão consolidada:** `0.6.0` (`v0.6.0`)
+- **Data:** 25/11/2026
+- **Branch principal:** `main` (consolidada a partir de `feat/v0.6-spatial-inspection`, contendo o histórico linear completo de `feat/viewer-bootstrap` → `feat/v0.2-v0.3-import-pipeline` → `feat/v0.4-exploded-view` → `feat/v0.5-viewer-experience-assembly` → `feat/v0.6-spatial-inspection`)
+- **Responsável pelas decisões:** Fernando Braga
 
-## Estado
+## Estado consolidado (V0.1–V0.6)
 
-A V0.6 acrescenta Inspecionar, planos CAD por viewport, seleção e snap compatíveis com clipping, medições ancoradas e captura técnica. O modelo mantém um Canvas e um contexto WebGL. A inspeção persiste separadamente em `inspection.json` com schema 1.0.0 próprio. O contrato CAD e as fixtures anteriores permanecem compatíveis.
+- **V0.1:** Visualizador WebGL local em `/viewer` com importação GLB autocontida, cubo de referência 100 mm, órbita/pan/zoom/enquadramento/reset e UI responsiva claro/escuro.
+- **V0.2–V0.3:** Seleção semântica individual e múltipla, destaque não destrutivo, árvore virtualizada (`Componentes`, `Camadas`, `Grupos`), visibilidade/isolamento, validação estrita GLB + JSON manifesto `1.0.0` com SHA-256 e contrato externo `exporter-contract/`.
+- **V0.4:** Motor de vista explodida (`radial`, `axial` na convenção CAD, `directional`, `hierarchical`), escopos e granularidades distintos, linhas de referência em lote único e pavilhão sintético.
+- **V0.5:** Workspaces (`Explorar`, `Explodir`, `Montagem`), câmeras perspectiva/ortográfica, cubo de orientação, até 4 viewports em um único contexto WebGL, filtros combináveis, Named Views, apresentação, PNG e timeline/editor de montagem determinística.
+- **V0.6:** Workspace Inspecionar, 3 planos de corte CAD reversíveis por região e cap condicional, picking e snapping com recorte, medições ponto a ponto/delta/coordenadas, captura técnica PNG e persistência isolada em `inspection-v1.schema.json`.
 
-O laboratório sintético contém 17 componentes, cubo de 100 mm, uma folga geométrica de 0,13 mm e origem CAD distante. O gerador pode ser executado com `npm run fixture:inspection`. Abra `/viewer?demo=inspecao` para testar os fluxos.
+## Homologações pendentes (não concluídas na `v0.6.0`)
 
-## Verificações
+- Validação do `GeoGenExporter` em ambiente real do **Rhino 8**.
+- Validação de usabilidade e toque em **tablet físico**.
+- Inspeção com **modelo real autorizado da Casa Gerassi** (nenhum arquivo privado da IC versionado).
 
-- Lint, typecheck, 33 testes, build de produção e três suítes Playwright.
-- Seis resoluções, medições por clique e toque emulado, axe e exportações técnicas.
-- Baseline V0.5 reproduzido e benchmark CPU de inspeção com 100, 1.000 e 10.000 componentes.
-- [Relatório de testes e capturas](V06_TEST_REPORT.md) · [Desempenho](V06_PERFORMANCE_REPORT.md) · [Guia](V06_USER_GUIDE.md)
+## Verificações da release `v0.6.0`
 
-## Próximo marco
+- `npm run lint`, `npm run typecheck`, `npm test` (33 testes), `npm run build` e as suítes Playwright `test:ui`, `test:v05` e `test:v06` em `geogenviewer/`.
+- [Relatório de testes e capturas V0.6](V06_TEST_REPORT.md) · [Desempenho V0.6](V06_PERFORMANCE_REPORT.md) · [Guia V0.6](V06_USER_GUIDE.md)
 
-Manter V0.7 focada em comparação de revisões e quantitativos com proveniência. Validar o fluxo em tablet físico e o GeoGenExporter no Rhino 8 quando disponíveis. A inspeção com geometria autorizada da Casa Gerassi depende do responsável.
+## Próximo marco (V0.7)
+
+Comparação de revisões com correspondência de IDs e quantitativos com proveniência, além das homologações pendentes acima quando disponíveis.

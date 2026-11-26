@@ -1,13 +1,15 @@
 # Changelog
 
-## V0.6 — Inspeção espacial e documentação técnica
+## [0.6.0] · 25/11/2026 — Consolidação Git (`main`) e Inspeção Espacial
 
+- Consolidação do histórico completo das versões V0.1–V0.6 na branch principal `main` e publicação da release `v0.6.0`.
 - Workspace Inspecionar, três planos CAD reversíveis, cortes por região e cap validado por topologia.
 - Picking e snapping compatíveis com clipping, medições locais nas poses original e temporária.
 - Named Views com estado de inspeção e leitura do formato V0.5.
 - PNG técnico com cotas, IDs, régua ortográfica e metadados associados à captura.
-- Schema independente de inspeção e laboratório sintético com cubo de 100 mm e folga de 0,13 mm.
-- Auditoria do baseline, testes e benchmarks da V0.6.
+- Schema independente de inspeção (`inspection-v1.schema.json`) e laboratório sintético (`inspection-lab`) com cubo de 100 mm e folga de 0,13 mm.
+- Auditoria do baseline, 33 testes automatizados, três suítes Playwright e benchmarks da V0.6.
+- Homologações ainda pendentes fora do ambiente sintético: GeoGenExporter no Rhino 8 real, validação em tablet físico e modelo real autorizado da Casa Gerassi.
 
 ## V0.5 — Experiência do visualizador e montagem
 
