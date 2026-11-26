@@ -1,7 +1,16 @@
 import { create } from "zustand";
 import type { ViewerSceneGraph } from "../../../lib/geogen/domain/model.ts";
+import {
+  defaultExplodeParams,
+  type ExplodeParams,
+} from "../../../lib/geogen/explode/controller.ts";
 
 export type TreeTab = "hierarchy" | "layers" | "groups";
+
+export interface ExplodeTransitionRequest {
+  toFactor: number;
+  seq: number;
+}
 
 export interface ViewerStoreState {
   sceneGraph: ViewerSceneGraph | null;
@@ -13,6 +22,11 @@ export interface ViewerStoreState {
   treeTab: TreeTab;
   searchQuery: string;
   multiSelectMode: boolean;
+
+  explodeOpen: boolean;
+  explode: ExplodeParams;
+  explodeTransition: ExplodeTransitionRequest | null;
+  explodedBoundsMeters: [number, number, number] | null;
 
   setSceneGraph: (graph: ViewerSceneGraph | null) => void;
   select: (id: string, mode?: "replace" | "toggle" | "add") => void;
@@ -31,6 +45,14 @@ export interface ViewerStoreState {
   setTreeTab: (tab: TreeTab) => void;
   setSearchQuery: (query: string) => void;
   setMultiSelectMode: (enabled: boolean) => void;
+
+  setExplodeOpen: (open: boolean) => void;
+  setExplodeFactor: (factor: number) => void;
+  patchExplode: (patch: Partial<ExplodeParams>) => void;
+  startExplodeAnimation: (toFactor: number) => void;
+  stopExplodeAnimation: (settledFactor?: number) => void;
+  resetExplode: () => void;
+  setExplodedBoundsMeters: (bounds: [number, number, number] | null) => void;
 }
 
 function uniqueStrings(list: readonly string[]): string[] {
@@ -69,6 +91,11 @@ export const useViewerStore = create<ViewerStoreState>((set, get) => ({
   searchQuery: "",
   multiSelectMode: false,
 
+  explodeOpen: false,
+  explode: { ...defaultExplodeParams },
+  explodeTransition: null,
+  explodedBoundsMeters: null,
+
   setSceneGraph(graph) {
     if (!graph) {
       set({
@@ -79,6 +106,10 @@ export const useViewerStore = create<ViewerStoreState>((set, get) => ({
         isolatedIds: null,
         expandedIds: [],
         searchQuery: "",
+        explodeOpen: false,
+        explode: { ...defaultExplodeParams },
+        explodeTransition: null,
+        explodedBoundsMeters: null,
       });
       return;
     }
@@ -107,6 +138,14 @@ export const useViewerStore = create<ViewerStoreState>((set, get) => ({
       expandedIds: defaultExpanded,
       treeTab: "hierarchy",
       searchQuery: "",
+      explodeOpen: false,
+      explode: {
+        ...defaultExplodeParams,
+        scopeLayerId: graph.rootLayerIds[0] ?? null,
+        scopeGroupId: graph.rootGroupIds[0] ?? null,
+      },
+      explodeTransition: null,
+      explodedBoundsMeters: null,
     });
   },
 
@@ -262,5 +301,85 @@ export const useViewerStore = create<ViewerStoreState>((set, get) => ({
 
   setMultiSelectMode(multiSelectMode) {
     set({ multiSelectMode });
+  },
+
+  setExplodeOpen(explodeOpen) {
+    set((state) => ({
+      explodeOpen,
+      explode: explodeOpen && !state.explode.enabled
+        ? { ...state.explode, enabled: true }
+        : state.explode,
+    }));
+  },
+
+  setExplodeFactor(factor) {
+    const clamped = Math.max(0, Math.min(1.5, Number.isFinite(factor) ? factor : 0));
+    set((state) => ({
+      explodeTransition: null,
+      explode: {
+        ...state.explode,
+        enabled: clamped > 0 ? true : state.explode.enabled,
+        factor: clamped,
+      },
+      explodedBoundsMeters: clamped <= 1e-6 ? null : state.explodedBoundsMeters,
+    }));
+  },
+
+  patchExplode(patch) {
+    set((state) => ({
+      explodeTransition: null,
+      explode: {
+        ...state.explode,
+        ...patch,
+      },
+    }));
+  },
+
+  startExplodeAnimation(toFactor) {
+    const clamped = Math.max(0, Math.min(1.5, Number.isFinite(toFactor) ? toFactor : 0));
+    set((state) => ({
+      explode: {
+        ...state.explode,
+        enabled: true,
+      },
+      explodeTransition: {
+        toFactor: clamped,
+        seq: (state.explodeTransition?.seq ?? 0) + 1,
+      },
+    }));
+  },
+
+  stopExplodeAnimation(settledFactor) {
+    set((state) => {
+      if (settledFactor === undefined) {
+        return { explodeTransition: null };
+      }
+      const clamped = Math.max(0, Math.min(1.5, settledFactor));
+      return {
+        explodeTransition: null,
+        explode: {
+          ...state.explode,
+          factor: clamped,
+          enabled: clamped > 1e-6 ? true : state.explode.enabled,
+        },
+        explodedBoundsMeters: clamped <= 1e-6 ? null : state.explodedBoundsMeters,
+      };
+    });
+  },
+
+  resetExplode() {
+    set((state) => ({
+      explodeTransition: null,
+      explodedBoundsMeters: null,
+      explode: {
+        ...state.explode,
+        enabled: false,
+        factor: 0,
+      },
+    }));
+  },
+
+  setExplodedBoundsMeters(explodedBoundsMeters) {
+    set({ explodedBoundsMeters });
   },
 }));

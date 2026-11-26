@@ -755,6 +755,7 @@ export function PropertiesContent({
 }) {
   const sceneGraph = useViewerStore((s) => s.sceneGraph);
   const selectedIds = useViewerStore((s) => s.selectedIds);
+  const explodedBoundsMeters = useViewerStore((s) => s.explodedBoundsMeters);
   const select = useViewerStore((s) => s.select);
   const clearSelection = useViewerStore((s) => s.clearSelection);
   const hideIds = useViewerStore((s) => s.hideIds);
@@ -956,14 +957,32 @@ export function PropertiesContent({
             </dd>
           </div>
           <div className="gg-kv-row gg-kv-row--stacked">
-            <dt>{copy.propBounds}</dt>
+            <dt>
+              {explodedBoundsMeters ? copy.propOriginalBounds : copy.propBounds}
+            </dt>
             <dd className="gg-mono gg-tabular">
               {formatBoundsMm(sceneGraph.sceneBoundsMeters)} (
               {formatVectorMeters(sceneGraph.sceneBoundsMeters)})
             </dd>
           </div>
+          {explodedBoundsMeters && (
+            <div className="gg-kv-row gg-kv-row--stacked">
+              <dt>
+                {copy.propExplodedBounds}{" "}
+                <span className="gg-badge gg-badge--accent">
+                  {copy.propTemporaryBadge}
+                </span>
+              </dt>
+              <dd className="gg-mono gg-tabular">
+                {formatBoundsMm(explodedBoundsMeters)} (
+                {formatVectorMeters(explodedBoundsMeters)})
+              </dd>
+            </div>
+          )}
         </dl>
-        <p className="gg-helper-note">{copy.propBoundsNote}</p>
+        <p className="gg-helper-note">
+          {explodedBoundsMeters ? copy.propTemporaryExplodeNote : copy.propBoundsNote}
+        </p>
       </section>
 
       <div className="gg-panel-note">

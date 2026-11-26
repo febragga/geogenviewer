@@ -26,12 +26,15 @@ interface ViewerToolbarProps {
   multiSelectMode: boolean;
   selectedCount: number;
   hasVisibilityOverrides: boolean;
+  explodeOpen: boolean;
+  explodeActive: boolean;
   onModeChange: (mode: NavigationMode) => void;
   onToggleMultiSelect: () => void;
   onHideSelected: () => void;
   onIsolateSelected: () => void;
   onShowAll: () => void;
   onClearSelection: () => void;
+  onToggleExplode: () => void;
   onCommand: (command: CameraCommand) => void;
 }
 
@@ -41,12 +44,15 @@ export function ViewerToolbar({
   multiSelectMode,
   selectedCount,
   hasVisibilityOverrides,
+  explodeOpen,
+  explodeActive,
   onModeChange,
   onToggleMultiSelect,
   onHideSelected,
   onIsolateSelected,
   onShowAll,
   onClearSelection,
+  onToggleExplode,
   onCommand,
 }: ViewerToolbarProps) {
   const hasSelection = selectedCount > 0;
@@ -208,26 +214,33 @@ export function ViewerToolbar({
           )}
         </div>
 
-        <span className="gg-toolbar__sep gg-hide-md" aria-hidden="true" />
+        <span className="gg-toolbar__sep" aria-hidden="true" />
+
+        <div className="gg-toolbar__group">
+          <ActionTooltip label={copy.explodeTitle} shortcut="E" side="top">
+            <button
+              type="button"
+              className={`gg-tool-btn ${explodeActive && !explodeOpen ? "gg-tool-btn--tinted" : ""}`}
+              disabled={disabled}
+              aria-pressed={explodeOpen}
+              aria-keyshortcuts="e"
+              onClick={onToggleExplode}
+            >
+              <ExplodeIcon size={15} strokeWidth={1.75} />
+              <span className="gg-tool-btn__label">{copy.explodeAction}</span>
+            </button>
+          </ActionTooltip>
+        </div>
+
+        <span className="gg-toolbar__sep gg-hide-lg" aria-hidden="true" />
 
         <div
-          className="gg-toolbar__group gg-toolbar__group--future gg-hide-md"
+          className="gg-toolbar__group gg-toolbar__group--future gg-hide-lg"
           aria-label={copy.futureDisabledHint}
         >
           <button
             type="button"
             className="gg-tool-btn gg-tool-btn--future"
-            disabled
-            title={`${copy.futureExplode} — ${copy.futureDisabledHint} (${copy.futureBadgeV04})`}
-          >
-            <ExplodeIcon size={15} strokeWidth={1.75} />
-            <span className="gg-tool-btn__label">{copy.futureExplode}</span>
-            <span className="gg-mini-tag">{copy.futureBadgeV04}</span>
-          </button>
-
-          <button
-            type="button"
-            className="gg-tool-btn gg-tool-btn--future gg-hide-lg"
             disabled
             title={`${copy.futureSection} — ${copy.futureDisabledHint} (${copy.futureBadgeV06})`}
           >
@@ -238,7 +251,7 @@ export function ViewerToolbar({
 
           <button
             type="button"
-            className="gg-tool-btn gg-tool-btn--future gg-hide-lg"
+            className="gg-tool-btn gg-tool-btn--future"
             disabled
             title={`${copy.futureMeasure} — ${copy.futureDisabledHint} (${copy.futureBadgeV06})`}
           >

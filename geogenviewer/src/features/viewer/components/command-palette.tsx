@@ -5,9 +5,11 @@ import { Command } from "cmdk";
 import { useState } from "react";
 import { copy } from "../copy";
 import {
+  AxisIcon,
   ClearSelectionIcon,
   CloseIcon,
   CubeIcon,
+  ExplodeIcon,
   EyeIcon,
   EyeOffIcon,
   FitViewIcon,
@@ -19,10 +21,13 @@ import {
   MaximizeIcon,
   MultiSelectIcon,
   OrbitIcon,
+  PavilionIcon,
+  RadialIcon,
   ResetCameraIcon,
   SidebarLeftIcon,
   SidebarRightIcon,
   SunIcon,
+  TrailLinesIcon,
 } from "./icons";
 
 interface CommandPaletteProps {
@@ -36,6 +41,7 @@ interface CommandPaletteProps {
   onOpenFile: () => void;
   onLoadDemo: () => void;
   onLoadContractDemo: () => void;
+  onLoadExplodeDemo: () => void;
   onFit: () => void;
   onReset: () => void;
   onSetOrbit: () => void;
@@ -45,6 +51,11 @@ interface CommandPaletteProps {
   onShowAll: () => void;
   onClearSelection: () => void;
   onToggleMultiSelect: () => void;
+  onToggleExplodePanel: () => void;
+  onExplodeReset: () => void;
+  onExplodeRadial: () => void;
+  onExplodeAxial: (axis: "X" | "Y" | "Z") => void;
+  onToggleRefLines: () => void;
   onToggleLeft: () => void;
   onToggleRight: () => void;
   onToggleFocus: () => void;
@@ -63,6 +74,7 @@ export function CommandPalette({
   onOpenFile,
   onLoadDemo,
   onLoadContractDemo,
+  onLoadExplodeDemo,
   onFit,
   onReset,
   onSetOrbit,
@@ -72,6 +84,11 @@ export function CommandPalette({
   onShowAll,
   onClearSelection,
   onToggleMultiSelect,
+  onToggleExplodePanel,
+  onExplodeReset,
+  onExplodeRadial,
+  onExplodeAxial,
+  onToggleRefLines,
   onToggleLeft,
   onToggleRight,
   onToggleFocus,
@@ -155,6 +172,15 @@ export function CommandPalette({
                 <Command.Item
                   className="gg-cmd__item"
                   disabled={isBusy}
+                  onSelect={() => run(onLoadExplodeDemo)}
+                >
+                  <PavilionIcon className="gg-cmd__icon" />
+                  <span className="gg-cmd__label">{copy.demoExplode}</span>
+                  <span className="gg-cmd__meta">18 peças · v0.4</span>
+                </Command.Item>
+                <Command.Item
+                  className="gg-cmd__item"
+                  disabled={isBusy}
                   onSelect={() => run(onLoadContractDemo)}
                 >
                   <ManifestIcon className="gg-cmd__icon" />
@@ -169,6 +195,66 @@ export function CommandPalette({
                   <CubeIcon className="gg-cmd__icon" />
                   <span className="gg-cmd__label">{copy.demo}</span>
                   <span className="gg-cmd__meta">estrutura.glb</span>
+                </Command.Item>
+              </Command.Group>
+
+              <Command.Group heading={copy.commandGroupExplode} className="gg-cmd__group">
+                <Command.Item
+                  className="gg-cmd__item"
+                  disabled={cameraDisabled}
+                  onSelect={() => run(onToggleExplodePanel)}
+                >
+                  <ExplodeIcon className="gg-cmd__icon" />
+                  <span className="gg-cmd__label">{copy.commandExplodeToggle}</span>
+                  <kbd className="gg-cmd__kbd">E</kbd>
+                </Command.Item>
+                <Command.Item
+                  className="gg-cmd__item"
+                  disabled={cameraDisabled}
+                  onSelect={() => run(onExplodeReset)}
+                >
+                  <ResetCameraIcon className="gg-cmd__icon" />
+                  <span className="gg-cmd__label">{copy.commandExplodeReset}</span>
+                </Command.Item>
+                <Command.Item
+                  className="gg-cmd__item"
+                  disabled={cameraDisabled}
+                  onSelect={() => run(onExplodeRadial)}
+                >
+                  <RadialIcon className="gg-cmd__icon" />
+                  <span className="gg-cmd__label">{copy.commandExplodeRadial}</span>
+                </Command.Item>
+                <Command.Item
+                  className="gg-cmd__item"
+                  disabled={cameraDisabled}
+                  onSelect={() => run(() => onExplodeAxial("X"))}
+                >
+                  <AxisIcon className="gg-cmd__icon" />
+                  <span className="gg-cmd__label">{copy.commandExplodeAxialX}</span>
+                </Command.Item>
+                <Command.Item
+                  className="gg-cmd__item"
+                  disabled={cameraDisabled}
+                  onSelect={() => run(() => onExplodeAxial("Y"))}
+                >
+                  <AxisIcon className="gg-cmd__icon" />
+                  <span className="gg-cmd__label">{copy.commandExplodeAxialY}</span>
+                </Command.Item>
+                <Command.Item
+                  className="gg-cmd__item"
+                  disabled={cameraDisabled}
+                  onSelect={() => run(() => onExplodeAxial("Z"))}
+                >
+                  <AxisIcon className="gg-cmd__icon" />
+                  <span className="gg-cmd__label">{copy.commandExplodeAxialZ}</span>
+                </Command.Item>
+                <Command.Item
+                  className="gg-cmd__item"
+                  disabled={cameraDisabled}
+                  onSelect={() => run(onToggleRefLines)}
+                >
+                  <TrailLinesIcon className="gg-cmd__icon" />
+                  <span className="gg-cmd__label">{copy.commandExplodeRefLines}</span>
                 </Command.Item>
               </Command.Group>
 
@@ -225,7 +311,7 @@ export function CommandPalette({
                   onSelect={() => run(onFit)}
                 >
                   <FitViewIcon className="gg-cmd__icon" />
-                  <span className="gg-cmd__label">{copy.fit}</span>
+                  <span className="gg-cmd__label">{copy.fitExploded}</span>
                   <kbd className="gg-cmd__kbd">F</kbd>
                 </Command.Item>
                 <Command.Item

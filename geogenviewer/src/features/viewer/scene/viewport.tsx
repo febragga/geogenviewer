@@ -1,10 +1,14 @@
 "use client";
 
-import { Canvas, useThree } from "@react-three/fiber";
-import { Component, useEffect, useMemo, useRef, type ReactNode } from "react";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { Component, useCallback, useEffect, useMemo, useRef, type ReactNode } from "react";
 import {
   Box3,
+  BufferAttribute,
+  BufferGeometry,
   Color,
+  LineDashedMaterial,
+  LineSegments,
   MOUSE,
   PerspectiveCamera,
   Raycaster,
@@ -17,7 +21,12 @@ import {
   type Object3D,
 } from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import {
+  ExplodedViewController,
+  type ExplodeParams,
+} from "../../../lib/geogen/explode/controller";
 import type { LoadedScenePackage } from "../../../lib/geogen/importers/package";
+import type { ExplodeTransitionRequest } from "../state/viewer-store";
 
 export type CameraCommand = {
   kind: "fit" | "reset" | "closer" | "farther";
@@ -31,6 +40,7 @@ const initialDirection = new Vector3(1.3, 0.9, 1.5).normalize();
 const selectionTint = new Color("#5cb3e8");
 const hoverTint = new Color("#89c9ee");
 const dragThresholdPx = 6;
+const boundsTmpSize = new Vector3();
 
 interface HighlightEntry {
   selected: Material;
@@ -67,41 +77,24 @@ function createTintedMaterial(
   return cloned;
 }
 
-function computeTargetBounds(
-  scenePackage: LoadedScenePackage,
-  targetIds?: string[]
-): Box3 {
-  const box = new Box3();
-  if (targetIds && targetIds.length > 0) {
-    for (const id of targetIds) {
-      const obj = scenePackage.objectByComponentId.get(id);
-      if (obj) {
-        obj.traverse((child) => {
-          if (isRenderableObject(child) && child.visible) {
-            box.expandByObject(child);
-          }
-        });
-      }
-    }
-    if (!box.isEmpty()) return box;
-  }
-
-  scenePackage.model.scene.traverse((child) => {
-    if (isRenderableObject(child) && child.visible) {
-      box.expandByObject(child);
-    }
-  });
-
-  if (box.isEmpty()) {
-    return scenePackage.model.bounds.clone();
-  }
-  return box;
+function resolveRefLineHex(): string {
+  if (typeof document === "undefined") return "#8ec8ea";
+  const meta = document.querySelector('meta[name="color-scheme"]');
+  const content = meta?.getAttribute("content");
+  if (content === "light") return "#1d5f82";
+  if (content === "dark") return "#89c8fa";
+  const prefersDark =
+    typeof window !== "undefined" &&
+    window.matchMedia?.("(prefers-color-scheme: dark)").matches;
+  return prefersDark ? "#89c8fa" : "#1d5f82";
 }
 
 function applyCameraCommand(
   camera: PerspectiveCamera,
   controls: OrbitControls,
-  scenePackage: LoadedScenePackage,
+  controller: ExplodedViewController,
+  hiddenIds: readonly string[],
+  isolatedIds: readonly string[] | null,
   command: CameraCommand,
   aspect: number
 ) {
@@ -116,10 +109,21 @@ function applyCameraCommand(
         )
       );
   } else {
+    const isExploded = controller.factor > 1e-6;
+    const hiddenSet = new Set(hiddenIds);
+    const isolatedSet = isolatedIds ? new Set(isolatedIds) : null;
     const bounds =
       command.kind === "reset"
-        ? scenePackage.model.bounds
-        : computeTargetBounds(scenePackage, command.targetIds);
+        ? controller.computeBounds({ exploded: isExploded }, new Box3())
+        : controller.computeBounds(
+            {
+              exploded: isExploded,
+              targetIds: command.targetIds,
+              hiddenSet,
+              isolatedSet,
+            },
+            new Box3()
+          );
     const sphere = bounds.getBoundingSphere(new Sphere());
     const radius = Math.max(sphere.radius, 0.000001);
     const vertical = (camera.fov * Math.PI) / 360;
@@ -132,7 +136,7 @@ function applyCameraCommand(
     controls.target.copy(sphere.center);
     camera.position.copy(sphere.center).addScaledVector(direction, distance);
 
-    const modelSphere = scenePackage.model.bounds.getBoundingSphere(new Sphere());
+    const modelSphere = controller.restSceneBounds.getBoundingSphere(new Sphere());
     const modelRadius = Math.max(modelSphere.radius, 0.000001);
     controls.minDistance = Math.min(radius, modelRadius) * 0.02;
     controls.maxDistance = Math.max(distance, modelRadius * 4) * 30;
@@ -145,6 +149,7 @@ function applyCameraCommand(
 
 function SceneController({
   scenePackage,
+  controller,
   command,
   mode,
   selectedIds,
@@ -152,11 +157,17 @@ function SceneController({
   hiddenIds,
   isolatedIds,
   multiSelectMode,
+  explode,
+  explodeTransition,
+  onExplodeAnimationLiveFactor,
+  onExplodeAnimationSettled,
+  onExplodedBoundsChange,
   onSelect,
   onHover,
   onContextLost,
 }: {
   scenePackage: LoadedScenePackage;
+  controller: ExplodedViewController;
   command: CameraCommand;
   mode: NavigationMode;
   selectedIds: string[];
@@ -164,21 +175,123 @@ function SceneController({
   hiddenIds: string[];
   isolatedIds: string[] | null;
   multiSelectMode: boolean;
+  explode: ExplodeParams;
+  explodeTransition: ExplodeTransitionRequest | null;
+  onExplodeAnimationLiveFactor?: (factor: number) => void;
+  onExplodeAnimationSettled: (factor: number) => void;
+  onExplodedBoundsChange: (bounds: [number, number, number] | null) => void;
   onSelect: (id: string | null, options: { multi: boolean }) => void;
   onHover: (id: string | null) => void;
   onContextLost: () => void;
 }) {
-  const { camera, gl, invalidate, get } = useThree();
+  const { camera, gl, scene: rootScene, invalidate, get } = useThree();
   const controlsRef = useRef<OrbitControls>(null);
   const originalMaterialsRef = useRef<WeakMap<Object3D, Material | Material[]>>(
     new WeakMap()
   );
   const tintCacheRef = useRef<Map<Material, HighlightEntry>>(new Map());
-  const callbacksRef = useRef({ onSelect, onHover, multiSelectMode });
+
+  const callbacksRef = useRef({
+    onSelect,
+    onHover,
+    multiSelectMode,
+    onExplodeAnimationLiveFactor,
+    onExplodeAnimationSettled,
+    onExplodedBoundsChange,
+  });
+  const visibilityRef = useRef({ hiddenIds, isolatedIds });
+  const explodeRef = useRef(explode);
 
   useEffect(() => {
-    callbacksRef.current = { onSelect, onHover, multiSelectMode };
-  }, [multiSelectMode, onHover, onSelect]);
+    callbacksRef.current = {
+      onSelect,
+      onHover,
+      multiSelectMode,
+      onExplodeAnimationLiveFactor,
+      onExplodeAnimationSettled,
+      onExplodedBoundsChange,
+    };
+  }, [
+    multiSelectMode,
+    onExplodeAnimationLiveFactor,
+    onExplodeAnimationSettled,
+    onExplodedBoundsChange,
+    onHover,
+    onSelect,
+  ]);
+
+  useEffect(() => {
+    visibilityRef.current = { hiddenIds, isolatedIds };
+  }, [hiddenIds, isolatedIds]);
+
+  useEffect(() => {
+    explodeRef.current = explode;
+  }, [explode]);
+
+  // Batched GPU LineSegments stored in ref (allocated & disposed inside useEffect)
+  const refLinesRef = useRef<{
+    lines: LineSegments;
+    geometry: BufferGeometry;
+    attr: BufferAttribute;
+    material: LineDashedMaterial;
+    positions: Float32Array;
+  } | null>(null);
+
+  useEffect(() => {
+    const count = Math.max(controller.componentCount, 1);
+    const positions = new Float32Array(count * 6);
+    const geometry = new BufferGeometry();
+    const attr = new BufferAttribute(positions, 3);
+    geometry.setAttribute("position", attr);
+
+    const span = Math.max(controller.referenceSpan, 0.05);
+    const material = new LineDashedMaterial({
+      color: resolveRefLineHex(),
+      dashSize: span * 0.028,
+      gapSize: span * 0.018,
+      transparent: true,
+      opacity: 0.72,
+      depthTest: true,
+    });
+
+    const lines = new LineSegments(geometry, material);
+    lines.name = "__geogen_explode_reference_lines";
+    lines.visible = false;
+    lines.frustumCulled = false;
+    lines.renderOrder = 2;
+    lines.raycast = () => {};
+
+    refLinesRef.current = { lines, geometry, attr, material, positions };
+    rootScene.add(lines);
+
+    const updateThemeColor = () => {
+      material.color.set(resolveRefLineHex());
+      material.needsUpdate = true;
+      invalidate();
+    };
+
+    const meta = document.querySelector('meta[name="color-scheme"]');
+    const observer = meta ? new MutationObserver(updateThemeColor) : null;
+    if (meta && observer) {
+      observer.observe(meta, { attributes: true, attributeFilter: ["content"] });
+    }
+
+    return () => {
+      observer?.disconnect();
+      rootScene.remove(lines);
+      geometry.dispose();
+      material.dispose();
+      refLinesRef.current = null;
+    };
+  }, [controller, invalidate, rootScene]);
+
+  const animRef = useRef<{
+    active: boolean;
+    from: number;
+    to: number;
+    progress: number;
+    duration: number;
+  }>({ active: false, from: 0, to: 0, progress: 0, duration: 0.55 });
 
   useEffect(() => {
     const canvas = gl.domElement;
@@ -211,12 +324,44 @@ function SceneController({
     applyCameraCommand(
       camera as PerspectiveCamera,
       controls,
-      scenePackage,
+      controller,
+      visibilityRef.current.hiddenIds,
+      visibilityRef.current.isolatedIds,
       command,
       width / Math.max(height, 1)
     );
     invalidate();
-  }, [camera, command, get, gl, invalidate, scenePackage]);
+  }, [camera, command, controller, get, gl, invalidate]);
+
+  const syncReferenceLines = useCallback(
+    (
+      showLines: boolean,
+      hiddenList: readonly string[],
+      isolatedList: readonly string[] | null
+    ) => {
+      const res = refLinesRef.current;
+      if (!res) return;
+      if (!showLines || controller.factor <= 1e-6) {
+        res.lines.visible = false;
+        return;
+      }
+      const hiddenSet = new Set(hiddenList);
+      const isolatedSet = isolatedList ? new Set(isolatedList) : null;
+      const activeCount = controller.writeReferenceSegmentsBuffer(
+        res.positions,
+        hiddenSet,
+        isolatedSet
+      );
+      res.attr.needsUpdate = true;
+      if (activeCount > 0) {
+        res.lines.computeLineDistances();
+        res.lines.visible = true;
+      } else {
+        res.lines.visible = false;
+      }
+    },
+    [controller]
+  );
 
   // Apply component visibility cleanly on renderables so isolating a child inside a hidden parent stays visible.
   useEffect(() => {
@@ -234,8 +379,139 @@ function SceneController({
         ? isolatedSet.has(id) && !hiddenSet.has(id)
         : !hiddenSet.has(id);
     });
+
+    syncReferenceLines(
+      explodeRef.current.showReferenceLines,
+      hiddenIds,
+      isolatedIds
+    );
     invalidate();
-  }, [hiddenIds, invalidate, isolatedIds, scenePackage]);
+  }, [hiddenIds, invalidate, isolatedIds, scenePackage, syncReferenceLines]);
+
+  // Apply non-destructive Exploded View transforms (when not inside an animated transition)
+  const selectionKeyForScope = explode.scope === "selection" ? selectedIds.join(",") : "";
+
+  useEffect(() => {
+    controller.prepare(explode, selectionKeyForScope ? selectionKeyForScope.split(",") : []);
+
+    if (animRef.current.active && explodeTransition) {
+      invalidate();
+      return;
+    }
+
+    const effectiveFactor = explode.enabled ? explode.factor : 0;
+    controller.applyFactor(effectiveFactor);
+
+    syncReferenceLines(
+      explode.showReferenceLines,
+      visibilityRef.current.hiddenIds,
+      visibilityRef.current.isolatedIds
+    );
+
+    if (effectiveFactor > 1e-6) {
+      const bounds = controller.computeBounds({ exploded: true }, new Box3());
+      bounds.getSize(boundsTmpSize);
+      callbacksRef.current.onExplodedBoundsChange([
+        boundsTmpSize.x,
+        boundsTmpSize.y,
+        boundsTmpSize.z,
+      ]);
+    } else {
+      callbacksRef.current.onExplodedBoundsChange(null);
+    }
+
+    invalidate();
+  }, [
+    controller,
+    explode,
+    explodeTransition,
+    invalidate,
+    selectionKeyForScope,
+    syncReferenceLines,
+  ]);
+
+  // Trigger smooth animation on explodeTransition change (respecting prefers-reduced-motion)
+  useEffect(() => {
+    if (!explodeTransition) {
+      animRef.current.active = false;
+      return;
+    }
+
+    const prefersReduced =
+      typeof window !== "undefined" &&
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+    const target = explodeTransition.toFactor;
+    if (prefersReduced || Math.abs(target - controller.factor) < 1e-4) {
+      animRef.current.active = false;
+      controller.applyFactor(target);
+      syncReferenceLines(
+        explodeRef.current.showReferenceLines,
+        visibilityRef.current.hiddenIds,
+        visibilityRef.current.isolatedIds
+      );
+      if (target > 1e-6) {
+        const bounds = controller.computeBounds({ exploded: true }, new Box3());
+        bounds.getSize(boundsTmpSize);
+        callbacksRef.current.onExplodedBoundsChange([
+          boundsTmpSize.x,
+          boundsTmpSize.y,
+          boundsTmpSize.z,
+        ]);
+      } else {
+        callbacksRef.current.onExplodedBoundsChange(null);
+      }
+      callbacksRef.current.onExplodeAnimationSettled(target);
+      invalidate();
+      return;
+    }
+
+    animRef.current = {
+      active: true,
+      from: controller.factor,
+      to: target,
+      progress: 0,
+      duration: 0.38 + 0.32 * Math.min(1.5, Math.abs(target - controller.factor)),
+    };
+    invalidate();
+  }, [controller, explodeTransition, invalidate, syncReferenceLines]);
+
+  useFrame((_, delta) => {
+    const anim = animRef.current;
+    if (!anim.active) return;
+
+    anim.progress = Math.min(1, anim.progress + Math.max(delta, 0.008) / anim.duration);
+    const t = anim.progress;
+    const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+    const nextFactor = anim.from + (anim.to - anim.from) * eased;
+
+    controller.applyFactor(nextFactor);
+    callbacksRef.current.onExplodeAnimationLiveFactor?.(nextFactor);
+
+    syncReferenceLines(
+      explodeRef.current.showReferenceLines,
+      visibilityRef.current.hiddenIds,
+      visibilityRef.current.isolatedIds
+    );
+
+    if (anim.progress >= 1) {
+      anim.active = false;
+      if (anim.to > 1e-6) {
+        const bounds = controller.computeBounds({ exploded: true }, new Box3());
+        bounds.getSize(boundsTmpSize);
+        callbacksRef.current.onExplodedBoundsChange([
+          boundsTmpSize.x,
+          boundsTmpSize.y,
+          boundsTmpSize.z,
+        ]);
+      } else {
+        callbacksRef.current.onExplodedBoundsChange(null);
+      }
+      callbacksRef.current.onExplodeAnimationSettled(anim.to);
+    } else {
+      invalidate();
+    }
+  });
 
   // Apply non-destructive material highlight for selected and hovered components.
   useEffect(() => {
@@ -287,11 +563,13 @@ function SceneController({
     invalidate();
   }, [hoveredId, invalidate, scenePackage, selectedIds]);
 
-  // Cleanup cached highlight materials on scene change or unmount.
+  // Cleanup cached highlight materials & restore rest pose on unmount
   useEffect(() => {
     const originalMap = originalMaterialsRef.current;
     const tintCache = tintCacheRef.current;
     return () => {
+      animRef.current.active = false;
+      controller.reset();
       scenePackage.model.scene.traverse((obj) => {
         if (!isRenderableObject(obj)) return;
         const renderable = obj as Mesh;
@@ -306,7 +584,7 @@ function SceneController({
       }
       tintCache.clear();
     };
-  }, [scenePackage]);
+  }, [controller, scenePackage]);
 
   // Raycasting click/tap picking distinguishing orbit/pan drag from selection click/tap.
   useEffect(() => {
@@ -437,6 +715,11 @@ export default function Viewport({
   hiddenIds,
   isolatedIds,
   multiSelectMode,
+  explode,
+  explodeTransition,
+  onExplodeAnimationLiveFactor,
+  onExplodeAnimationSettled,
+  onExplodedBoundsChange,
   onSelect,
   onHover,
   onContextLost,
@@ -450,15 +733,25 @@ export default function Viewport({
   hiddenIds: string[];
   isolatedIds: string[] | null;
   multiSelectMode: boolean;
+  explode: ExplodeParams;
+  explodeTransition: ExplodeTransitionRequest | null;
+  onExplodeAnimationLiveFactor?: (factor: number) => void;
+  onExplodeAnimationSettled: (factor: number) => void;
+  onExplodedBoundsChange: (bounds: [number, number, number] | null) => void;
   onSelect: (id: string | null, options: { multi: boolean }) => void;
   onHover: (id: string | null) => void;
   onContextLost: () => void;
   fallback: ReactNode;
 }) {
+  const controller = useMemo(
+    () => new ExplodedViewController(scenePackage),
+    [scenePackage]
+  );
+
   const { sphere, origin } = useMemo(() => {
-    const s = scenePackage.model.bounds.getBoundingSphere(new Sphere());
-    return { sphere: s, origin: scenePackage.model.bounds.min };
-  }, [scenePackage]);
+    const s = controller.restSceneBounds.getBoundingSphere(new Sphere());
+    return { sphere: s, origin: controller.restSceneBounds.min };
+  }, [controller]);
 
   return (
     <RenderBoundary fallback={fallback}>
@@ -478,6 +771,7 @@ export default function Viewport({
         />
         <SceneController
           scenePackage={scenePackage}
+          controller={controller}
           command={command}
           mode={mode}
           selectedIds={selectedIds}
@@ -485,6 +779,11 @@ export default function Viewport({
           hiddenIds={hiddenIds}
           isolatedIds={isolatedIds}
           multiSelectMode={multiSelectMode}
+          explode={explode}
+          explodeTransition={explodeTransition}
+          onExplodeAnimationLiveFactor={onExplodeAnimationLiveFactor}
+          onExplodeAnimationSettled={onExplodeAnimationSettled}
+          onExplodedBoundsChange={onExplodedBoundsChange}
           onSelect={onSelect}
           onHover={onHover}
           onContextLost={onContextLost}

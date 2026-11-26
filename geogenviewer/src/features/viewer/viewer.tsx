@@ -23,12 +23,14 @@ import {
 } from "../../lib/geogen/validation/manifest";
 import { CommandPalette } from "./components/command-palette";
 import { ControlsDialog } from "./components/controls-dialog";
+import { ExplodePanel } from "./components/explode-panel";
 import {
   AlertIcon,
   CloseIcon,
   CubeIcon,
   FolderOpenIcon,
   ManifestIcon,
+  PavilionIcon,
 } from "./components/icons";
 import { toggleColorScheme } from "./components/theme-toggle";
 import {
@@ -100,6 +102,9 @@ export function Viewer() {
   const hiddenIds = useViewerStore((s) => s.hiddenIds);
   const isolatedIds = useViewerStore((s) => s.isolatedIds);
   const multiSelectMode = useViewerStore((s) => s.multiSelectMode);
+  const explodeOpen = useViewerStore((s) => s.explodeOpen);
+  const explode = useViewerStore((s) => s.explode);
+  const explodeTransition = useViewerStore((s) => s.explodeTransition);
 
   const setSceneGraph = useViewerStore((s) => s.setSceneGraph);
   const select = useViewerStore((s) => s.select);
@@ -109,6 +114,28 @@ export function Viewer() {
   const isolateIds = useViewerStore((s) => s.isolateIds);
   const showAll = useViewerStore((s) => s.showAll);
   const setMultiSelectMode = useViewerStore((s) => s.setMultiSelectMode);
+  const setExplodeOpen = useViewerStore((s) => s.setExplodeOpen);
+  const patchExplode = useViewerStore((s) => s.patchExplode);
+  const startExplodeAnimation = useViewerStore((s) => s.startExplodeAnimation);
+  const stopExplodeAnimation = useViewerStore((s) => s.stopExplodeAnimation);
+  const resetExplode = useViewerStore((s) => s.resetExplode);
+  const setExplodedBoundsMeters = useViewerStore((s) => s.setExplodedBoundsMeters);
+
+  const liveFactorListenersRef = useRef<Set<(factor: number) => void>>(new Set());
+  const subscribeLiveFactor = useCallback(
+    (listener: (factor: number) => void) => {
+      liveFactorListenersRef.current.add(listener);
+      return () => {
+        liveFactorListenersRef.current.delete(listener);
+      };
+    },
+    []
+  );
+  const emitLiveFactor = useCallback((factor: number) => {
+    for (const listener of liveFactorListenersRef.current) {
+      listener(factor);
+    }
+  }, []);
 
   const isWideDesktop = useSyncExternalStore(
     wideDesktopStore.subscribe,
@@ -268,7 +295,7 @@ export function Viewer() {
   }, [activatePackage, pendingFallback]);
 
   const loadDemo = useCallback(
-    async (kind: "basic" | "contract") => {
+    async (kind: "basic" | "contract" | "pavilion") => {
       const id = ++requestRef.current;
       setStatus(copy.reading);
       setError("");
@@ -290,12 +317,24 @@ export function Viewer() {
           return;
         }
 
+        const isPavilion = kind === "pavilion";
+        const glbUrl = isPavilion
+          ? "/demos/pavilhao-explosao.glb"
+          : "/demos/contrato-exemplo.glb";
+        const jsonUrl = isPavilion
+          ? "/demos/pavilhao-explosao.manifest.json"
+          : "/demos/contrato-exemplo.manifest.json";
+        const fileName = isPavilion
+          ? "pavilhao-explosao.glb"
+          : "contrato-exemplo.glb";
+        const title = isPavilion ? copy.demoExplodeName : copy.demoContractName;
+
         const [glbBytes, jsonBytes] = await Promise.all([
-          fetch("/demos/contrato-exemplo.glb").then((response) => {
+          fetch(glbUrl).then((response) => {
             if (!response.ok) throw new Error(copy.invalid);
             return response.arrayBuffer();
           }),
-          fetch("/demos/contrato-exemplo.manifest.json").then((response) => {
+          fetch(jsonUrl).then((response) => {
             if (!response.ok) throw new Error(copy.invalid);
             return response.arrayBuffer();
           }),
@@ -305,13 +344,13 @@ export function Viewer() {
         const pkg = await importGlbWithManifestPackage(
           glbBytes,
           jsonBytes,
-          "contrato-exemplo.glb"
+          fileName
         );
         if (id !== requestRef.current) {
           pkg.dispose();
           return;
         }
-        activatePackage(pkg, copy.demoContractName, id);
+        activatePackage(pkg, title, id);
       } catch (cause) {
         if (id === requestRef.current) {
           const message = cause instanceof Error ? cause.message : "";
@@ -332,6 +371,8 @@ export function Viewer() {
         void loadDemo("basic");
       } else if (demoParam === "contrato") {
         void loadDemo("contract");
+      } else if (demoParam === "pavilhao") {
+        void loadDemo("pavilion");
       }
     }, 0);
     return () => window.clearTimeout(timer);
@@ -431,6 +472,9 @@ export function Viewer() {
       } else if (key === "a" && loaded && !lost) {
         event.preventDefault();
         showAll();
+      } else if (key === "e" && loaded && !lost) {
+        event.preventDefault();
+        setExplodeOpen(!useViewerStore.getState().explodeOpen);
       } else if (event.key === "[") {
         event.preventDefault();
         toggleLeftPanel();
@@ -460,6 +504,7 @@ export function Viewer() {
     issueCommand,
     loaded,
     lost,
+    setExplodeOpen,
     showAll,
     toggleLeftPanel,
     toggleRightPanel,
@@ -543,6 +588,11 @@ export function Viewer() {
           hiddenIds={hiddenIds}
           isolatedIds={isolatedIds}
           multiSelectMode={multiSelectMode}
+          explode={explode}
+          explodeTransition={explodeTransition}
+          onExplodeAnimationLiveFactor={emitLiveFactor}
+          onExplodeAnimationSettled={stopExplodeAnimation}
+          onExplodedBoundsChange={setExplodedBoundsMeters}
           onSelect={handleViewportSelect}
           onHover={setHoveredId}
           onContextLost={onContextLost}
@@ -588,6 +638,15 @@ export function Viewer() {
               >
                 <FolderOpenIcon size={15} strokeWidth={1.75} />
                 <span>{copy.open}</span>
+              </button>
+              <button
+                type="button"
+                className="gg-btn gg-btn--secondary"
+                disabled={Boolean(status)}
+                onClick={() => void loadDemo("pavilion")}
+              >
+                <PavilionIcon size={15} strokeWidth={1.75} />
+                <span>{copy.demoExplode}</span>
               </button>
               <button
                 type="button"
@@ -684,6 +743,13 @@ export function Viewer() {
         </div>
       )}
 
+      {loaded && !lost && explodeOpen && (
+        <ExplodePanel
+          subscribeLiveFactor={subscribeLiveFactor}
+          onClose={() => setExplodeOpen(false)}
+        />
+      )}
+
       {loaded && (
         <ViewerToolbar
           mode={mode}
@@ -691,12 +757,15 @@ export function Viewer() {
           multiSelectMode={multiSelectMode}
           selectedCount={selectedIds.length}
           hasVisibilityOverrides={hasVisibilityOverrides}
+          explodeOpen={explodeOpen}
+          explodeActive={explode.enabled && explode.factor > 1e-6}
           onModeChange={setMode}
           onToggleMultiSelect={() => setMultiSelectMode(!multiSelectMode)}
           onHideSelected={() => hideIds(selectedIds)}
           onIsolateSelected={() => isolateIds(selectedIds)}
           onShowAll={showAll}
           onClearSelection={clearSelection}
+          onToggleExplode={() => setExplodeOpen(!explodeOpen)}
           onCommand={(next) => {
             if (next.kind === "fit") {
               issueCommand({
@@ -729,6 +798,7 @@ export function Viewer() {
             onOpenFile={() => inputRef.current?.click()}
             onLoadDemo={() => void loadDemo("basic")}
             onLoadContractDemo={() => void loadDemo("contract")}
+            onLoadExplodeDemo={() => void loadDemo("pavilion")}
             onOpenHelp={() => setHelpOpen(true)}
             onOpenCommand={() => setCommandOpen(true)}
             onEnterFocusMode={() => setFocusMode(true)}
@@ -861,6 +931,7 @@ export function Viewer() {
           onOpenFile={() => inputRef.current?.click()}
           onLoadDemo={() => void loadDemo("basic")}
           onLoadContractDemo={() => void loadDemo("contract")}
+          onLoadExplodeDemo={() => void loadDemo("pavilion")}
           onFit={() =>
             issueCommand({
               kind: "fit",
@@ -875,6 +946,19 @@ export function Viewer() {
           onShowAll={showAll}
           onClearSelection={clearSelection}
           onToggleMultiSelect={() => setMultiSelectMode(!multiSelectMode)}
+          onToggleExplodePanel={() => setExplodeOpen(!explodeOpen)}
+          onExplodeReset={() => resetExplode()}
+          onExplodeRadial={() => {
+            patchExplode({ mode: "radial", enabled: true });
+            startExplodeAnimation(0.5);
+          }}
+          onExplodeAxial={(axis) => {
+            patchExplode({ mode: "axial", axis, enabled: true });
+            startExplodeAnimation(0.65);
+          }}
+          onToggleRefLines={() =>
+            patchExplode({ showReferenceLines: !explode.showReferenceLines })
+          }
           onToggleLeft={toggleLeftPanel}
           onToggleRight={toggleRightPanel}
           onToggleFocus={() => setFocusMode((prev) => !prev)}

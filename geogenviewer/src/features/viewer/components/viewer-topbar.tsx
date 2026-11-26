@@ -13,6 +13,7 @@ import {
   ManifestIcon,
   MaximizeIcon,
   MoreIcon,
+  PavilionIcon,
   SidebarLeftIcon,
   SidebarRightIcon,
 } from "./icons";
@@ -30,6 +31,7 @@ interface ViewerTopbarProps {
   onOpenFile: () => void;
   onLoadDemo: () => void;
   onLoadContractDemo: () => void;
+  onLoadExplodeDemo: () => void;
   onOpenHelp: () => void;
   onOpenCommand: () => void;
   onEnterFocusMode: () => void;
@@ -47,6 +49,7 @@ export function ViewerTopbar({
   onOpenFile,
   onLoadDemo,
   onLoadContractDemo,
+  onLoadExplodeDemo,
   onOpenHelp,
   onOpenCommand,
   onEnterFocusMode,
@@ -153,6 +156,18 @@ export function ViewerTopbar({
           </button>
         </ActionTooltip>
 
+        <ActionTooltip label={copy.demoExplode}>
+          <button
+            type="button"
+            className="gg-btn gg-btn--secondary gg-hide-lg"
+            disabled={isBusy}
+            onClick={onLoadExplodeDemo}
+          >
+            <PavilionIcon size={15} strokeWidth={1.75} />
+            <span>{copy.demoExplode}</span>
+          </button>
+        </ActionTooltip>
+
         <ActionTooltip label={copy.demoContract}>
           <button
             type="button"
@@ -200,6 +215,14 @@ export function ViewerTopbar({
             <Menu.Portal>
               <Menu.Positioner sideOffset={6} align="end" className="gg-menu-pos">
                 <Menu.Popup className="gg-popover-menu">
+                  <Menu.Item
+                    className="gg-menu-item"
+                    disabled={isBusy}
+                    onClick={onLoadExplodeDemo}
+                  >
+                    <PavilionIcon size={15} strokeWidth={1.75} />
+                    <span>{copy.demoExplode}</span>
+                  </Menu.Item>
                   <Menu.Item
                     className="gg-menu-item"
                     disabled={isBusy}

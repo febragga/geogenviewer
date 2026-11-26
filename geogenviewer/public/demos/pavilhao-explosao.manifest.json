@@ -1,0 +1,1343 @@
+{
+  "schemaVersion": "1.0.0",
+  "project": {
+    "id": "pavilhao-explosao-v04",
+    "title": "Pavilhão Estrutural Sintético (Demo V0.4)",
+    "revisionId": "rev-04",
+    "description": "Modelo sintético modular para validação de vista explodida (fundação, pilares, vigas compostas, lajes, escada e conectores).",
+    "geometryKind": "physicalModel",
+    "scaleDenominator": 25,
+    "displayUnit": "mm",
+    "prototypeId": "pavilhao-sintetico-v04"
+  },
+  "source": {
+    "application": "Synthetic Geometry Generator",
+    "exporterVersion": "1.0.0",
+    "sourceUnit": "mm",
+    "sourceUpAxis": "Z",
+    "sourceOrigin": [
+      0,
+      0,
+      0
+    ],
+    "metersPerSourceUnit": 0.001
+  },
+  "geometry": {
+    "file": "pavilhao-explosao.glb",
+    "format": "glb",
+    "coordinateSystem": "RH_Y_UP",
+    "unit": "m",
+    "nodeMatchStrategy": "extras",
+    "sha256": "d9ef9f869219ec0616d3a1433e412d9961f207752b1e772eb04df810dbc57e1c"
+  },
+  "layers": [
+    {
+      "id": "l-fundacao",
+      "name": "Fundação",
+      "parentId": null,
+      "fullPath": "Fundação",
+      "colorHex": "#8A949E",
+      "visible": true
+    },
+    {
+      "id": "l-estrutura",
+      "name": "Estrutura",
+      "parentId": null,
+      "fullPath": "Estrutura",
+      "colorHex": "#B58D62",
+      "visible": true
+    },
+    {
+      "id": "l-pilares",
+      "name": "Pilares",
+      "parentId": "l-estrutura",
+      "fullPath": "Estrutura::Pilares",
+      "colorHex": "#C29463",
+      "visible": true
+    },
+    {
+      "id": "l-vigas",
+      "name": "Vigas",
+      "parentId": "l-estrutura",
+      "fullPath": "Estrutura::Vigas",
+      "colorHex": "#D1A673",
+      "visible": true
+    },
+    {
+      "id": "l-vigas-long",
+      "name": "Longitudinais",
+      "parentId": "l-vigas",
+      "fullPath": "Estrutura::Vigas::Longitudinais",
+      "colorHex": "#D1A673",
+      "visible": true
+    },
+    {
+      "id": "l-vigas-trans",
+      "name": "Transversais Compostas",
+      "parentId": "l-vigas",
+      "fullPath": "Estrutura::Vigas::Transversais Compostas",
+      "colorHex": "#E0BA84",
+      "visible": true
+    },
+    {
+      "id": "l-lajes",
+      "name": "Lajes",
+      "parentId": null,
+      "fullPath": "Lajes",
+      "colorHex": "#DEC49E",
+      "visible": true
+    },
+    {
+      "id": "l-escada",
+      "name": "Escada",
+      "parentId": null,
+      "fullPath": "Escada",
+      "colorHex": "#4D5761",
+      "visible": true
+    },
+    {
+      "id": "l-conectores",
+      "name": "Conectores",
+      "parentId": null,
+      "fullPath": "Conectores",
+      "colorHex": "#5B8DB8",
+      "visible": true
+    }
+  ],
+  "groups": [
+    {
+      "id": "g-portico-norte",
+      "name": "Pórtico Norte",
+      "parentId": null
+    },
+    {
+      "id": "g-portico-sul",
+      "name": "Pórtico Sul",
+      "parentId": null
+    },
+    {
+      "id": "g-pre-moldados",
+      "name": "Pré-moldados",
+      "parentId": null
+    },
+    {
+      "id": "g-nucleo-escada",
+      "name": "Núcleo da Escada",
+      "parentId": null
+    }
+  ],
+  "materials": [
+    {
+      "id": "mat-concreto",
+      "name": "Concreto Base",
+      "colorHex": "#8F969E"
+    },
+    {
+      "id": "mat-pilar",
+      "name": "Madeira Laminada (Pilar)",
+      "colorHex": "#C29463"
+    },
+    {
+      "id": "mat-viga",
+      "name": "Madeira Laminada (Viga)",
+      "colorHex": "#D1A673"
+    },
+    {
+      "id": "mat-laje",
+      "name": "Painel CLT (Laje)",
+      "colorHex": "#DEC49E"
+    },
+    {
+      "id": "mat-conector",
+      "name": "Conector Metálico",
+      "colorHex": "#5B8DB8"
+    },
+    {
+      "id": "mat-aco",
+      "name": "Aço Escada",
+      "colorHex": "#454F59"
+    }
+  ],
+  "blocks": [
+    {
+      "id": "blk-conector-v04",
+      "name": "Conector Estrutural V04"
+    }
+  ],
+  "elements": [
+    {
+      "id": "fd-sapata-01",
+      "name": "Sapata 01",
+      "category": "foundation",
+      "layerId": "l-fundacao",
+      "groupIds": [
+        "g-portico-norte"
+      ],
+      "materialId": "mat-concreto",
+      "parentId": null,
+      "glbNodeName": "Sapata 01",
+      "blockDefinitionId": null,
+      "geometryType": "brep",
+      "isClosed": true,
+      "isValid": true,
+      "boundingBoxM": {
+        "min": [
+          -0.29,
+          0,
+          -0.22999999999999998
+        ],
+        "max": [
+          -0.19,
+          0.04,
+          -0.13
+        ],
+        "source": "cad"
+      },
+      "dimensions": {
+        "lengthM": 0.1,
+        "widthM": 0.1,
+        "thicknessM": 0.04,
+        "source": "cad"
+      },
+      "areaM2": {
+        "value": 0.036,
+        "source": "cad"
+      },
+      "volumeM3": {
+        "value": 0.0004,
+        "source": "cad"
+      },
+      "centroidM": {
+        "value": [
+          -0.24,
+          0.02,
+          -0.18
+        ],
+        "source": "cad"
+      },
+      "explodeOffsetM": [
+        -0.108,
+        -0.1,
+        -0.081
+      ],
+      "assemblyDirectionM": [
+        0,
+        1,
+        0
+      ],
+      "fabrication": {
+        "prototypeId": "pavilhao-sintetico-v04",
+        "scaleDenominator": 25,
+        "material": "Concreto Base",
+        "toleranceMm": 0.2
+      }
+    },
+    {
+      "id": "fd-sapata-02",
+      "name": "Sapata 02",
+      "category": "foundation",
+      "layerId": "l-fundacao",
+      "groupIds": [
+        "g-portico-norte"
+      ],
+      "materialId": "mat-concreto",
+      "parentId": null,
+      "glbNodeName": "Sapata 02",
+      "blockDefinitionId": null,
+      "geometryType": "brep",
+      "isClosed": true,
+      "isValid": true,
+      "boundingBoxM": {
+        "min": [
+          0.19,
+          0,
+          -0.22999999999999998
+        ],
+        "max": [
+          0.29,
+          0.04,
+          -0.13
+        ],
+        "source": "cad"
+      },
+      "dimensions": {
+        "lengthM": 0.1,
+        "widthM": 0.1,
+        "thicknessM": 0.04,
+        "source": "cad"
+      },
+      "areaM2": {
+        "value": 0.036,
+        "source": "cad"
+      },
+      "volumeM3": {
+        "value": 0.0004,
+        "source": "cad"
+      },
+      "centroidM": {
+        "value": [
+          0.24,
+          0.02,
+          -0.18
+        ],
+        "source": "cad"
+      },
+      "explodeOffsetM": [
+        0.108,
+        -0.1,
+        -0.081
+      ],
+      "assemblyDirectionM": [
+        0,
+        1,
+        0
+      ],
+      "fabrication": {
+        "prototypeId": "pavilhao-sintetico-v04",
+        "scaleDenominator": 25,
+        "material": "Concreto Base",
+        "toleranceMm": 0.2
+      }
+    },
+    {
+      "id": "fd-sapata-03",
+      "name": "Sapata 03",
+      "category": "foundation",
+      "layerId": "l-fundacao",
+      "groupIds": [
+        "g-portico-sul",
+        "g-nucleo-escada"
+      ],
+      "materialId": "mat-concreto",
+      "parentId": null,
+      "glbNodeName": "Sapata 03",
+      "blockDefinitionId": null,
+      "geometryType": "brep",
+      "isClosed": true,
+      "isValid": true,
+      "boundingBoxM": {
+        "min": [
+          -0.29,
+          0,
+          0.13
+        ],
+        "max": [
+          -0.19,
+          0.04,
+          0.22999999999999998
+        ],
+        "source": "cad"
+      },
+      "dimensions": {
+        "lengthM": 0.1,
+        "widthM": 0.1,
+        "thicknessM": 0.04,
+        "source": "cad"
+      },
+      "areaM2": {
+        "value": 0.036,
+        "source": "cad"
+      },
+      "volumeM3": {
+        "value": 0.0004,
+        "source": "cad"
+      },
+      "centroidM": {
+        "value": [
+          -0.24,
+          0.02,
+          0.18
+        ],
+        "source": "cad"
+      },
+      "explodeOffsetM": [
+        -0.108,
+        -0.1,
+        0.081
+      ],
+      "assemblyDirectionM": [
+        0,
+        1,
+        0
+      ],
+      "fabrication": {
+        "prototypeId": "pavilhao-sintetico-v04",
+        "scaleDenominator": 25,
+        "material": "Concreto Base",
+        "toleranceMm": 0.2
+      }
+    },
+    {
+      "id": "fd-sapata-04",
+      "name": "Sapata 04",
+      "category": "foundation",
+      "layerId": "l-fundacao",
+      "groupIds": [
+        "g-portico-sul"
+      ],
+      "materialId": "mat-concreto",
+      "parentId": null,
+      "glbNodeName": "Sapata 04",
+      "blockDefinitionId": null,
+      "geometryType": "brep",
+      "isClosed": true,
+      "isValid": true,
+      "boundingBoxM": {
+        "min": [
+          0.19,
+          0,
+          0.13
+        ],
+        "max": [
+          0.29,
+          0.04,
+          0.22999999999999998
+        ],
+        "source": "cad"
+      },
+      "dimensions": {
+        "lengthM": 0.1,
+        "widthM": 0.1,
+        "thicknessM": 0.04,
+        "source": "cad"
+      },
+      "areaM2": {
+        "value": 0.036,
+        "source": "cad"
+      },
+      "volumeM3": {
+        "value": 0.0004,
+        "source": "cad"
+      },
+      "centroidM": {
+        "value": [
+          0.24,
+          0.02,
+          0.18
+        ],
+        "source": "cad"
+      },
+      "explodeOffsetM": [
+        0.108,
+        -0.1,
+        0.081
+      ],
+      "assemblyDirectionM": [
+        0,
+        1,
+        0
+      ],
+      "fabrication": {
+        "prototypeId": "pavilhao-sintetico-v04",
+        "scaleDenominator": 25,
+        "material": "Concreto Base",
+        "toleranceMm": 0.2
+      }
+    },
+    {
+      "id": "pl-pilar-01",
+      "name": "Pilar P01",
+      "category": "column",
+      "layerId": "l-pilares",
+      "groupIds": [
+        "g-portico-norte",
+        "g-pre-moldados"
+      ],
+      "materialId": "mat-pilar",
+      "parentId": null,
+      "glbNodeName": "Pilar P01",
+      "blockDefinitionId": null,
+      "geometryType": "brep",
+      "isClosed": true,
+      "isValid": true,
+      "boundingBoxM": {
+        "min": [
+          -0.26,
+          0.04000000000000001,
+          -0.19999999999999998
+        ],
+        "max": [
+          -0.22,
+          0.28,
+          -0.16
+        ],
+        "source": "cad"
+      },
+      "dimensions": {
+        "lengthM": 0.24,
+        "widthM": 0.04,
+        "thicknessM": 0.04,
+        "source": "cad"
+      },
+      "areaM2": {
+        "value": 0.0416,
+        "source": "cad"
+      },
+      "volumeM3": {
+        "value": 0.000384,
+        "source": "cad"
+      },
+      "centroidM": {
+        "value": [
+          -0.24,
+          0.16,
+          -0.18
+        ],
+        "source": "cad"
+      },
+      "explodeOffsetM": [
+        -0.18,
+        0.02,
+        -0.135
+      ],
+      "assemblyDirectionM": [
+        0,
+        1,
+        0
+      ],
+      "fabrication": {
+        "prototypeId": "pavilhao-sintetico-v04",
+        "scaleDenominator": 25,
+        "material": "Madeira Laminada (Pilar)",
+        "toleranceMm": 0.2
+      }
+    },
+    {
+      "id": "pl-pilar-02",
+      "name": "Pilar P02",
+      "category": "column",
+      "layerId": "l-pilares",
+      "groupIds": [
+        "g-portico-norte",
+        "g-pre-moldados"
+      ],
+      "materialId": "mat-pilar",
+      "parentId": null,
+      "glbNodeName": "Pilar P02",
+      "blockDefinitionId": null,
+      "geometryType": "brep",
+      "isClosed": true,
+      "isValid": true,
+      "boundingBoxM": {
+        "min": [
+          0.22,
+          0.04000000000000001,
+          -0.19999999999999998
+        ],
+        "max": [
+          0.26,
+          0.28,
+          -0.16
+        ],
+        "source": "cad"
+      },
+      "dimensions": {
+        "lengthM": 0.24,
+        "widthM": 0.04,
+        "thicknessM": 0.04,
+        "source": "cad"
+      },
+      "areaM2": {
+        "value": 0.0416,
+        "source": "cad"
+      },
+      "volumeM3": {
+        "value": 0.000384,
+        "source": "cad"
+      },
+      "centroidM": {
+        "value": [
+          0.24,
+          0.16,
+          -0.18
+        ],
+        "source": "cad"
+      },
+      "explodeOffsetM": [
+        0.18,
+        0.02,
+        -0.135
+      ],
+      "assemblyDirectionM": [
+        0,
+        1,
+        0
+      ],
+      "fabrication": {
+        "prototypeId": "pavilhao-sintetico-v04",
+        "scaleDenominator": 25,
+        "material": "Madeira Laminada (Pilar)",
+        "toleranceMm": 0.2
+      }
+    },
+    {
+      "id": "pl-pilar-03",
+      "name": "Pilar P03",
+      "category": "column",
+      "layerId": "l-pilares",
+      "groupIds": [
+        "g-portico-sul",
+        "g-nucleo-escada",
+        "g-pre-moldados"
+      ],
+      "materialId": "mat-pilar",
+      "parentId": null,
+      "glbNodeName": "Pilar P03",
+      "blockDefinitionId": null,
+      "geometryType": "brep",
+      "isClosed": true,
+      "isValid": true,
+      "boundingBoxM": {
+        "min": [
+          -0.26,
+          0.04000000000000001,
+          0.16
+        ],
+        "max": [
+          -0.22,
+          0.28,
+          0.19999999999999998
+        ],
+        "source": "cad"
+      },
+      "dimensions": {
+        "lengthM": 0.24,
+        "widthM": 0.04,
+        "thicknessM": 0.04,
+        "source": "cad"
+      },
+      "areaM2": {
+        "value": 0.0416,
+        "source": "cad"
+      },
+      "volumeM3": {
+        "value": 0.000384,
+        "source": "cad"
+      },
+      "centroidM": {
+        "value": [
+          -0.24,
+          0.16,
+          0.18
+        ],
+        "source": "cad"
+      },
+      "explodeOffsetM": [
+        -0.18,
+        0.02,
+        0.135
+      ],
+      "assemblyDirectionM": [
+        0,
+        1,
+        0
+      ],
+      "fabrication": {
+        "prototypeId": "pavilhao-sintetico-v04",
+        "scaleDenominator": 25,
+        "material": "Madeira Laminada (Pilar)",
+        "toleranceMm": 0.2
+      }
+    },
+    {
+      "id": "pl-pilar-04",
+      "name": "Pilar P04",
+      "category": "column",
+      "layerId": "l-pilares",
+      "groupIds": [
+        "g-portico-sul",
+        "g-pre-moldados"
+      ],
+      "materialId": "mat-pilar",
+      "parentId": null,
+      "glbNodeName": "Pilar P04",
+      "blockDefinitionId": null,
+      "geometryType": "brep",
+      "isClosed": true,
+      "isValid": true,
+      "boundingBoxM": {
+        "min": [
+          0.22,
+          0.04000000000000001,
+          0.16
+        ],
+        "max": [
+          0.26,
+          0.28,
+          0.19999999999999998
+        ],
+        "source": "cad"
+      },
+      "dimensions": {
+        "lengthM": 0.24,
+        "widthM": 0.04,
+        "thicknessM": 0.04,
+        "source": "cad"
+      },
+      "areaM2": {
+        "value": 0.0416,
+        "source": "cad"
+      },
+      "volumeM3": {
+        "value": 0.000384,
+        "source": "cad"
+      },
+      "centroidM": {
+        "value": [
+          0.24,
+          0.16,
+          0.18
+        ],
+        "source": "cad"
+      },
+      "explodeOffsetM": [
+        0.18,
+        0.02,
+        0.135
+      ],
+      "assemblyDirectionM": [
+        0,
+        1,
+        0
+      ],
+      "fabrication": {
+        "prototypeId": "pavilhao-sintetico-v04",
+        "scaleDenominator": 25,
+        "material": "Madeira Laminada (Pilar)",
+        "toleranceMm": 0.2
+      }
+    },
+    {
+      "id": "cn-encaixe-01",
+      "name": "Conector Encaixe C01",
+      "category": "connector",
+      "layerId": "l-conectores",
+      "groupIds": [
+        "g-portico-norte",
+        "g-pre-moldados"
+      ],
+      "materialId": "mat-conector",
+      "parentId": null,
+      "glbNodeName": "Conector Encaixe C01",
+      "blockDefinitionId": "blk-conector-v04",
+      "geometryType": "blockInstance",
+      "isClosed": true,
+      "isValid": true,
+      "boundingBoxM": {
+        "min": [
+          -0.2675,
+          0.27999999999999997,
+          -0.2075
+        ],
+        "max": [
+          -0.2125,
+          0.3,
+          -0.1525
+        ],
+        "source": "cad"
+      },
+      "dimensions": {
+        "lengthM": 0.055,
+        "widthM": 0.055,
+        "thicknessM": 0.02,
+        "source": "cad"
+      },
+      "areaM2": {
+        "value": 0.01045,
+        "source": "cad"
+      },
+      "volumeM3": {
+        "value": 0.000061,
+        "source": "cad"
+      },
+      "centroidM": {
+        "value": [
+          -0.24,
+          0.29,
+          -0.18
+        ],
+        "source": "cad"
+      },
+      "explodeOffsetM": [
+        -0.204,
+        0.11,
+        -0.153
+      ],
+      "assemblyDirectionM": [
+        0,
+        -1,
+        0
+      ],
+      "fabrication": {
+        "prototypeId": "pavilhao-sintetico-v04",
+        "scaleDenominator": 25,
+        "material": "Conector Metálico",
+        "toleranceMm": 0.2
+      }
+    },
+    {
+      "id": "cn-encaixe-02",
+      "name": "Conector Encaixe C02",
+      "category": "connector",
+      "layerId": "l-conectores",
+      "groupIds": [
+        "g-portico-norte",
+        "g-pre-moldados"
+      ],
+      "materialId": "mat-conector",
+      "parentId": null,
+      "glbNodeName": "Conector Encaixe C02",
+      "blockDefinitionId": "blk-conector-v04",
+      "geometryType": "blockInstance",
+      "isClosed": true,
+      "isValid": true,
+      "boundingBoxM": {
+        "min": [
+          0.2125,
+          0.27999999999999997,
+          -0.2075
+        ],
+        "max": [
+          0.2675,
+          0.3,
+          -0.1525
+        ],
+        "source": "cad"
+      },
+      "dimensions": {
+        "lengthM": 0.055,
+        "widthM": 0.055,
+        "thicknessM": 0.02,
+        "source": "cad"
+      },
+      "areaM2": {
+        "value": 0.01045,
+        "source": "cad"
+      },
+      "volumeM3": {
+        "value": 0.000061,
+        "source": "cad"
+      },
+      "centroidM": {
+        "value": [
+          0.24,
+          0.29,
+          -0.18
+        ],
+        "source": "cad"
+      },
+      "explodeOffsetM": [
+        0.204,
+        0.11,
+        -0.153
+      ],
+      "assemblyDirectionM": [
+        0,
+        -1,
+        0
+      ],
+      "fabrication": {
+        "prototypeId": "pavilhao-sintetico-v04",
+        "scaleDenominator": 25,
+        "material": "Conector Metálico",
+        "toleranceMm": 0.2
+      }
+    },
+    {
+      "id": "cn-encaixe-03",
+      "name": "Conector Encaixe C03",
+      "category": "connector",
+      "layerId": "l-conectores",
+      "groupIds": [
+        "g-portico-sul",
+        "g-nucleo-escada",
+        "g-pre-moldados"
+      ],
+      "materialId": "mat-conector",
+      "parentId": null,
+      "glbNodeName": "Conector Encaixe C03",
+      "blockDefinitionId": "blk-conector-v04",
+      "geometryType": "blockInstance",
+      "isClosed": true,
+      "isValid": true,
+      "boundingBoxM": {
+        "min": [
+          -0.2675,
+          0.27999999999999997,
+          0.1525
+        ],
+        "max": [
+          -0.2125,
+          0.3,
+          0.2075
+        ],
+        "source": "cad"
+      },
+      "dimensions": {
+        "lengthM": 0.055,
+        "widthM": 0.055,
+        "thicknessM": 0.02,
+        "source": "cad"
+      },
+      "areaM2": {
+        "value": 0.01045,
+        "source": "cad"
+      },
+      "volumeM3": {
+        "value": 0.000061,
+        "source": "cad"
+      },
+      "centroidM": {
+        "value": [
+          -0.24,
+          0.29,
+          0.18
+        ],
+        "source": "cad"
+      },
+      "explodeOffsetM": [
+        -0.204,
+        0.11,
+        0.153
+      ],
+      "assemblyDirectionM": [
+        0,
+        -1,
+        0
+      ],
+      "fabrication": {
+        "prototypeId": "pavilhao-sintetico-v04",
+        "scaleDenominator": 25,
+        "material": "Conector Metálico",
+        "toleranceMm": 0.2
+      }
+    },
+    {
+      "id": "cn-encaixe-04",
+      "name": "Conector Encaixe C04",
+      "category": "connector",
+      "layerId": "l-conectores",
+      "groupIds": [
+        "g-portico-sul",
+        "g-pre-moldados"
+      ],
+      "materialId": "mat-conector",
+      "parentId": null,
+      "glbNodeName": "Conector Encaixe C04",
+      "blockDefinitionId": "blk-conector-v04",
+      "geometryType": "blockInstance",
+      "isClosed": true,
+      "isValid": true,
+      "boundingBoxM": {
+        "min": [
+          0.2125,
+          0.27999999999999997,
+          0.1525
+        ],
+        "max": [
+          0.2675,
+          0.3,
+          0.2075
+        ],
+        "source": "cad"
+      },
+      "dimensions": {
+        "lengthM": 0.055,
+        "widthM": 0.055,
+        "thicknessM": 0.02,
+        "source": "cad"
+      },
+      "areaM2": {
+        "value": 0.01045,
+        "source": "cad"
+      },
+      "volumeM3": {
+        "value": 0.000061,
+        "source": "cad"
+      },
+      "centroidM": {
+        "value": [
+          0.24,
+          0.29,
+          0.18
+        ],
+        "source": "cad"
+      },
+      "explodeOffsetM": [
+        0.204,
+        0.11,
+        0.153
+      ],
+      "assemblyDirectionM": [
+        0,
+        -1,
+        0
+      ],
+      "fabrication": {
+        "prototypeId": "pavilhao-sintetico-v04",
+        "scaleDenominator": 25,
+        "material": "Conector Metálico",
+        "toleranceMm": 0.2
+      }
+    },
+    {
+      "id": "vg-long-norte",
+      "name": "Viga Longitudinal Norte",
+      "category": "beam",
+      "layerId": "l-vigas-long",
+      "groupIds": [
+        "g-portico-norte",
+        "g-pre-moldados"
+      ],
+      "materialId": "mat-viga",
+      "parentId": null,
+      "glbNodeName": "Viga Longitudinal Norte",
+      "blockDefinitionId": null,
+      "geometryType": "brep",
+      "isClosed": true,
+      "isValid": true,
+      "boundingBoxM": {
+        "min": [
+          -0.27,
+          0.2975,
+          -0.19999999999999998
+        ],
+        "max": [
+          0.27,
+          0.3325,
+          -0.16
+        ],
+        "source": "cad"
+      },
+      "dimensions": {
+        "lengthM": 0.54,
+        "widthM": 0.54,
+        "thicknessM": 0.035,
+        "source": "cad"
+      },
+      "areaM2": {
+        "value": 0.0838,
+        "source": "cad"
+      },
+      "volumeM3": {
+        "value": 0.000756,
+        "source": "cad"
+      },
+      "centroidM": {
+        "value": [
+          0,
+          0.315,
+          -0.18
+        ],
+        "source": "cad"
+      },
+      "explodeOffsetM": [
+        0,
+        0.16,
+        -0.18
+      ],
+      "assemblyDirectionM": [
+        0,
+        -1,
+        0
+      ],
+      "fabrication": {
+        "prototypeId": "pavilhao-sintetico-v04",
+        "scaleDenominator": 25,
+        "material": "Madeira Laminada (Viga)",
+        "toleranceMm": 0.2
+      }
+    },
+    {
+      "id": "vg-long-sul",
+      "name": "Viga Longitudinal Sul",
+      "category": "beam",
+      "layerId": "l-vigas-long",
+      "groupIds": [
+        "g-portico-sul",
+        "g-pre-moldados"
+      ],
+      "materialId": "mat-viga",
+      "parentId": null,
+      "glbNodeName": "Viga Longitudinal Sul",
+      "blockDefinitionId": null,
+      "geometryType": "brep",
+      "isClosed": true,
+      "isValid": true,
+      "boundingBoxM": {
+        "min": [
+          -0.27,
+          0.2975,
+          0.16
+        ],
+        "max": [
+          0.27,
+          0.3325,
+          0.19999999999999998
+        ],
+        "source": "cad"
+      },
+      "dimensions": {
+        "lengthM": 0.54,
+        "widthM": 0.54,
+        "thicknessM": 0.035,
+        "source": "cad"
+      },
+      "areaM2": {
+        "value": 0.0838,
+        "source": "cad"
+      },
+      "volumeM3": {
+        "value": 0.000756,
+        "source": "cad"
+      },
+      "centroidM": {
+        "value": [
+          0,
+          0.315,
+          0.18
+        ],
+        "source": "cad"
+      },
+      "explodeOffsetM": [
+        0,
+        0.16,
+        0.18
+      ],
+      "assemblyDirectionM": [
+        0,
+        -1,
+        0
+      ],
+      "fabrication": {
+        "prototypeId": "pavilhao-sintetico-v04",
+        "scaleDenominator": 25,
+        "material": "Madeira Laminada (Viga)",
+        "toleranceMm": 0.2
+      }
+    },
+    {
+      "id": "vg-composta-central",
+      "name": "Viga Composta Central (Multi-malha)",
+      "category": "beam",
+      "layerId": "l-vigas-trans",
+      "groupIds": [
+        "g-portico-norte",
+        "g-portico-sul",
+        "g-pre-moldados"
+      ],
+      "materialId": "mat-viga",
+      "parentId": null,
+      "glbNodeName": "Viga Composta Central",
+      "geometryType": "composite",
+      "isClosed": true,
+      "isValid": true,
+      "boundingBoxM": {
+        "min": [
+          -0.016,
+          0.3125,
+          -0.18
+        ],
+        "max": [
+          0.016,
+          0.36,
+          0.18
+        ],
+        "source": "cad"
+      },
+      "dimensions": {
+        "lengthM": 0.36,
+        "widthM": 0.032,
+        "thicknessM": 0.047,
+        "source": "cad"
+      },
+      "explodeOffsetM": [
+        0,
+        0.24,
+        0
+      ],
+      "assemblyDirectionM": [
+        0,
+        -1,
+        0
+      ],
+      "userText": {
+        "construcao": "Viga composta com 3 sub-malhas"
+      },
+      "fabrication": {
+        "prototypeId": "pavilhao-sintetico-v04",
+        "scaleDenominator": 25,
+        "material": "Madeira + Conector"
+      }
+    },
+    {
+      "id": "lj-painel-oeste",
+      "name": "Laje Painel Oeste",
+      "category": "slab",
+      "layerId": "l-lajes",
+      "groupIds": [
+        "g-pre-moldados"
+      ],
+      "materialId": "mat-laje",
+      "parentId": null,
+      "glbNodeName": "Laje Painel Oeste",
+      "blockDefinitionId": null,
+      "geometryType": "brep",
+      "isClosed": true,
+      "isValid": true,
+      "boundingBoxM": {
+        "min": [
+          -0.255,
+          0.353,
+          -0.19
+        ],
+        "max": [
+          -0.015000000000000013,
+          0.377,
+          0.19
+        ],
+        "source": "cad"
+      },
+      "dimensions": {
+        "lengthM": 0.38,
+        "widthM": 0.24,
+        "thicknessM": 0.024,
+        "source": "cad"
+      },
+      "areaM2": {
+        "value": 0.21216,
+        "source": "cad"
+      },
+      "volumeM3": {
+        "value": 0.002189,
+        "source": "cad"
+      },
+      "centroidM": {
+        "value": [
+          -0.135,
+          0.365,
+          0
+        ],
+        "source": "cad"
+      },
+      "explodeOffsetM": [
+        -0.14,
+        0.32,
+        0
+      ],
+      "assemblyDirectionM": [
+        0,
+        -1,
+        0
+      ],
+      "fabrication": {
+        "prototypeId": "pavilhao-sintetico-v04",
+        "scaleDenominator": 25,
+        "material": "Painel CLT (Laje)",
+        "toleranceMm": 0.2
+      }
+    },
+    {
+      "id": "lj-painel-leste",
+      "name": "Laje Painel Leste",
+      "category": "slab",
+      "layerId": "l-lajes",
+      "groupIds": [
+        "g-pre-moldados"
+      ],
+      "materialId": "mat-laje",
+      "parentId": null,
+      "glbNodeName": "Laje Painel Leste",
+      "blockDefinitionId": null,
+      "geometryType": "brep",
+      "isClosed": true,
+      "isValid": true,
+      "boundingBoxM": {
+        "min": [
+          0.015000000000000013,
+          0.353,
+          -0.19
+        ],
+        "max": [
+          0.255,
+          0.377,
+          0.19
+        ],
+        "source": "cad"
+      },
+      "dimensions": {
+        "lengthM": 0.38,
+        "widthM": 0.24,
+        "thicknessM": 0.024,
+        "source": "cad"
+      },
+      "areaM2": {
+        "value": 0.21216,
+        "source": "cad"
+      },
+      "volumeM3": {
+        "value": 0.002189,
+        "source": "cad"
+      },
+      "centroidM": {
+        "value": [
+          0.135,
+          0.365,
+          0
+        ],
+        "source": "cad"
+      },
+      "explodeOffsetM": [
+        0.14,
+        0.32,
+        0
+      ],
+      "assemblyDirectionM": [
+        0,
+        -1,
+        0
+      ],
+      "fabrication": {
+        "prototypeId": "pavilhao-sintetico-v04",
+        "scaleDenominator": 25,
+        "material": "Painel CLT (Laje)",
+        "toleranceMm": 0.2
+      }
+    },
+    {
+      "id": "esc-lance-01",
+      "name": "Escada Pré-fabricada (Multi-malha)",
+      "category": "stair",
+      "layerId": "l-escada",
+      "groupIds": [
+        "g-nucleo-escada",
+        "g-portico-sul"
+      ],
+      "materialId": "mat-aco",
+      "parentId": null,
+      "glbNodeName": "Lance de Escada Principal",
+      "geometryType": "composite",
+      "isClosed": true,
+      "isValid": true,
+      "dimensions": {
+        "lengthM": 0.22,
+        "widthM": 0.11,
+        "thicknessM": 0.12,
+        "source": "cad"
+      },
+      "explodeOffsetM": [
+        -0.16,
+        0.04,
+        0.22
+      ],
+      "assemblyDirectionM": [
+        0,
+        -1,
+        -1
+      ],
+      "userText": {
+        "tipo": "Lance composto com 4 degraus"
+      }
+    }
+  ]
+}
