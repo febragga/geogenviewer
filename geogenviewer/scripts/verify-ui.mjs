@@ -198,6 +198,86 @@ async function main() {
     await page.locator(".gg-topbar__model .gg-badge", { hasText: /GLB Básico/i }).waitFor({ timeout: 5000 });
     await page.waitForTimeout(200);
 
+    // V0.4 UI Audit: Load Pavilion demo, exercise Exploded View controls & capture states
+    await page.goto(`${baseUrl}/viewer?demo=pavilhao`, { waitUntil: "networkidle" });
+    await page.locator(".gg-topbar__model .gg-badge", { hasText: /GLB \+ Manifesto/i }).waitFor({ timeout: 10000 });
+    await page.waitForTimeout(500);
+    await page.screenshot({ path: path.join(outDir, "12-v04-pavilion-assembled.png") });
+
+    // Open Explode Panel via Toolbar
+    await page.getByRole("button", { name: /^Explodir$/i }).click();
+    await page.locator(".gg-explode-popover").waitFor({ state: "visible", timeout: 5000 });
+
+    // Partial explosion via slider
+    const slider = page.locator(".gg-explode-popover input[type='range']");
+    await slider.fill("0.45");
+    await page.waitForTimeout(250);
+    await page.screenshot({ path: path.join(outDir, "13-v04-pavilion-partial-explode.png") });
+    await page.locator(".gg-kv-row dt", { hasText: /Envolvente explodida/i }).waitFor({ timeout: 5000 });
+
+    // Full explosion via axial Z mode + preset
+    await page.getByRole("button", { name: /^Axial$/i }).click();
+    await page.getByRole("button", { name: /^Z \(Vert\.\)$/i }).click();
+    await page.getByRole("button", { name: /^Completa$/i }).click();
+    await page.waitForTimeout(900);
+    await page.screenshot({ path: path.join(outDir, "14-v04-pavilion-full-explode-dark.png") });
+
+    // Select component in tree while exploded, hide/showAll, fit view
+    await page.locator('.gg-tree-select-btn', { hasText: "Viga Composta Central" }).first().click();
+    await page.waitForTimeout(150);
+    await page.keyboard.press("f");
+    await page.waitForTimeout(200);
+    await page.getByRole("button", { name: /^Ocultar$/i }).first().click();
+    await page.waitForTimeout(100);
+    await page.getByRole("button", { name: /^Mostrar tudo$/i }).first().click();
+
+    // Restore assembly cleanly via button
+    await page.getByRole("button", { name: /Restaurar \(0%\)/i }).click();
+    await page.waitForTimeout(200);
+
+    // Light theme + Explode audit
+    await page.getByRole("button", { name: /^Média$/i }).click();
+    await page.waitForTimeout(800);
+    await page.locator(".gg-theme-toggle").click();
+    await page.waitForTimeout(250);
+    await page.screenshot({ path: path.join(outDir, "15-v04-pavilion-exploded-light.png") });
+    const axeExplodeLight = await new AxeBuilder({ page }).analyze();
+    await page.locator(".gg-theme-toggle").click();
+    await page.waitForTimeout(150);
+
+    // Notebook 1366x768 check
+    await page.setViewportSize({ width: 1366, height: 768 });
+    await page.waitForTimeout(250);
+    const notebookMetrics = await page.evaluate(() => ({
+      scrollWidth: document.documentElement.scrollWidth,
+      innerWidth: window.innerWidth,
+    }));
+
+    // Tablet Landscape & Portrait with touch context check
+    const touchContext = await browser.newContext({
+      viewport: { width: 1024, height: 768 },
+      hasTouch: true,
+      isMobile: true,
+      colorScheme: "dark",
+    });
+    const touchPage = await touchContext.newPage();
+    await touchPage.goto(`${baseUrl}/viewer?demo=pavilhao`, { waitUntil: "networkidle" });
+    await touchPage.locator("canvas").waitFor({ state: "visible", timeout: 10000 });
+    await touchPage.waitForTimeout(450);
+    await touchPage.getByRole("button", { name: /^Explodir$/i }).tap();
+    await touchPage.locator(".gg-explode-popover").waitFor({ state: "visible", timeout: 5000 });
+    await touchPage.getByRole("button", { name: /^Completa$/i }).tap();
+    await touchPage.waitForTimeout(800);
+    await touchPage.screenshot({ path: path.join(outDir, "16-v04-tablet-touch-exploded.png") });
+    await touchPage.setViewportSize({ width: 768, height: 1024 });
+    await touchPage.waitForTimeout(300);
+    const tabletTouchMetrics = await touchPage.evaluate(() => ({
+      scrollWidth: document.documentElement.scrollWidth,
+      innerWidth: window.innerWidth,
+    }));
+    await touchContext.close();
+
+    // Return to main page responsive checks
     await page.setViewportSize({ width: 1024, height: 768 });
     await page.waitForTimeout(400);
     await page.screenshot({ path: path.join(outDir, "07-tablet-landscape.png") });
@@ -229,6 +309,8 @@ async function main() {
     const summary = {
       outDir,
       desktopMetrics,
+      notebookMetrics,
+      tabletTouchMetrics,
       mobileMetrics,
       consoleErrors,
       pageErrors,
@@ -238,6 +320,7 @@ async function main() {
         home: summarizeAxe(axeHome),
         viewerDark: summarizeAxe(axeViewerDark),
         viewerLight: summarizeAxe(axeViewerLight),
+        explodeLight: summarizeAxe(axeExplodeLight),
       },
     };
     console.log(JSON.stringify(summary, null, 2));
@@ -248,11 +331,14 @@ async function main() {
       failedRequests.length > 0 ||
       externalRequests.length > 0 ||
       desktopMetrics.scrollWidth > desktopMetrics.innerWidth ||
+      notebookMetrics.scrollWidth > notebookMetrics.innerWidth ||
+      tabletTouchMetrics.scrollWidth > tabletTouchMetrics.innerWidth ||
       mobileMetrics.scrollWidth > mobileMetrics.innerWidth ||
       desktopMetrics.toolbarAxesOverlap ||
       summary.axeViolations.home.length > 0 ||
       summary.axeViolations.viewerDark.length > 0 ||
-      summary.axeViolations.viewerLight.length > 0;
+      summary.axeViolations.viewerLight.length > 0 ||
+      summary.axeViolations.explodeLight.length > 0;
 
     if (hasFailures) {
       process.exitCode = 1;

@@ -103,3 +103,12 @@ Codex começa com v0.0 e fatia v0.1. Antigravity prepara UI responsiva depois qu
 - **V0.2 (Interação geométrica):** concluída com IDs estáveis (`userData.geogenElementId` + chave determinística fallback + suporte a compósitos multi-malha e instâncias), picking por raycasting diferenciando arraste de clique/toque, multi-seleção, destaque não destrutivo, sincronização bidirecional viewport ↔ árvore, árvore hierárquica com abas `Componentes` / `Camadas` / `Grupos`, busca por nome/ID, virtualização acima de 100 linhas, ocultação/isolamento/restauração com estado parcial (`partial`), enquadramento de seleção e propriedades com separação de proveniência (`Malha`, `CAD`, `Manifesto`).
 - **V0.3 (Pipeline de importação e contrato Rhino 8):** concluída com entrega prioritária da pasta `exporter-contract/`, comparativo de formatos (`FORMAT_COMPARISON.md`), validação JSON Schema 2020-12 + regras semânticas estritas (`ajv`), verificação `SHA-256`, suporte dual GLB-only e GLB+JSON sem fallback silencioso, testes unitários/integração e benchmark sintético até 10.000 componentes (`PERFORMANCE_REPORT.md`).
 - **Fora de escopo respeitado:** explosão (`v0.4`), montagem animada (`v0.5`), planos de corte e medição (`v0.6`) e deploy de produção permanecem reservados.
+
+
+## Registro de Aceite — Sprint 04 (V0.4 — Vista Explodida) · 25/11/2026
+
+- **Motor e modos:** `ExplodedViewController` concluído com modos **Radial**, **Axial (X/Y/Z na convenção CAD)**, **Direcional** (vetor CAD ou `explodeOffsetM`/`assemblyDirectionM` do manifesto v1.0.0) e **Hierárquica**; restauração exata em `factor = 0` e proteção contra deriva e dupla transformação pai-filho.
+- **Escopo e granularidade:** separação clara entre escopo (`all`, `selection`, `layer`, `group`) e granularidade (`component`, `layer`, `group`), com deduplicação determinística para grupos sobrepostos.
+- **Integração e linhas de referência:** seleção, raycasting, hover, ocultação, isolamento, enquadramento (`Fit` considerando pose explodida), propriedades (diferenciando AABB original vs. visual temporária) e linhas de referência tracejadas em lote único.
+- **Demonstração independente:** `pavilhao-explosao.glb` + `pavilhao-explosao.manifest.json` (18 componentes com fundação, pilares, vigas longitudinais, viga composta, lajes, escada composta, conectores instanciados e grupos sobrepostos).
+- **Fora de escopo respeitado:** timeline construtiva (`v0.5`), corte/medição (`v0.6`), colisão/física, edição CAD e alteração do contrato externo v1.0.0 não foram introduzidos.

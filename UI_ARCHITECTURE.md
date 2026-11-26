@@ -237,3 +237,12 @@ Para não alterar unilateralmente `DATA_SCHEMA.md`, ficam registradas para avali
 1. Campo opcional `colorHex` em `layers` / `materials` para colorização consistente na árvore e modos diagramáticos.
 2. Presets opcionais de câmera (`savedViews`: nome, posição, alvo) úteis para demonstração guiada da Casa Gerassi em tablet.
 3. Suporte a `i18n` opcional em rótulos autorados (`title` / `description`) caso o projeto seja apresentado em inglês no futuro.
+
+
+---
+
+## 7. Extensão da Interface na Sprint 04 (V0.4 — Vista Explodida)
+
+- **Toolbar (`ViewerToolbar`):** botão **Explodir** (`E`) ativado em desktop, tablet e smartphone (`aria-pressed`), mantendo `Corte (v0.6)` e `Medir (v0.6)` desabilitados.
+- **Painel flutuante (`ExplodePanel`):** posicionado acima da toolbar sem adicionar um terceiro painel lateral fixo; contém slider contínuo (`0.00..1.50`), campo numérico sincronizado, presets (`Montado`, `Leve`, `Média`, `Completa`), controles `Play`/`Pausar`/`Restaurar`, seletor de modo/eixo CAD/vetor direcional, seletores distintos de Escopo e Granularidade, e alternância de Linhas de referência. Em `pointer: coarse` / `< 1024px`, todos os controles atendem altura mínima de `44px`.
+- **Estado V0.4 (`useViewerStore`):** armazena exclusivamente parâmetros (`explode`), abertura (`explodeOpen`), pedido de transição (`explodeTransition`) e `explodedBoundsMeters` (para exibição claramente marcada como *Visualização temporária* em `PropertiesContent`). O estado é zerado automaticamente na troca de modelo (`setSceneGraph`).

@@ -26,3 +26,17 @@
 
 - Os números acima medem importação, validação e estruturas em memória CPU no Node.js 22 sem instanciamento WebGL real de GPU para 10.000 draw calls individuais.
 - Cenas reais com 10.000 draw calls não-instanciadas dependem do orçamento de GPU/driver do dispositivo; instanciamento (`InstancedMesh`) ou LOD permanecem candidatos para etapas futuras se modelos reais da Casa Gerassi exigirem.
+
+
+## 4. Métricas da Vista Explodida — Sprint 04 (V0.4)
+
+**Script reproduzível:** `node --experimental-strip-types geogenviewer/scripts/benchmark-explode.mjs`  
+**Comparação:** utiliza cenas sintéticas equivalentes (100, 1.000 e 10.000 componentes) para medir preparação do `ExplodedViewController`, média por frame durante 60 quadros de animação contínua (`applyFactor`), atualização em lote único do buffer `Float32Array` das linhas de referência e restauração exata ao fator zero (`reset`).
+
+| Componentes | Preparo + Snapshot (ms) | `applyFactor` médio / frame (ms) | Linhas de Ref. em lote / frame (ms) | `reset()` (ms) | Δ Heap Node (MB) |
+|---:|---:|---:|---:|---:|---:|
+| 100 | 3,16 | 0,135 | 0,019 | 0,050 | -3,78 |
+| 1.000 | 4,01 | 0,113 | 0,008 | 0,063 | 5,41 |
+| 10.000 | 35,87 | 1,118 | 0,127 | 1,185 | -20,31 |
+
+*(Nota: métricas medidas em CPU no Node.js 22 sem renderização GPU/rasterização WebGL real de 10.000 draw calls individuais; ver `EXPLODED_VIEW_ENGINE.md` para detalhes de alocação zero por quadro.)*

@@ -1,58 +1,45 @@
 # HANDOFF.md — Estado Atual do Projeto
 
 **Data:** 25/11/2026  
-**Branch ativa:** `feat/v0.2-v0.3-import-pipeline` (ramificada a partir de `feat/viewer-bootstrap`, commit `cf32e33`)  
+**Branch ativa:** `feat/v0.4-exploded-view` (ramificada após `6a9ab0e`)  
 **Responsável pelas decisões:** Fernando Braga
 
-## 1. Resumo da Sprint 03 (V0.2 + V0.3)
+## 1. Resumo da Sprint 04 (V0.4 — Vista Explodida Interativa)
 
-As etapas **V0.2 (Interação Geométrica)** e **V0.3 (Pipeline de Importação e Contrato do Exportador)** foram implementadas e validadas, preservando o design system editorial, o tema claro/escuro em `light-dark()`, os primitivos `@base-ui/react` + `vaul` + `cmdk` + `react-resizable-panels` e zero violações no `axe-core`.
+A etapa **V0.4 — Exploded View Engine & Interactive Inspection** foi implementada, testada e auditada visualmente em temas claro e escuro, preservando integralmente o contrato externo v1.0.0 (`exporter-contract/`), os sistemas da V0.2/V0.3 e o design system editorial do portfólio.
 
-### Entregável prioritário para o exportador externo (ChatGPT Web / Rhino 8)
+### O que foi entregue
 
-Pasta autocontida em `exporter-contract/`:
-- `exporter-contract/EXPORTER_CONTRACT.md`
-- `exporter-contract/DATA_SCHEMA.md`
-- `exporter-contract/FORMAT_COMPARISON.md`
-- `exporter-contract/manifest.schema.json` (JSON Schema Draft 2020-12)
-- `exporter-contract/manifest.example.json`
-- `exporter-contract/model.example.glb` (SHA-256 `d410ee9c444ce67d7748bb6b5626ce677583392f3dca3e19f3aa74c5d36eb8d2`)
+1. **Pesquisa e arquitetura (`EXPLODED_VIEW_RESEARCH.md`, `EXPLODED_VIEW_ENGINE.md`, `EXPLODED_VIEW_TEST_GUIDE.md`):**
+   - Comparação técnica com CraftBot (`2d52c09288c34f8b0e95157c213c4ed883ef59eb`), Autodesk Inventor/Fusion, SolidWorks, Shapr3D, Onshape, Rhino 8, Blender e Speckle.
+   - Especificação de preservação de pose de repouso, compensação de hierarquia e conversão explícita `CAD (Z-up)` → `glTF (Y-up)`.
 
-Cópias de demonstração acessíveis diretamente pela interface `/viewer`:
-- `geogenviewer/public/demos/contrato-exemplo.glb`
-- `geogenviewer/public/demos/contrato-exemplo.manifest.json`
+2. **Motor de Explosão (`geogenviewer/src/lib/geogen/explode/controller.ts`):**
+   - `ExplodedViewController`: captura snapshot imutável de repouso (`restLocalPosition`, `restWorldBox`, inversa linear `3×3` dos ancestrais), executando deslocamentos sem deriva acumulada nem dupla aplicação em filhos aninhados.
+   - Modos implementados: **`radial`** (com detecção de clusters coincidentes e fallback determinístico pelo ângulo áureo), **`axial`** (`X`, `Y`, `Z` seguindo convenção CAD do `EXPORTER_CONTRACT.md`), **`directional`** (vetor CAD do usuário ou `explodeOffsetM`/`assemblyDirectionM` do manifesto v1.0.0) e **`hierarchical`**.
+   - Separação explícita entre **Escopo** (`all`, `selection`, `layer`, `group`) e **Granularidade** (`component`, `layer`, `group`) com deduplicação de grupos sobrepostos.
 
-## 2. O que foi implementado
+3. **Integração 3D, linhas de referência e animação (`viewport.tsx`, `viewer-store.ts`):**
+   - Seleção por raycasting, hover, ocultação, isolamento e enquadramento (`Fit`) operando normalmente na pose explodida; seleção retorna exatamente o mesmo ID lógico e ignora peças ocultas.
+   - Linhas de referência tracejadas renderizadas em um único `THREE.LineSegments` pré-alocado (`raycast = () => {}`), adaptadas ao tema claro/escuro e à visibilidade.
+   - Animação suave via R3F `useFrame` (`frameloop="demand"`) com respeito a `prefers-reduced-motion` e sem atualizar Zustand nem reconstruir a árvore por frame.
 
-1. **Domínio, validação e importação (`geogenviewer/src/lib/geogen/`):**
-   - `domain/model.ts`: modelo de domínio serializável (`ManifestV1`, `ViewerSceneGraph`, `ComponentRecord`, `LayerRecord`, `GroupRecord`, `computeVisibilityState`).
-   - `validation/manifest.ts`: validação executável via `ajv` (`schemas/manifest-v1.schema.json`) + validações semânticas (SemVer major/minor, finitude numérica, bloqueio de HTML/script, IDs únicos, ciclos, referências quebradas, `isClosed: false` com `volumeM3: null`, ordem de dependências de montagem).
-   - `importers/package.ts`: `importGlbBasicPackage`, `importGlbWithManifestPackage`, `sha256Hex`, vínculo estrito por `extras | nameExact | namePrefix`, desambiguação diagnóstica no modo básico, compósitos multi-malha e instâncias compartilhadas.
+4. **Interface flutuante e modelo demonstrativo (`explode-panel.tsx`, `viewer-toolbar.tsx`, `command-palette.tsx`, `viewer-panels.tsx`):**
+   - Botão **`Explodir`** (`E`) habilitado na toolbar (desktop/tablet/smartphone) abrindo popover compacto (`0.00..1.50`, presets, animação Play/Pausar/Restaurar, modos/eixos/vetor, escopo/granularidade e linhas de referência).
+   - `PropertiesContent` exibe claramente **Envolvente original (modelo)** vs. **Envolvente explodida (visual)** marcada como **Visualização temporária**.
+   - Demonstração estrutural sintética independente em `geogenviewer/public/demos/pavilhao-explosao.glb` e `pavilhao-explosao.manifest.json` (`18` elementos cobrindo fundação, pilares, vigas longitudinais, viga composta, lajes, escada composta, conectores instanciados e grupos sobrepostos, SHA-256 `d9ef9f869219ec0616d3a1433e412d9961f207752b1e772eb04df810dbc57e1c`).
 
-2. **Estado e árvore (`geogenviewer/src/features/viewer/`):**
-   - `state/viewer-store.ts`: store `zustand` v5.1.0 apenas com IDs e grafo serializável (seleção única/múltipla, hover, ocultar/mostrar/isolar/mostrar tudo, expandir/recolher, abas, busca, multi-seleção).
-   - `tree/build-rows.ts`: construção pura da árvore para `Componentes`, `Camadas` e `Grupos` com filtragem preservando ancestrais.
-   - `components/viewer-panels.tsx`: árvore interativa com virtualização automática acima de 100 linhas, estados de visibilidade (`visible`, `hidden`, `partial`), enquadramento por item e painel de propriedades com proveniência explícita (`Malha`, `CAD`, `Manifesto`).
+## 2. Verificações Executadas após a Última Edição de Código
 
-3. **Viewport 3D e UI (`geogenviewer/src/features/viewer/`):**
-   - `scene/viewport.tsx`: picking por raycasting diferenciando arraste de clique/toque (`< 6px`, ignora gesto multi-toque), hover em mouse, destaque não destrutivo com descarte de materiais temporários, controle de visibilidade por renderizável e enquadramento de seleção (`targetIds`).
-   - `viewer.tsx`, `components/viewer-topbar.tsx`, `components/viewer-toolbar.tsx`, `components/command-palette.tsx`, `copy.ts`, `components/icons.tsx`, `app/globals.css`: entrada dual `.glb` + `.json` (arquivo múltiplo e drag-and-drop), botão/demo `Demo GLB + JSON`, diálogo de escolha explícita quando o manifesto falha (sem fallback silencioso), barra e atalhos (`H`, `I`, `A`, `F`, `R`, `Esc`) mantendo ferramentas `v0.4`/`v0.6` desabilitadas.
-
-4. **Documentação e benchmark adicionados:**
-   - `IMPORT_PIPELINE.md` e `PERFORMANCE_REPORT.md` na raiz do repositório.
-   - `geogenviewer/scripts/generate-contract-example.mjs`, `geogenviewer/scripts/benchmark-scenes.mjs`, `geogenviewer/tests/v02-v03.test.mjs`.
-
-## 3. Verificações Executadas
-
-- `npm --prefix geogenviewer run typecheck`: aprovado (`0` erros; `"allowImportingTsExtensions": true` habilitado em `tsconfig.json` para compartilhar imports `.ts` com Node `--experimental-strip-types`).
+- `npm --prefix geogenviewer run typecheck`: aprovado (`0` erros).
 - `npm --prefix geogenviewer run lint`: aprovado (`0` erros, `0` warnings).
-- `npm --prefix geogenviewer test`: **7/7 testes aprovados** (`glb.test.mjs` + `v02-v03.test.mjs`).
-- `node --experimental-strip-types geogenviewer/scripts/benchmark-scenes.mjs`: 100 / 1.000 / 10.000 componentes medidos (import completo + SHA-256 em 170,43 ms e achatamento de árvore em 4,50 ms para 10.000 peças; ver `PERFORMANCE_REPORT.md`).
-- `npm --prefix geogenviewer run build`: build de produção Next.js aprovado (`/`, `/_not-found`, `/viewer`).
-- `npm --prefix geogenviewer run test:ui` (Playwright + Chrome headless SwiftShader + `@axe-core/playwright`): aprovado em desktop dark/light (`1440×900`), tablet (`1024×768` e `768×1024`) e smartphone (`390×844`) com `0` erros de console/página, `0` requisições externas, carregamento e inspeção de `contrato-exemplo.glb + .manifest.json`, teste de manifesto inválido + fallback explícito e **`0` violações `axe-core`**.
+- `npm --prefix geogenviewer test`: **13/13 testes aprovados** (`glb.test.mjs` + `v02-v03.test.mjs` + `v04-explode.test.mjs`, cobrindo todos os cenários da Fase J e casos degenerados).
+- `node --experimental-strip-types geogenviewer/scripts/benchmark-explode.mjs`: 100 / 1.000 / 10.000 componentes medidos (preparo `35,87 ms`, atualização média `1,118 ms/frame` e linhas `0,127 ms/frame` em 10.000 peças; ver `PERFORMANCE_REPORT.md`).
+- `npm --prefix geogenviewer run build`: build de produção Next.js `16.4.6` (Turbopack) aprovado (`/`, `/_not-found`, `/viewer`).
+- `npm --prefix geogenviewer run test:ui`: aprovado em `1440×900`, `1366×768`, `1024×768`, `768×1024` (incluindo contexto `hasTouch`) e `390×844` nos temas claro e escuro, com `0` erros de console/página, `0` requisições externas, zero overflow e **`0` violações `axe-core`**.
 
-## 4. Limitações Conhecidas e Próximo Passo
+## 3. Limitações e Próximo Passo (V0.5)
 
-- `benchmark-scenes.mjs` mede CPU/importação/estrutura no Node.js; medições com 10.000 draw calls reais em WebGL dependem da GPU do dispositivo alvo.
-- Não foi realizado push nem merge na `main` sem autorização explícita do responsável.
-- **Próximo passo recomendado (V0.4):** implementar vista explodida (`explodeOffsetM` já reservado em `ManifestV1`), leitura real do protótipo da Casa Gerassi quando exportado pelo `GeoGenExporter` v1.0 e refinamento de métricas/instanciamento conforme o modelo real.
+- A validação touch e responsiva foi realizada via emulação Playwright/Chrome; ainda requer validação em dispositivo tablet físico quando disponível.
+- Não foi alterado o contrato externo (`exporter-contract/`, `manifest.schema.json`, `DATA_SCHEMA.md`, `EXPORTER_CONTRACT.md`); nenhum script Python do exportador foi escrito.
+- **Próximo passo recomendado (V0.5):** implementar timeline de montagem construtiva guiada por `assembly.steps[]` + dependências (`dependsOn`), garantindo exclusividade mútua clara com a vista explodida (ambas partindo das poses de repouso imutáveis) e testes com o primeiro protótipo real da Casa Gerassi quando exportado pelo `GeoGenExporter`.
