@@ -19,7 +19,6 @@ import { ThemeToggle } from "../viewer/components/theme-toggle";
 import { BrandMarkIcon } from "../viewer/components/icons";
 import {
   GEOGEN_CONTRACT_VERSION,
-  GEOGEN_REPO_URL,
   GEOGEN_VERSION_LABEL,
 } from "../../lib/geogen/version";
 import {
@@ -348,14 +347,6 @@ export function HomeLaunchpad() {
           <Link href="/viewer" className="gg-home-nav__link gg-home-nav__link--viewer">
             Visualizador
           </Link>
-          <a
-            href={GEOGEN_REPO_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="gg-home-nav__link"
-          >
-            GitHub
-          </a>
           <ThemeToggle />
         </nav>
       </header>
