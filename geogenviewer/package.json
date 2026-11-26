@@ -10,6 +10,8 @@
         "typecheck": "tsc --noEmit",
         "test": "node --experimental-strip-types --test tests/*.test.mjs",
         "test:ui": "node scripts/verify-ui.mjs",
+        "test:v05": "node scripts/verify-v05.mjs",
+        "benchmark:v05": "node --experimental-strip-types scripts/benchmark-v05.mjs",
         "fixture": "node scripts/generate-demo.mjs"
     },
     "dependencies": {

@@ -9,6 +9,8 @@ import {
 } from "../../../lib/geogen/domain/model";
 import { copy } from "../copy";
 import { useViewerStore, type TreeTab } from "../state/viewer-store";
+import { useAssembly } from "../state/assembly-store";
+import { useEffectiveVisibility } from "../state/visibility-state";
 import { buildTreeRows, type TreeRowItem } from "../tree/build-rows";
 import {
   ChevronDownIcon,
@@ -79,7 +81,8 @@ export function StructureContent({
   const sceneGraph = useViewerStore((s) => s.sceneGraph);
   const selectedIds = useViewerStore((s) => s.selectedIds);
   const hoveredId = useViewerStore((s) => s.hoveredId);
-  const hiddenIds = useViewerStore((s) => s.hiddenIds);
+  const { hidden: hiddenIds } = useEffectiveVisibility();
+  const manifest = useAssembly((state) => state.source);
   const isolatedIds = useViewerStore((s) => s.isolatedIds);
   const expandedIds = useViewerStore((s) => s.expandedIds);
   const treeTab = useViewerStore((s) => s.treeTab);
@@ -99,8 +102,8 @@ export function StructureContent({
   const showAll = useViewerStore((s) => s.showAll);
 
   const rows = useMemo(
-    () => buildTreeRows(sceneGraph, treeTab, searchQuery, expandedIds),
-    [expandedIds, sceneGraph, searchQuery, treeTab]
+    () => buildTreeRows(sceneGraph, treeTab, searchQuery, expandedIds, new Map(manifest?.blocks?.map((block) => [block.id, block.name]))),
+    [expandedIds, manifest, sceneGraph, searchQuery, treeTab]
   );
 
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
@@ -347,6 +350,17 @@ export function StructureContent({
               </button>
             ))}
           </div>
+
+          <label className="gg-browser-grouping">
+            <span className="visually-hidden">Agrupar por</span>
+            <select value={["categories", "materials", "blocks"].includes(treeTab) ? treeTab : ""}
+              onChange={(event) => setTreeTab((event.currentTarget.value || "hierarchy") as TreeTab)}>
+              <option value="">Mais agrupamentos</option>
+              <option value="categories">Categorias</option>
+              <option value="materials">Materiais</option>
+              <option value="blocks">Blocos e instâncias</option>
+            </select>
+          </label>
 
           <div className="gg-tree-meta-bar">
             <span className="gg-tree-meta-bar__summary">
@@ -995,12 +1009,10 @@ export function PropertiesContent({
 export function PanelHeader({
   icon,
   title,
-  badge,
   onClose,
 }: {
   icon: React.ReactNode;
   title: string;
-  badge: string;
   onClose: () => void;
 }) {
   return (
@@ -1008,7 +1020,6 @@ export function PanelHeader({
       <div className="gg-panel__title-group">
         {icon}
         <span>{title}</span>
-        <span className="gg-badge gg-badge--accent gg-mono">{badge}</span>
       </div>
       <button
         type="button"
@@ -1034,7 +1045,6 @@ export function LeftHierarchyPanel({
       <PanelHeader
         icon={<HierarchyIcon size={15} strokeWidth={1.75} />}
         title={copy.panelStructure}
-        badge="v0.2"
         onClose={onClose}
       />
       <StructureContent onFrameIds={onFrameIds} />
@@ -1057,7 +1067,6 @@ export function RightPropertiesPanel({
       <PanelHeader
         icon={<SlidersIcon size={15} strokeWidth={1.75} />}
         title={copy.panelProperties}
-        badge="v0.3"
         onClose={onClose}
       />
       <PropertiesContent onFrameIds={onFrameIds} />

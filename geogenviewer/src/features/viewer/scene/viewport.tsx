@@ -6,21 +6,23 @@ import {
   Box3,
   BufferAttribute,
   BufferGeometry,
-  Color,
+  GridHelper,
   LineDashedMaterial,
   LineSegments,
-  MOUSE,
-  PerspectiveCamera,
+  Object3D,
   Raycaster,
   Sphere,
-  TOUCH,
   Vector2,
   Vector3,
-  type Material,
-  type Mesh,
-  type Object3D,
 } from "three";
-import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { AssemblyPose } from "../../../lib/geogen/assembly/pose";
+import { useAssembly } from "../state/assembly-store";
+import { usePresentation } from "../state/presentation-store";
+import { useViewerStore } from "../state/viewer-store";
+import { viewportScope } from "../state/viewport-scopes";
+import { resolveVisibility } from "../state/visibility-state";
+import { SceneDisplay } from "./display";
+import { useViewportCameras } from "./viewport-cameras";
 import {
   ExplodedViewController,
   type ExplodeParams,
@@ -36,46 +38,8 @@ export type CameraCommand = {
 
 export type NavigationMode = "orbit" | "pan";
 
-const initialDirection = new Vector3(1.3, 0.9, 1.5).normalize();
-const selectionTint = new Color("#5cb3e8");
-const hoverTint = new Color("#89c9ee");
 const dragThresholdPx = 6;
 const boundsTmpSize = new Vector3();
-
-interface HighlightEntry {
-  selected: Material;
-  hovered: Material;
-}
-
-function isRenderableObject(obj: Object3D): boolean {
-  const candidate = obj as {
-    isMesh?: boolean;
-    isLine?: boolean;
-    isPoints?: boolean;
-  };
-  return Boolean(candidate.isMesh || candidate.isLine || candidate.isPoints);
-}
-
-function createTintedMaterial(
-  base: Material,
-  mode: "selected" | "hovered"
-): Material {
-  const cloned = base.clone();
-  const std = cloned as Material & {
-    emissive?: Color;
-    emissiveIntensity?: number;
-    color?: Color;
-  };
-  const tint = mode === "selected" ? selectionTint : hoverTint;
-  if (std.emissive && typeof std.emissive.copy === "function") {
-    std.emissive.copy(tint);
-    std.emissiveIntensity = mode === "selected" ? 0.5 : 0.24;
-  } else if (std.color && typeof std.color.lerp === "function") {
-    std.color.lerp(tint, mode === "selected" ? 0.55 : 0.28);
-  }
-  cloned.needsUpdate = true;
-  return cloned;
-}
 
 function resolveRefLineHex(): string {
   if (typeof document === "undefined") return "#8ec8ea";
@@ -89,62 +53,22 @@ function resolveRefLineHex(): string {
   return prefersDark ? "#89c8fa" : "#1d5f82";
 }
 
-function applyCameraCommand(
-  camera: PerspectiveCamera,
-  controls: OrbitControls,
-  controller: ExplodedViewController,
-  hiddenIds: readonly string[],
-  isolatedIds: readonly string[] | null,
-  command: CameraCommand,
-  aspect: number
-) {
-  if (command.kind === "closer" || command.kind === "farther") {
-    const offset = camera.position.clone().sub(controls.target);
-    const distance = offset.length() * (command.kind === "closer" ? 0.8 : 1.25);
-    camera.position
-      .copy(controls.target)
-      .add(
-        offset.setLength(
-          Math.min(controls.maxDistance, Math.max(controls.minDistance, distance))
-        )
-      );
-  } else {
-    const isExploded = controller.factor > 1e-6;
-    const hiddenSet = new Set(hiddenIds);
-    const isolatedSet = isolatedIds ? new Set(isolatedIds) : null;
-    const bounds =
-      command.kind === "reset"
-        ? controller.computeBounds({ exploded: isExploded }, new Box3())
-        : controller.computeBounds(
-            {
-              exploded: isExploded,
-              targetIds: command.targetIds,
-              hiddenSet,
-              isolatedSet,
-            },
-            new Box3()
-          );
-    const sphere = bounds.getBoundingSphere(new Sphere());
-    const radius = Math.max(sphere.radius, 0.000001);
-    const vertical = (camera.fov * Math.PI) / 360;
-    const horizontal = Math.atan(Math.tan(vertical) * Math.max(aspect, 0.01));
-    const distance = (1.16 * radius) / Math.sin(Math.min(vertical, horizontal));
-    const direction =
-      command.kind === "reset"
-        ? initialDirection
-        : camera.position.clone().sub(controls.target).normalize();
-    controls.target.copy(sphere.center);
-    camera.position.copy(sphere.center).addScaledVector(direction, distance);
-
-    const modelSphere = controller.restSceneBounds.getBoundingSphere(new Sphere());
-    const modelRadius = Math.max(modelSphere.radius, 0.000001);
-    controls.minDistance = Math.min(radius, modelRadius) * 0.02;
-    controls.maxDistance = Math.max(distance, modelRadius * 4) * 30;
-    camera.near = Math.min(radius, modelRadius) * 0.001;
-    camera.far = controls.maxDistance + 4 * modelRadius;
-    camera.updateProjectionMatrix();
+function fitBounds(scenePackage: LoadedScenePackage, controller: ExplodedViewController, hidden: readonly string[], isolated: readonly string[] | null, command: CameraCommand) {
+  if (command.kind === "reset") return controller.restSceneBounds;
+  if (useViewerStore.getState().workspace !== "assembly") {
+    return controller.computeBounds({
+      exploded: controller.factor > 1e-6, targetIds: command.targetIds,
+      hiddenSet: new Set(hidden), isolatedSet: isolated ? new Set(isolated) : null,
+    }, new Box3());
   }
-  controls.update();
+  const bounds = new Box3();
+  const hiddenSet = new Set(hidden);
+  const isolatedSet = isolated ? new Set(isolated) : null;
+  for (const id of command.targetIds ?? scenePackage.sceneGraph.componentOrder) {
+    const root = scenePackage.objectByComponentId.get(id);
+    if (root && !hiddenSet.has(id) && (!isolatedSet || isolatedSet.has(id))) bounds.expandByObject(root);
+  }
+  return bounds.isEmpty() ? controller.restSceneBounds : bounds;
 }
 
 function SceneController({
@@ -184,12 +108,16 @@ function SceneController({
   onHover: (id: string | null) => void;
   onContextLost: () => void;
 }) {
-  const { camera, gl, scene: rootScene, invalidate, get } = useThree();
-  const controlsRef = useRef<OrbitControls>(null);
-  const originalMaterialsRef = useRef<WeakMap<Object3D, Material | Material[]>>(
-    new WeakMap()
-  );
-  const tintCacheRef = useRef<Map<Material, HighlightEntry>>(new Map());
+  const { gl, scene: rootScene, invalidate } = useThree();
+  const sphere = useMemo(() => controller.restSceneBounds.getBoundingSphere(new Sphere()), [controller]);
+  const beforeDraw = useRef<(slot: number) => void>(null);
+  const onDraw = useCallback((slot: number) => beforeDraw.current?.(slot), []);
+  const cameras = useViewportCameras(sphere, onContextLost, onDraw);
+  const assemblyPose = useMemo(() => new AssemblyPose(scenePackage.model.scene, scenePackage.objectByComponentId), [scenePackage]);
+  const workspace = useViewerStore((state) => state.workspace);
+  const display = usePresentation((state) => state.display);
+  const lastAppliedAssembly = useRef<{ time: number; timeline: ReturnType<typeof useAssembly.getState>["timeline"]; ghost: boolean; solo: number | null } | null>(null);
+  const appliedCommand = useRef<CameraCommand | null>(null);
 
   const callbacksRef = useRef({
     onSelect,
@@ -294,44 +222,15 @@ function SceneController({
   }>({ active: false, from: 0, to: 0, progress: 0, duration: 0.55 });
 
   useEffect(() => {
-    const canvas = gl.domElement;
-    const controls = new OrbitControls(camera, canvas);
-    controlsRef.current = controls;
-    const onChange = () => invalidate();
-    controls.addEventListener("change", onChange);
-    canvas.setAttribute("tabindex", "0");
-    controls.listenToKeyEvents(canvas);
-    canvas.addEventListener("webglcontextlost", onContextLost);
-    return () => {
-      controlsRef.current = null;
-      controls.removeEventListener("change", onChange);
-      controls.dispose();
-      canvas.removeEventListener("webglcontextlost", onContextLost);
-    };
-  }, [camera, gl, invalidate, onContextLost]);
+    cameras.current?.mode(mode === "pan");
+  }, [cameras, mode]);
 
   useEffect(() => {
-    const controls = controlsRef.current;
-    if (!controls) return;
-    controls.mouseButtons.LEFT = mode === "pan" ? MOUSE.PAN : MOUSE.ROTATE;
-    controls.touches.ONE = mode === "pan" ? TOUCH.PAN : TOUCH.ROTATE;
-  }, [camera, gl, mode]);
-
-  useEffect(() => {
-    const controls = controlsRef.current;
-    if (!controls) return;
-    const { width, height } = get().size;
-    applyCameraCommand(
-      camera as PerspectiveCamera,
-      controls,
-      controller,
-      visibilityRef.current.hiddenIds,
-      visibilityRef.current.isolatedIds,
-      command,
-      width / Math.max(height, 1)
-    );
-    invalidate();
-  }, [camera, command, controller, get, gl, invalidate]);
+    if (appliedCommand.current === command) return;
+    appliedCommand.current = command;
+    const bounds = fitBounds(scenePackage, controller, visibilityRef.current.hiddenIds, visibilityRef.current.isolatedIds, command);
+    cameras.current?.command(command.kind, bounds.getBoundingSphere(new Sphere()));
+  }, [cameras, command, controller, scenePackage]);
 
   const syncReferenceLines = useCallback(
     (
@@ -363,30 +262,60 @@ function SceneController({
     [controller]
   );
 
-  // Apply component visibility cleanly on renderables so isolating a child inside a hidden parent stays visible.
   useEffect(() => {
-    const hiddenSet = new Set(hiddenIds);
-    const isolatedSet = isolatedIds ? new Set(isolatedIds) : null;
-
-    scenePackage.model.scene.traverse((obj) => {
-      if (!isRenderableObject(obj)) return;
-      const id = scenePackage.resolveComponentId(obj);
-      if (!id) {
-        obj.visible = true;
-        return;
+    const sceneDisplay = new SceneDisplay(scenePackage);
+    let last: readonly unknown[] = [];
+    beforeDraw.current = (slot) => {
+      const view = usePresentation.getState();
+      const scene = useViewerStore.getState();
+      const assembly = useAssembly.getState();
+      const scope = viewportScope(slot);
+      const hovered = slot === view.active || view.shareSelection ? scene.hoveredId : null;
+      const inputs = [
+        view.display, scene.workspace, scope.selectedIds, hovered, scope.filters, scope.hiddenIds,
+        scope.isolatedIds, assembly.timeline, assembly.stepIndex, assembly.ghost, assembly.solo,
+      ];
+      const changed = inputs.some((value, index) => value !== last[index]);
+      if (changed) {
+        last = inputs;
+        const { denied, ghosts } = resolveVisibility(scenePackage.sceneGraph, scope, scene.workspace, assembly);
+        sceneDisplay.apply(view.display, new Set(scope.selectedIds), hovered, denied, scope.isolatedIds ? new Set(scope.isolatedIds) : null, ghosts);
+        if (!view.shareVisibility) syncReferenceLines(explodeRef.current.showReferenceLines, Array.from(denied), scope.isolatedIds);
       }
-      obj.visible = isolatedSet
-        ? isolatedSet.has(id) && !hiddenSet.has(id)
-        : !hiddenSet.has(id);
-    });
+    };
+    return () => {
+      beforeDraw.current = null;
+      sceneDisplay.dispose();
+      assemblyPose.reset();
+      animRef.current.active = false;
+      controller.reset();
+    };
+  }, [assemblyPose, controller, scenePackage, syncReferenceLines]);
 
-    syncReferenceLines(
-      explodeRef.current.showReferenceLines,
-      hiddenIds,
-      isolatedIds
-    );
+  useEffect(() => {
+    onDraw(usePresentation.getState().active);
+    syncReferenceLines(explodeRef.current.showReferenceLines, hiddenIds, isolatedIds);
     invalidate();
-  }, [hiddenIds, invalidate, isolatedIds, scenePackage, syncReferenceLines]);
+  }, [display, hiddenIds, hoveredId, invalidate, isolatedIds, onDraw, scenePackage, selectedIds, syncReferenceLines, workspace]);
+
+  useEffect(() => {
+    if (workspace === "assembly") return useAssembly.subscribe(() => invalidate());
+    lastAppliedAssembly.current = null;
+    assemblyPose.reset();
+  }, [assemblyPose, invalidate, workspace]);
+
+  useFrame(() => {
+    if (workspace !== "assembly") return;
+    const now = performance.now();
+    const time = useAssembly.getState().frame(now);
+    const { timeline, playback, ghost, solo } = useAssembly.getState();
+    const previous = lastAppliedAssembly.current;
+    if (!previous || previous.time !== time || previous.timeline !== timeline || previous.ghost !== ghost || previous.solo !== solo) {
+      assemblyPose.apply(timeline, time, solo, ghost);
+      lastAppliedAssembly.current = { time, timeline, ghost, solo };
+    }
+    if (playback.status === "playing") invalidate();
+  }, -1);
 
   // Apply non-destructive Exploded View transforms (when not inside an animated transition)
   const selectionKeyForScope = explode.scope === "selection" ? selectedIds.join(",") : "";
@@ -513,78 +442,7 @@ function SceneController({
     }
   });
 
-  // Apply non-destructive material highlight for selected and hovered components.
-  useEffect(() => {
-    const selectedSet = new Set(selectedIds);
-    const originalMap = originalMaterialsRef.current;
-    const tintCache = tintCacheRef.current;
 
-    const getTint = (base: Material, state: "selected" | "hovered"): Material => {
-      let entry = tintCache.get(base);
-      if (!entry) {
-        entry = {
-          selected: createTintedMaterial(base, "selected"),
-          hovered: createTintedMaterial(base, "hovered"),
-        };
-        tintCache.set(base, entry);
-      }
-      return entry[state];
-    };
-
-    scenePackage.model.scene.traverse((obj) => {
-      if (!isRenderableObject(obj)) return;
-      const renderable = obj as Mesh;
-      if (!renderable.material) return;
-
-      if (!originalMap.has(renderable)) {
-        originalMap.set(renderable, renderable.material);
-      }
-      const original = originalMap.get(renderable)!;
-      const compId = scenePackage.resolveComponentId(renderable);
-      const state: "selected" | "hovered" | null =
-        compId && selectedSet.has(compId)
-          ? "selected"
-          : compId && hoveredId === compId
-            ? "hovered"
-            : null;
-
-      if (!state) {
-        if (renderable.material !== original) {
-          renderable.material = original;
-        }
-        return;
-      }
-
-      renderable.material = Array.isArray(original)
-        ? original.map((mat) => getTint(mat, state))
-        : getTint(original, state);
-    });
-
-    invalidate();
-  }, [hoveredId, invalidate, scenePackage, selectedIds]);
-
-  // Cleanup cached highlight materials & restore rest pose on unmount
-  useEffect(() => {
-    const originalMap = originalMaterialsRef.current;
-    const tintCache = tintCacheRef.current;
-    return () => {
-      animRef.current.active = false;
-      controller.reset();
-      scenePackage.model.scene.traverse((obj) => {
-        if (!isRenderableObject(obj)) return;
-        const renderable = obj as Mesh;
-        const original = originalMap.get(renderable);
-        if (original) {
-          renderable.material = original;
-        }
-      });
-      for (const entry of tintCache.values()) {
-        entry.selected.dispose();
-        entry.hovered.dispose();
-      }
-      tintCache.clear();
-    };
-  }, [controller, scenePackage]);
 
   // Raycasting click/tap picking distinguishing orbit/pan drag from selection click/tap.
   useEffect(() => {
@@ -601,18 +459,20 @@ function SceneController({
     let multiTouch = false;
 
     function pickComponent(clientX: number, clientY: number): string | null {
-      const rect = canvas.getBoundingClientRect();
-      if (rect.width <= 0 || rect.height <= 0) return null;
-      pointerNdc.x = ((clientX - rect.left) / rect.width) * 2 - 1;
-      pointerNdc.y = -((clientY - rect.top) / rect.height) * 2 + 1;
-      raycaster.setFromCamera(pointerNdc, camera);
+      const hitRegion = cameras.current?.pick(clientX, clientY, pointerNdc);
+      if (!hitRegion) return null;
+      onDraw(hitRegion.slot);
+      raycaster.setFromCamera(pointerNdc, hitRegion.camera);
       const hits = raycaster.intersectObject(scenePackage.model.scene, true);
-      for (const hit of hits) {
-        if (!hit.object.visible) continue;
+      const { ghost, timeline, stepIndex, solo } = useAssembly.getState();
+      const ghostEnabled = useViewerStore.getState().workspace === "assembly" && ghost && solo === null;
+      const hitId = hits.find((hit) => {
+        if (!hit.object.visible) return false;
         const id = scenePackage.resolveComponentId(hit.object);
-        if (id) return id;
-      }
-      return null;
+        return id && (!ghostEnabled || (timeline.byElement.get(id) ?? -1) <= stepIndex);
+      });
+      onDraw(usePresentation.getState().active);
+      return hitId ? scenePackage.resolveComponentId(hitId.object) : null;
     }
 
     function onPointerDown(event: PointerEvent) {
@@ -688,7 +548,7 @@ function SceneController({
       canvas.removeEventListener("pointerup", onPointerUp);
       canvas.removeEventListener("pointercancel", onPointerCancel);
     };
-  }, [camera, gl, scenePackage]);
+  }, [cameras, gl, onDraw, scenePackage]);
 
   return null;
 }
@@ -748,27 +608,48 @@ export default function Viewport({
     [scenePackage]
   );
 
+  const settings = usePresentation((state) => state.display);
   const { sphere, origin } = useMemo(() => {
     const s = controller.restSceneBounds.getBoundingSphere(new Sphere());
     return { sphere: s, origin: controller.restSceneBounds.min };
   }, [controller]);
 
+  const grid = useMemo(() => new GridHelper(Math.max(sphere.radius * 4, 0.00001), 20, "#6e8294", "#9baab6"), [sphere]);
+  useEffect(() => () => grid.dispose(), [grid]);
+  const span = Math.max(sphere.radius * 5, 0.00001);
+  const lightTarget = useMemo(() => {
+    const target = new Object3D();
+    target.position.copy(sphere.center);
+    return target;
+  }, [sphere]);
   return (
     <RenderBoundary fallback={fallback}>
       <Canvas
         fallback={fallback}
         frameloop="demand"
-        dpr={[1, 1.5]}
+        dpr={settings.quality === "performance" ? 1 : settings.quality === "high" ? [1, 2] : [1, 1.5]}
+        shadows={settings.shadows}
         role="region"
         aria-label="Modelo tridimensional"
       >
-        <hemisphereLight intensity={2.2} groundColor="#788698" />
-        <directionalLight position={[3, 5, 4]} intensity={2.6} />
+        <hemisphereLight intensity={2.2 * settings.light} groundColor="#788698" />
+        <directionalLight position={[sphere.center.x + span, sphere.center.y + span, sphere.center.z + span]} intensity={2.6 * settings.light}
+          castShadow={settings.shadows} shadow-mapSize={[1024, 1024]}
+          shadow-camera-left={-span} shadow-camera-right={span}
+          shadow-camera-top={span} shadow-camera-bottom={-span}
+          shadow-camera-near={span * 0.01} shadow-camera-far={span * 5}
+          target={lightTarget} shadow-normalBias={span * 0.0001} />
+        <primitive object={lightTarget} />
         <primitive object={scenePackage.model.scene} />
-        <axesHelper
+        {settings.axes && <axesHelper
           args={[Math.max(sphere.radius * 0.35, 0.000001)]}
           position={[origin.x, origin.y, origin.z]}
-        />
+        />}
+        {settings.grid && <primitive object={grid} position={[sphere.center.x, origin.y - span * 0.0001, sphere.center.z]} />}
+        {settings.ground && <mesh rotation={[-Math.PI / 2, 0, 0]} position={[sphere.center.x, origin.y - span * 0.0002, sphere.center.z]} receiveShadow>
+          <planeGeometry args={[span, span]} />
+          <meshStandardMaterial color="#9ca7ac" roughness={1} />
+        </mesh>}
         <SceneController
           scenePackage={scenePackage}
           controller={controller}

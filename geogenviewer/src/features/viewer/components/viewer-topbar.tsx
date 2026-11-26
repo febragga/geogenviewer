@@ -4,6 +4,8 @@ import { Menu } from "@base-ui/react/menu";
 import Link from "next/link";
 import type { ViewerSceneGraph } from "../../../lib/geogen/domain/model";
 import { copy } from "../copy";
+import { useViewerStore, type Workspace } from "../state/viewer-store";
+import { v05, workspaces } from "../v05-copy";
 import {
   BrandMarkIcon,
   CommandIcon,
@@ -22,6 +24,7 @@ import { ActionTooltip } from "./ui-tooltip";
 
 interface ViewerTopbarProps {
   modelName?: string;
+  revision?: string | null;
   sceneMode?: ViewerSceneGraph["mode"];
   isBusy: boolean;
   leftOpen: boolean;
@@ -40,6 +43,7 @@ interface ViewerTopbarProps {
 
 export function ViewerTopbar({
   modelName,
+  revision,
   sceneMode,
   isBusy,
   leftOpen,
@@ -55,8 +59,10 @@ export function ViewerTopbar({
   onEnterFocusMode,
   onToggleTheme,
 }: ViewerTopbarProps) {
+  const workspace = useViewerStore((state) => state.workspace);
+  const setWorkspace = useViewerStore((state) => state.setWorkspace);
   return (
-    <header className="gg-topbar">
+    <header className="gg-topbar" data-model={Boolean(modelName)}>
       <div className="gg-topbar__identity">
         <Link
           href="/"
@@ -69,6 +75,7 @@ export function ViewerTopbar({
         <span className="gg-topbar__divider" aria-hidden="true" />
         <div className="gg-topbar__model">
           <h1 className="gg-topbar__title">{modelName ?? copy.noModel}</h1>
+          {revision && <span className="gg-topbar__revision gg-mono" title={"Revisão " + revision}>{revision}</span>}
           {modelName && (
             <span
               className={`gg-badge ${
@@ -82,6 +89,13 @@ export function ViewerTopbar({
           )}
         </div>
       </div>
+
+      {modelName && <label className="gg-workspace-picker">
+        <span className="visually-hidden">{v05.workspace}</span>
+        <select value={workspace} onChange={(event) => setWorkspace(event.currentTarget.value as Workspace)}>
+          {Object.entries(workspaces).map(([id, label]) => <option value={id} key={id}>{label}</option>)}
+        </select>
+      </label>}
 
       <div className="gg-topbar__actions">
         <div
@@ -143,43 +157,6 @@ export function ViewerTopbar({
           <span className="gg-open-label-short">{copy.openShort}</span>
         </button>
 
-        <ActionTooltip label={copy.demo}>
-          <button
-            type="button"
-            className="gg-btn gg-btn--secondary gg-hide-sm"
-            disabled={isBusy}
-            onClick={onLoadDemo}
-          >
-            <CubeIcon size={15} strokeWidth={1.75} />
-            <span className="gg-label-lg">{copy.demo}</span>
-            <span className="gg-label-md">{copy.demoShort}</span>
-          </button>
-        </ActionTooltip>
-
-        <ActionTooltip label={copy.demoExplode}>
-          <button
-            type="button"
-            className="gg-btn gg-btn--secondary gg-hide-lg"
-            disabled={isBusy}
-            onClick={onLoadExplodeDemo}
-          >
-            <PavilionIcon size={15} strokeWidth={1.75} />
-            <span>{copy.demoExplode}</span>
-          </button>
-        </ActionTooltip>
-
-        <ActionTooltip label={copy.demoContract}>
-          <button
-            type="button"
-            className="gg-btn gg-btn--secondary gg-hide-md"
-            disabled={isBusy}
-            onClick={onLoadContractDemo}
-          >
-            <ManifestIcon size={15} strokeWidth={1.75} />
-            <span>{copy.demoContract}</span>
-          </button>
-        </ActionTooltip>
-
         <ActionTooltip label={copy.focusModeEnter}>
           <button
             type="button"
@@ -204,7 +181,7 @@ export function ViewerTopbar({
 
         <ThemeToggle className="gg-hide-sm" />
 
-        <div className="gg-show-sm">
+        <div className="gg-topbar__menu">
           <Menu.Root>
             <Menu.Trigger
               className="gg-btn gg-btn--ghost gg-btn--icon"

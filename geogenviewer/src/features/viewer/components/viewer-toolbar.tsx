@@ -13,8 +13,6 @@ import {
   MultiSelectIcon,
   OrbitIcon,
   ResetCameraIcon,
-  RulerIcon,
-  SectionIcon,
   ZoomInIcon,
   ZoomOutIcon,
 } from "./icons";
@@ -66,6 +64,7 @@ export function ViewerToolbar({
               type="button"
               className="gg-tool-btn"
               disabled={disabled}
+              aria-label={copy.orbit}
               aria-pressed={mode === "orbit"}
               onClick={() => onModeChange("orbit")}
             >
@@ -79,6 +78,7 @@ export function ViewerToolbar({
               type="button"
               className="gg-tool-btn"
               disabled={disabled}
+              aria-label={copy.pan}
               aria-pressed={mode === "pan"}
               onClick={() => onModeChange("pan")}
             >
@@ -120,6 +120,7 @@ export function ViewerToolbar({
               type="button"
               className="gg-tool-btn"
               disabled={disabled}
+              aria-label={copy.fit}
               aria-keyshortcuts="f"
               onClick={() => onCommand({ kind: "fit" })}
             >
@@ -133,6 +134,7 @@ export function ViewerToolbar({
               type="button"
               className="gg-tool-btn"
               disabled={disabled}
+              aria-label={copy.resetCamera}
               aria-keyshortcuts="r"
               onClick={() => onCommand({ kind: "reset" })}
             >
@@ -163,7 +165,7 @@ export function ViewerToolbar({
           <ActionTooltip label={copy.hideSelected} shortcut="H" side="top">
             <button
               type="button"
-              className="gg-tool-btn gg-tool-btn--compact"
+              className="gg-tool-btn gg-tool-btn--compact gg-tool-btn--wide"
               disabled={disabled || !hasSelection}
               aria-label={copy.hideSelected}
               aria-keyshortcuts="h"
@@ -176,7 +178,7 @@ export function ViewerToolbar({
           <ActionTooltip label={copy.isolateSelected} shortcut="I" side="top">
             <button
               type="button"
-              className="gg-tool-btn gg-tool-btn--compact"
+              className="gg-tool-btn gg-tool-btn--compact gg-tool-btn--wide"
               disabled={disabled || !hasSelection}
               aria-label={copy.isolateSelected}
               aria-keyshortcuts="i"
@@ -189,7 +191,7 @@ export function ViewerToolbar({
           <ActionTooltip label={copy.showAll} shortcut="A" side="top">
             <button
               type="button"
-              className="gg-tool-btn gg-tool-btn--compact"
+              className="gg-tool-btn gg-tool-btn--compact gg-tool-btn--wide"
               disabled={disabled || !hasVisibilityOverrides}
               aria-label={copy.showAll}
               aria-keyshortcuts="a"
@@ -203,7 +205,7 @@ export function ViewerToolbar({
             <ActionTooltip label={copy.clearSelection} shortcut="Esc" side="top">
               <button
                 type="button"
-                className="gg-tool-btn gg-tool-btn--compact"
+                className="gg-tool-btn gg-tool-btn--compact gg-tool-btn--wide"
                 disabled={disabled}
                 aria-label={copy.clearSelection}
                 onClick={onClearSelection}
@@ -223,6 +225,7 @@ export function ViewerToolbar({
               className={`gg-tool-btn ${explodeActive && !explodeOpen ? "gg-tool-btn--tinted" : ""}`}
               disabled={disabled}
               aria-pressed={explodeOpen}
+              aria-label={copy.explodeAction}
               aria-keyshortcuts="e"
               onClick={onToggleExplode}
             >
@@ -232,34 +235,7 @@ export function ViewerToolbar({
           </ActionTooltip>
         </div>
 
-        <span className="gg-toolbar__sep gg-hide-lg" aria-hidden="true" />
 
-        <div
-          className="gg-toolbar__group gg-toolbar__group--future gg-hide-lg"
-          aria-label={copy.futureDisabledHint}
-        >
-          <button
-            type="button"
-            className="gg-tool-btn gg-tool-btn--future"
-            disabled
-            title={`${copy.futureSection} — ${copy.futureDisabledHint} (${copy.futureBadgeV06})`}
-          >
-            <SectionIcon size={15} strokeWidth={1.75} />
-            <span className="gg-tool-btn__label">{copy.futureSection}</span>
-            <span className="gg-mini-tag">{copy.futureBadgeV06}</span>
-          </button>
-
-          <button
-            type="button"
-            className="gg-tool-btn gg-tool-btn--future"
-            disabled
-            title={`${copy.futureMeasure} — ${copy.futureDisabledHint} (${copy.futureBadgeV06})`}
-          >
-            <RulerIcon size={15} strokeWidth={1.75} />
-            <span className="gg-tool-btn__label">{copy.futureMeasure}</span>
-            <span className="gg-mini-tag">{copy.futureBadgeV06}</span>
-          </button>
-        </div>
       </div>
     </div>
   );

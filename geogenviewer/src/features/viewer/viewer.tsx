@@ -21,6 +21,7 @@ import {
   ManifestValidationError,
   maxManifestBytes,
 } from "../../lib/geogen/validation/manifest";
+import { AssemblyPanel } from "./components/assembly-panel";
 import { CommandPalette } from "./components/command-palette";
 import { ControlsDialog } from "./components/controls-dialog";
 import { ExplodePanel } from "./components/explode-panel";
@@ -42,6 +43,11 @@ import { ViewerToolbar } from "./components/viewer-toolbar";
 import { ViewerTopbar } from "./components/viewer-topbar";
 import { copy } from "./copy";
 import type { CameraCommand, NavigationMode } from "./scene/viewport";
+import { ViewportTools } from "./components/viewport-tools";
+import { useAssembly } from "./state/assembly-store";
+import { usePresentation } from "./state/presentation-store";
+import { useEffectiveVisibility } from "./state/visibility-state";
+import { connectViewportScopes } from "./state/viewport-scopes";
 import { useViewerStore } from "./state/viewer-store";
 
 const Viewport = dynamic(() => import("./scene/viewport"), { ssr: false });
@@ -80,12 +86,14 @@ interface PendingFallback {
 export function Viewer() {
   const inputRef = useRef<HTMLInputElement>(null);
   const requestRef = useRef(0);
+  const loadStartedAt = useRef(0);
   const dragDepthRef = useRef(0);
 
   const [loaded, setLoaded] = useState<{
     scenePackage: LoadedScenePackage;
     name: string;
     id: number;
+    loadTime: number;
   }>();
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
@@ -100,6 +108,10 @@ export function Viewer() {
   const selectedIds = useViewerStore((s) => s.selectedIds);
   const hoveredId = useViewerStore((s) => s.hoveredId);
   const hiddenIds = useViewerStore((s) => s.hiddenIds);
+  const filters = useViewerStore((s) => s.filters);
+  const workspace = useViewerStore((s) => s.workspace);
+  const background = usePresentation((s) => s.display.background);
+  const effective = useEffectiveVisibility();
   const isolatedIds = useViewerStore((s) => s.isolatedIds);
   const multiSelectMode = useViewerStore((s) => s.multiSelectMode);
   const explodeOpen = useViewerStore((s) => s.explodeOpen);
@@ -169,7 +181,13 @@ export function Viewer() {
     };
   }, []);
 
+  useEffect(connectViewportScopes, []);
+
   useEffect(() => () => loaded?.scenePackage.dispose(), [loaded]);
+
+  useEffect(() => {
+    if (workspace !== "assembly") useAssembly.getState().setSolo(null);
+  }, [workspace]);
 
   const issueCommand = useCallback((next: Omit<CameraCommand, "seq">) => {
     setCommand((prev) => ({ ...next, seq: (prev.seq ?? 0) + 1 }));
@@ -177,7 +195,9 @@ export function Viewer() {
 
   const activatePackage = useCallback(
     (scenePackage: LoadedScenePackage, displayName: string, id: number) => {
-      setLoaded({ scenePackage, name: displayName, id });
+      useAssembly.getState().initialize(scenePackage.manifest ?? null);
+      usePresentation.getState().resetViews();
+      setLoaded({ scenePackage, name: displayName, id, loadTime: performance.now() - loadStartedAt.current });
       setSceneGraph(scenePackage.sceneGraph);
       setPendingFallback(null);
       setLost(false);
@@ -190,11 +210,12 @@ export function Viewer() {
   const openFiles = useCallback(
     async (files: File[]) => {
       const id = ++requestRef.current;
+      loadStartedAt.current = performance.now();
       setError("");
       setPendingFallback(null);
 
       const glbFiles = files.filter((f) => f.name.toLowerCase().endsWith(".glb"));
-      const jsonFiles = files.filter((f) => f.name.toLowerCase().endsWith(".json"));
+      const jsonFiles = files.filter((f) => f.name.toLowerCase().endsWith(".json") && f.name.toLowerCase() !== "export_report.json");
 
       if (glbFiles.length === 0 && jsonFiles.length > 0) {
         setError(copy.jsonNeedsGlb);
@@ -273,6 +294,7 @@ export function Viewer() {
   const openBasicFallback = useCallback(async () => {
     if (!pendingFallback) return;
     const id = ++requestRef.current;
+    loadStartedAt.current = performance.now();
     const { fileName, glbBytes } = pendingFallback;
     setPendingFallback(null);
     setError("");
@@ -297,6 +319,7 @@ export function Viewer() {
   const loadDemo = useCallback(
     async (kind: "basic" | "contract" | "pavilion") => {
       const id = ++requestRef.current;
+      loadStartedAt.current = performance.now();
       setStatus(copy.reading);
       setError("");
       setPendingFallback(null);
@@ -394,7 +417,7 @@ export function Viewer() {
   );
 
   const handleFrameIds = useCallback(
-    (ids: string[]) => {
+    (ids?: string[]) => {
       issueCommand({ kind: "fit", targetIds: ids });
     },
     [issueCommand]
@@ -433,14 +456,14 @@ export function Viewer() {
         return;
       }
 
-      if (helpOpen || commandOpen) return;
+      if (helpOpen || commandOpen || event.defaultPrevented) return;
       const target = event.target as HTMLElement | null;
       if (
         target &&
         (target.tagName === "INPUT" ||
           target.tagName === "TEXTAREA" ||
           target.tagName === "SELECT" ||
-          target.isContentEditable)
+          target.isContentEditable || target.closest("[role=dialog]"))
       ) {
         return;
       }
@@ -475,6 +498,13 @@ export function Viewer() {
       } else if (key === "e" && loaded && !lost) {
         event.preventDefault();
         setExplodeOpen(!useViewerStore.getState().explodeOpen);
+      } else if (key === "v" && loaded && !lost) {
+        event.preventDefault();
+        const views = usePresentation.getState();
+        views.setLayout(views.layout === "single" ? "quad" : "single");
+      } else if (key === "j" && loaded && !lost) {
+        event.preventDefault();
+        setFocusMode((current) => !current);
       } else if (event.key === "[") {
         event.preventDefault();
         toggleLeftPanel();
@@ -542,7 +572,7 @@ export function Viewer() {
   }
 
   const hasVisibilityOverrides =
-    hiddenIds.length > 0 || isolatedIds !== null;
+    hiddenIds.length > 0 || isolatedIds !== null || Object.values(filters).some((items) => items.length > 0);
 
   const fallback = (
     <div role="alert" className="gg-state-card">
@@ -560,6 +590,7 @@ export function Viewer() {
       className={`gg-viewport ${
         isDraggingFile ? "gg-viewport--dragging" : ""
       }`}
+      data-background={background}
       aria-busy={Boolean(status)}
       onDragEnter={handleDragEnter}
       onDragOver={handleDragOver}
@@ -585,7 +616,7 @@ export function Viewer() {
           mode={mode}
           selectedIds={selectedIds}
           hoveredId={hoveredId}
-          hiddenIds={hiddenIds}
+          hiddenIds={effective.hidden}
           isolatedIds={isolatedIds}
           multiSelectMode={multiSelectMode}
           explode={explode}
@@ -733,6 +764,11 @@ export function Viewer() {
       )}
 
       {loaded && !lost && (
+        <ViewportTools key={"tools-" + loaded.id} loaded={loaded.scenePackage} loadTime={loaded.loadTime}
+          onFit={handleFrameIds} onReset={() => issueCommand({ kind: "reset" })} />
+      )}
+
+      {loaded && !lost && (
         <div
           className={`gg-axes ${focusMode ? "gg-axes--focus" : ""}`}
           aria-label={copy.axes}
@@ -785,10 +821,11 @@ export function Viewer() {
 
   return (
     <Tooltip.Provider delay={300}>
-      <div className={`gg-app ${focusMode ? "gg-app--focus" : ""}`}>
+      <div className={`gg-app ${focusMode ? "gg-app--focus" : ""} ${workspace === "assembly" && loaded && !focusMode ? "gg-app--assembly" : ""}`}>
         {!focusMode && (
           <ViewerTopbar
             modelName={loaded?.name}
+            revision={loaded?.scenePackage.sceneGraph.revisionId}
             sceneMode={loaded?.scenePackage.sceneGraph.mode}
             isBusy={Boolean(status)}
             leftOpen={leftOpen || mobileTab === "structure"}
@@ -821,89 +858,45 @@ export function Viewer() {
         />
 
         <main className="gg-workspace">
-          {isDesktopLayout && !focusMode ? (
-            <Group orientation="horizontal" className="gg-panel-group">
-              {leftOpen && (
-                <>
-                  <Panel
-                    id="structure-panel"
-                    defaultSize={272}
-                    minSize={220}
-                    maxSize={400}
-                    groupResizeBehavior="preserve-pixel-size"
-                    className="gg-resizable-panel"
-                  >
-                    <LeftHierarchyPanel
-                      onFrameIds={handleFrameIds}
-                      onClose={() => setLeftOverride(false)}
-                    />
-                  </Panel>
-                  <Separator
-                    className="gg-resize-handle"
-                    aria-label={copy.panelResize}
-                  />
-                </>
-              )}
-
-              <Panel
-                id="viewport-panel"
-                minSize={400}
-                groupResizeBehavior="preserve-relative-size"
-                className="gg-resizable-panel gg-resizable-panel--viewport"
-              >
-                {viewportSurface}
-              </Panel>
-
-              {rightOpen && (
-                <>
-                  <Separator
-                    className="gg-resize-handle"
-                    aria-label={copy.panelResize}
-                  />
-                  <Panel
-                    id="properties-panel"
-                    defaultSize={284}
-                    minSize={240}
-                    maxSize={420}
-                    groupResizeBehavior="preserve-pixel-size"
-                    className="gg-resizable-panel"
-                  >
-                    <RightPropertiesPanel
-                      onFrameIds={handleFrameIds}
-                      onClose={() => setRightOverride(false)}
-                    />
-                  </Panel>
-                </>
-              )}
-            </Group>
-          ) : (
-            <>
-              {tabletOverlayOpen && (
-                <div
-                  className="gg-tablet-scrim"
-                  aria-hidden="true"
-                  onClick={() => {
-                    setLeftOverride(false);
-                    setRightOverride(false);
-                  }}
-                />
-              )}
-              {!focusMode && leftOpen && (
-                <LeftHierarchyPanel
-                  onFrameIds={handleFrameIds}
-                  onClose={() => setLeftOverride(false)}
-                />
-              )}
+          <Group orientation="horizontal" className="gg-panel-group">
+            {isDesktopLayout && !focusMode && leftOpen && (
+              <>
+                <Panel id="structure-panel" defaultSize={272} minSize={220} maxSize={400}
+                  groupResizeBehavior="preserve-pixel-size" className="gg-resizable-panel">
+                  <LeftHierarchyPanel onFrameIds={handleFrameIds} onClose={() => setLeftOverride(false)} />
+                </Panel>
+                <Separator className="gg-resize-handle" aria-label={copy.panelResize} />
+              </>
+            )}
+            <Panel key="viewport" id="viewport-panel" minSize={isDesktopLayout ? 400 : 0}
+              groupResizeBehavior="preserve-relative-size" className="gg-resizable-panel gg-resizable-panel--viewport">
               {viewportSurface}
-              {!focusMode && rightOpen && (
-                <RightPropertiesPanel
-                  onFrameIds={handleFrameIds}
-                  onClose={() => setRightOverride(false)}
-                />
-              )}
-            </>
+            </Panel>
+            {isDesktopLayout && !focusMode && rightOpen && (
+              <>
+                <Separator className="gg-resize-handle" aria-label={copy.panelResize} />
+                <Panel id="properties-panel" defaultSize={284} minSize={240} maxSize={420}
+                  groupResizeBehavior="preserve-pixel-size" className="gg-resizable-panel">
+                  <RightPropertiesPanel onFrameIds={handleFrameIds} onClose={() => setRightOverride(false)} />
+                </Panel>
+              </>
+            )}
+          </Group>
+          {tabletOverlayOpen && (
+            <div className="gg-tablet-scrim" aria-hidden="true" onClick={() => {
+              setLeftOverride(false);
+              setRightOverride(false);
+            }} />
+          )}
+          {!focusMode && !isDesktopLayout && leftOpen && (
+            <LeftHierarchyPanel onFrameIds={handleFrameIds} onClose={() => setLeftOverride(false)} />
+          )}
+          {!focusMode && !isDesktopLayout && rightOpen && (
+            <RightPropertiesPanel onFrameIds={handleFrameIds} onClose={() => setRightOverride(false)} />
           )}
         </main>
+
+        {loaded && workspace === "assembly" && !focusMode && <AssemblyPanel />}
 
         {!focusMode && (
           <MobileBottomSheet

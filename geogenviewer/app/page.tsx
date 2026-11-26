@@ -14,7 +14,7 @@ export default function Home() {
         <div className="gg-brand">
           <BrandMarkIcon className="gg-brand__mark" />
           <span className="gg-brand__name">{copy.title}</span>
-          <span className="gg-badge gg-badge--neutral gg-mono">v0.1</span>
+          <span className="gg-badge gg-badge--neutral gg-mono">v0.5</span>
         </div>
         <ThemeToggle />
       </header>

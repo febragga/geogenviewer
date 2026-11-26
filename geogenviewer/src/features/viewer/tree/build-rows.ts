@@ -1,3 +1,4 @@
+import { catalogFor, matchesComponent, normalizeSearch } from "../../../lib/geogen/domain/visibility.ts";
 import type { ViewerSceneGraph } from "../../../lib/geogen/domain/model";
 import type { TreeTab } from "../state/viewer-store";
 
@@ -36,14 +37,27 @@ function collectLayerElementIds(
   return result;
 }
 
+function collectChildren(graph: ViewerSceneGraph, root: string) {
+  const result: string[] = [];
+  const pending = [root];
+  while (pending.length) {
+    const id = pending.pop()!;
+    const children = graph.components[id]?.childIds ?? [];
+    if (children.length) pending.push(...children);
+    else result.push(id);
+  }
+  return result;
+}
+
 export function buildTreeRows(
   graph: ViewerSceneGraph | null,
   tab: TreeTab,
   searchQuery: string,
-  expandedIds: readonly string[]
+  expandedIds: readonly string[],
+  blockNames: ReadonlyMap<string, string> = new Map(),
 ): TreeRowItem[] {
   if (!graph) return [];
-  const query = searchQuery.trim().toLowerCase();
+  const query = normalizeSearch(searchQuery.trim());
   const isSearching = query.length > 0;
   const expandedSet = new Set(expandedIds);
   const rows: TreeRowItem[] = [];
@@ -52,8 +66,7 @@ export function buildTreeRows(
     const visibleCompSet = new Set<string>();
     if (isSearching) {
       for (const comp of Object.values(graph.components)) {
-        const hay = `${comp.name} ${comp.id} ${comp.sourceObjectId ?? ""} ${comp.category ?? ""}`.toLowerCase();
-        if (hay.includes(query)) {
+        if (matchesComponent(graph, comp.id, query)) {
           let cursor: string | null = comp.id;
           while (cursor && !visibleCompSet.has(cursor)) {
             visibleCompSet.add(cursor);
@@ -85,7 +98,7 @@ export function buildTreeRows(
         depth,
         hasChildren,
         isExpanded,
-        targetComponentIds: [id],
+        targetComponentIds: graph.mode === "glb-basic" && hasChildren ? collectChildren(graph, id) : [id],
         isComposite: comp.isComposite,
         isInstance: comp.isInstance,
         colorHex: comp.cad?.colorHex ?? null,
@@ -112,11 +125,11 @@ export function buildTreeRows(
 
     if (isSearching) {
       for (const layer of Object.values(graph.layers)) {
-        const layerMatch = `${layer.name} ${layer.fullPath} ${layer.id}`.toLowerCase().includes(query);
+        const layerMatch = normalizeSearch(`${layer.name} ${layer.fullPath} ${layer.id}`).includes(query);
         const matchingEls = layer.elementIds.filter((elId) => {
           const comp = graph.components[elId];
           if (!comp) return false;
-          return `${comp.name} ${comp.id} ${comp.sourceObjectId ?? ""}`.toLowerCase().includes(query);
+          return matchesComponent(graph, elId, query);
         });
         for (const elId of matchingEls) matchingCompSet.add(elId);
         if (layerMatch || matchingEls.length > 0) {
@@ -142,7 +155,7 @@ export function buildTreeRows(
       const directElements = isSearching
         ? layer.elementIds.filter((elId) => {
             if (matchingCompSet.has(elId)) return true;
-            return `${layer.name} ${layer.fullPath}`.toLowerCase().includes(query);
+            return normalizeSearch(`${layer.name} ${layer.fullPath}`).includes(query);
           })
         : layer.elementIds;
 
@@ -195,62 +208,71 @@ export function buildTreeRows(
     return rows;
   }
 
-  // tab === "groups"
-  const visitedGroups = new Set<string>();
-  for (const groupId of graph.rootGroupIds) {
-    if (visitedGroups.has(groupId)) continue;
-    visitedGroups.add(groupId);
-    const group = graph.groups[groupId];
-    if (!group) continue;
-
-    const matchingEls = isSearching
-      ? group.elementIds.filter((elId) => {
-          const comp = graph.components[elId];
-          if (!comp) return false;
-          return `${comp.name} ${comp.id} ${group.name}`.toLowerCase().includes(query);
-        })
-      : group.elementIds;
-
-    const groupNameMatches = `${group.name} ${group.id}`.toLowerCase().includes(query);
-    if (isSearching && !groupNameMatches && matchingEls.length === 0) continue;
-
-    const hasChildren = matchingEls.length > 0;
-    const isExpanded = isSearching ? true : expandedSet.has(groupId);
-
-    rows.push({
-      key: `group:${groupId}`,
-      kind: "group",
-      id: groupId,
-      label: group.name,
-      secondaryLabel: `${group.elementIds.length}`,
-      depth: 0,
-      hasChildren,
-      isExpanded,
-      targetComponentIds: group.elementIds,
-    });
-
-    if (hasChildren && isExpanded) {
-      const childrenToRender = groupNameMatches ? group.elementIds : matchingEls;
-      for (const elId of childrenToRender) {
-        const comp = graph.components[elId];
-        if (!comp) continue;
-        rows.push({
-          key: `group:${groupId}:comp:${elId}`,
-          kind: "component",
-          id: elId,
-          label: comp.name,
-          secondaryLabel: comp.id,
-          depth: 1,
-          hasChildren: false,
-          isExpanded: false,
-          targetComponentIds: [elId],
-          isComposite: comp.isComposite,
-          isInstance: comp.isInstance,
-          colorHex: comp.cad?.colorHex ?? null,
-        });
+  if (tab === "categories" || tab === "materials" || tab === "blocks") {
+    const field = tab === "categories" ? "category" : tab === "materials" ? "material" : "block";
+    for (const { label, value, elementIds: ids } of catalogFor(graph, blockNames, field)) {
+      const key = tab + ":" + value;
+      const matches = !isSearching || normalizeSearch(label).includes(query) ? ids : ids.filter((id) => matchesComponent(graph, id, query));
+      if (!matches.length) continue;
+      const isExpanded = isSearching || expandedSet.has(key);
+      rows.push({
+        key, kind: "group", id: key, label, secondaryLabel: String(ids.length),
+        depth: 0, hasChildren: true, isExpanded, targetComponentIds: ids,
+      });
+      if (isExpanded) {
+        for (const id of matches) {
+          const comp = graph.components[id];
+          rows.push({
+            key: key + ":" + id, kind: "component", id, label: comp.name,
+            secondaryLabel: id, depth: 1, hasChildren: false, isExpanded: false, targetComponentIds: [id],
+            isComposite: comp.isComposite, isInstance: comp.isInstance, colorHex: comp.cad?.colorHex,
+          });
+        }
       }
     }
+    return rows;
   }
+
+  const scene = graph;
+  const groups = scene.groups;
+  const cache = new Map<string, Set<string>>();
+  function elementsFor(id: string): Set<string> {
+    const memo = cache.get(id);
+    if (memo) return memo;
+    const group = groups[id];
+    const all = new Set(group.elementIds);
+    cache.set(id, all);
+    for (const childId of group.childGroupIds) {
+      for (const element of elementsFor(childId)) all.add(element);
+    }
+    return all;
+  }
+
+  function visitGroup(id: string, depth: number, inheritedMatch = false) {
+    const group = groups[id];
+    if (!group) return;
+    const all = Array.from(elementsFor(id));
+    const groupMatch = inheritedMatch || normalizeSearch(group.name + " " + group.id).includes(query);
+    if (isSearching && !groupMatch && !all.some((element) => matchesComponent(scene, element, query))) return;
+    const isExpanded = isSearching || expandedSet.has(id);
+    const direct = group.elementIds.filter((element) => !isSearching || groupMatch || matchesComponent(scene, element, query));
+    rows.push({
+      key: "group:" + id, kind: "group", id, label: group.name, secondaryLabel: String(all.length),
+      depth, hasChildren: Boolean(direct.length || group.childGroupIds.length), isExpanded, targetComponentIds: all,
+    });
+    if (!isExpanded) return;
+    for (const childId of group.childGroupIds) visitGroup(childId, depth + 1, groupMatch);
+    for (const element of direct) {
+      const comp = scene.components[element];
+      if (!comp) continue;
+      rows.push({
+        key: "group:" + id + ":comp:" + element, kind: "component", id: element,
+        label: comp.name, secondaryLabel: element, depth: depth + 1, hasChildren: false, isExpanded: false,
+        targetComponentIds: [element], isComposite: comp.isComposite, isInstance: comp.isInstance, colorHex: comp.cad?.colorHex,
+      });
+    }
+  }
+  for (const id of graph.rootGroupIds) visitGroup(id, 0);
 
   return rows;
 }

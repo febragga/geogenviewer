@@ -1,11 +1,13 @@
 import { create } from "zustand";
+import { defaultHiddenIds, type Filters } from "../../../lib/geogen/domain/visibility.ts";
 import type { ViewerSceneGraph } from "../../../lib/geogen/domain/model.ts";
 import {
   defaultExplodeParams,
   type ExplodeParams,
 } from "../../../lib/geogen/explode/controller.ts";
 
-export type TreeTab = "hierarchy" | "layers" | "groups";
+export type TreeTab = "hierarchy" | "layers" | "groups" | "categories" | "materials" | "blocks";
+export type Workspace = "explore" | "explode" | "assembly";
 
 export interface ExplodeTransitionRequest {
   toFactor: number;
@@ -19,6 +21,12 @@ export interface ViewerStoreState {
   hiddenIds: string[];
   isolatedIds: string[] | null;
   expandedIds: string[];
+  filters: Filters;
+  workspace: Workspace;
+  beforeIsolation: { hiddenIds: string[]; isolatedIds: string[] | null; filters: Filters } | null;
+  restoreIsolation: () => void;
+  setFilters: (filters: Filters) => void;
+  setWorkspace: (workspace: Workspace) => void;
   treeTab: TreeTab;
   searchQuery: string;
   multiSelectMode: boolean;
@@ -34,6 +42,7 @@ export interface ViewerStoreState {
   clearSelection: () => void;
   setHoveredId: (id: string | null) => void;
   hideIds: (ids: string[]) => void;
+  hideUnselected: () => void;
   showIds: (ids: string[]) => void;
   toggleComponentVisibility: (id: string) => void;
   toggleCollectionVisibility: (elementIds: string[]) => void;
@@ -90,6 +99,9 @@ export const useViewerStore = create<ViewerStoreState>((set, get) => ({
   treeTab: "hierarchy",
   searchQuery: "",
   multiSelectMode: false,
+  filters: {},
+  workspace: "explore",
+  beforeIsolation: null,
 
   explodeOpen: false,
   explode: { ...defaultExplodeParams },
@@ -106,6 +118,9 @@ export const useViewerStore = create<ViewerStoreState>((set, get) => ({
         isolatedIds: null,
         expandedIds: [],
         searchQuery: "",
+        workspace: "explore",
+        beforeIsolation: null,
+        filters: {},
         explodeOpen: false,
         explode: { ...defaultExplodeParams },
         explodeTransition: null,
@@ -114,13 +129,6 @@ export const useViewerStore = create<ViewerStoreState>((set, get) => ({
       return;
     }
 
-    // Respect layer default visibility if defined in manifest
-    const initialHidden: string[] = [];
-    for (const layer of Object.values(graph.layers)) {
-      if (layer.defaultVisible === false) {
-        initialHidden.push(...layer.elementIds);
-      }
-    }
 
     // Expand top-level groups/layers automatically for immediate discoverability
     const defaultExpanded = uniqueStrings([
@@ -133,7 +141,10 @@ export const useViewerStore = create<ViewerStoreState>((set, get) => ({
       sceneGraph: graph,
       selectedIds: [],
       hoveredId: null,
-      hiddenIds: uniqueStrings(initialHidden),
+      hiddenIds: defaultHiddenIds(graph),
+      filters: {},
+      beforeIsolation: null,
+      workspace: "explore",
       isolatedIds: null,
       expandedIds: defaultExpanded,
       treeTab: "hierarchy",
@@ -201,6 +212,13 @@ export const useViewerStore = create<ViewerStoreState>((set, get) => ({
     set({ hiddenIds: Array.from(expanded) });
   },
 
+  hideUnselected() {
+    const { sceneGraph, selectedIds, hiddenIds } = get();
+    if (!sceneGraph || !selectedIds.length) return;
+    const keep = new Set(selectedIds.flatMap((id) => collectComponentSubtreeIds(sceneGraph, id)));
+    set({ hiddenIds: uniqueStrings([...hiddenIds, ...sceneGraph.componentOrder.filter((id) => !keep.has(id))]) });
+  },
+
   showIds(ids) {
     const { hiddenIds, isolatedIds, sceneGraph } = get();
     const toShow = new Set<string>();
@@ -247,7 +265,7 @@ export const useViewerStore = create<ViewerStoreState>((set, get) => ({
   },
 
   isolateIds(ids) {
-    const { sceneGraph, hiddenIds } = get();
+    const { sceneGraph, hiddenIds, isolatedIds, filters, beforeIsolation } = get();
     if (ids.length === 0) return;
     const targetSet = new Set<string>();
     for (const id of ids) {
@@ -256,13 +274,31 @@ export const useViewerStore = create<ViewerStoreState>((set, get) => ({
       }
     }
     set({
+      beforeIsolation: beforeIsolation ?? { hiddenIds, isolatedIds, filters },
       isolatedIds: Array.from(targetSet),
       hiddenIds: hiddenIds.filter((id) => !targetSet.has(id)),
     });
   },
 
+  restoreIsolation() {
+    const { beforeIsolation } = get();
+    if (beforeIsolation) set({ ...beforeIsolation, beforeIsolation: null });
+  },
+
   showAll() {
-    set({ hiddenIds: [], isolatedIds: null });
+    set({ hiddenIds: [], isolatedIds: null, filters: {}, beforeIsolation: null });
+  },
+
+  setFilters(filters) { set({ filters }); },
+
+  setWorkspace(workspace) {
+    set((state) => ({
+      workspace,
+      explodeOpen: workspace === "explode",
+      explode: { ...state.explode, enabled: workspace === "explode" },
+      explodeTransition: null,
+      explodedBoundsMeters: null,
+    }));
   },
 
   toggleExpanded(id) {
@@ -306,6 +342,7 @@ export const useViewerStore = create<ViewerStoreState>((set, get) => ({
   setExplodeOpen(explodeOpen) {
     set((state) => ({
       explodeOpen,
+      workspace: explodeOpen ? "explode" : state.workspace,
       explode: explodeOpen && !state.explode.enabled
         ? { ...state.explode, enabled: true }
         : state.explode,
@@ -338,6 +375,7 @@ export const useViewerStore = create<ViewerStoreState>((set, get) => ({
   startExplodeAnimation(toFactor) {
     const clamped = Math.max(0, Math.min(1.5, Number.isFinite(toFactor) ? toFactor : 0));
     set((state) => ({
+      workspace: "explode",
       explode: {
         ...state.explode,
         enabled: true,
