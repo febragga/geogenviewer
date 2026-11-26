@@ -7,7 +7,7 @@ import {
 } from "../../../lib/geogen/explode/controller.ts";
 
 export type TreeTab = "hierarchy" | "layers" | "groups" | "categories" | "materials" | "blocks";
-export type Workspace = "explore" | "explode" | "assembly" | "inspect" | "compare" | "quantities";
+export type Workspace = "explore" | "explode" | "assembly" | "inspect" | "compare" | "quantities" | "knolling" | "catalog";
 
 export interface ExplodeTransitionRequest {
   toFactor: number;

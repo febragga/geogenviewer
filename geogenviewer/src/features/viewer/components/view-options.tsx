@@ -8,8 +8,16 @@ import { useInspection } from "../state/inspection-store";
 import { usePresentation } from "../state/presentation-store";
 import { useViewerStore } from "../state/viewer-store";
 import { layouts, presets, v05 } from "../v05-copy";
+import { createDocumentation, parseDocumentation, type DocumentationSettings } from "../../../lib/geogen/documentation/document";
+import type { Revision } from "../../../lib/geogen/revisions/revision";
+import { v08 } from "../v08-copy";
+import { useKnollingMotion } from "../state/documentation-store";
 
-export function ViewOptions({ loaded, comparison = false }: { loaded: LoadedScenePackage; comparison?: boolean }) {
+export type ViewDocumentation = { revision: Revision; settings: DocumentationSettings; apply: (update: (prior: DocumentationSettings) => DocumentationSettings) => void };
+
+export function ViewOptions({ loaded, comparison = false, documentation }: {
+  loaded: LoadedScenePackage; comparison?: boolean; documentation?: ViewDocumentation;
+}) {
   const active = usePresentation((state) => state.active);
   const layout = usePresentation((state) => state.layout);
   const maximized = usePresentation((state) => state.maximized);
@@ -38,7 +46,13 @@ export function ViewOptions({ loaded, comparison = false }: { loaded: LoadedScen
     const { filters, hiddenIds, isolatedIds } = useViewerStore.getState();
     const poses = Array.from({ length: 4 }, (_, slot) => access?.pose(slot) ?? null);
     const inspection = useInspection.getState().preset();
-    return { id, name: title, pose, display, visibility: { filters, hiddenIds, isolatedIds }, regions: { layout, active, maximized, poses }, inspection } satisfies NamedView;
+    let publication;
+    if (documentation && useViewerStore.getState().workspace === "knolling") {
+      try { publication = createDocumentation(documentation.revision, documentation.settings, "knolling"); }
+      catch (error) { setStatus(error instanceof Error ? error.message : String(error)); return; }
+    }
+    return { id, name: title, pose, display, visibility: { filters, hiddenIds, isolatedIds },
+      regions: { layout, active, maximized, poses }, inspection, documentation: publication } satisfies NamedView;
   }
 
   function create() {
@@ -93,7 +107,7 @@ export function ViewOptions({ loaded, comparison = false }: { loaded: LoadedScen
           setName(views.find((item) => item.id === id)?.name ?? "");
         }}>
           <option value="">Escolher vista</option>
-          {views.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+          {views.map((item) => <option key={item.id} value={item.id}>{item.name}{item.documentation ? " · " + v08.namedKnoll : ""}</option>)}
         </select>
       </label>
       <label>{v05.name}<input maxLength={80} value={name} onChange={(event) => setName(event.currentTarget.value)} /></label>
@@ -102,10 +116,25 @@ export function ViewOptions({ loaded, comparison = false }: { loaded: LoadedScen
         <button type="button" className="gg-btn gg-btn--secondary" disabled={!view || !access} onClick={() => {
           if (!view?.pose || !view.visibility || !view.display) return;
           if (comparison) { access?.apply(view.pose); return; }
+          const knolling = useViewerStore.getState().workspace === "knolling";
+          if (knolling !== Boolean(view.documentation)) {
+            setStatus(knolling ? v08.originalNamed : "Abra Knolling para aplicar esta vista.");
+            return;
+          }
+          if (view.documentation) {
+            if (!documentation) { setStatus(v08.missingDocumentModel); return; }
+            try {
+              const imported = parseDocumentation(JSON.stringify(view.documentation), documentation.revision);
+              documentation.apply(() => imported.settings);
+              useKnollingMotion.getState().set(1);
+            } catch (error) { setStatus(error instanceof Error ? error.message : String(error)); return; }
+          }
           if (view.regions && access) {
             const { layout, active, maximized, poses } = view.regions;
             usePresentation.setState({ layout, active, maximized, display: view.display });
-            poses.forEach((pose, slot) => { if (pose) access.applySlot(slot, pose); });
+            const apply = () => poses.forEach((pose, slot) => { if (pose && usePresentation.getState().access === access) access.applySlot(slot, pose); });
+            if (knolling) requestAnimationFrame(() => requestAnimationFrame(apply));
+            else apply();
           } else {
             access?.apply(view.pose);
             usePresentation.setState({ display: view.display });

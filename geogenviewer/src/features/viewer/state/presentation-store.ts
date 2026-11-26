@@ -36,6 +36,7 @@ export interface PngOptions {
   transparent: boolean;
   background: string;
   technical?: TechnicalOptions;
+  decorate?: (ctx: CanvasRenderingContext2D, width: number, height: number, camera: import("three").Camera, slot: number) => void;
 }
 
 export interface CameraAccess {

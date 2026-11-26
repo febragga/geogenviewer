@@ -18,6 +18,7 @@ export interface NamedView {
   visibility: VisibilitySnapshot;
   regions?: { layout: ViewLayout; active: number; maximized: number | null; poses: (CameraPose | null)[] };
   inspection?: InspectionPreset;
+  documentation?: import("../../../lib/geogen/documentation/document").DocumentationDocument;
 }
 
 export interface FilterPreset {
