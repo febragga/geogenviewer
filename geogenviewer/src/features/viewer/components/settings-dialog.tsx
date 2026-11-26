@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
   GEOGEN_CONTRACT_VERSION,
-  GEOGEN_REPO_URL,
   GEOGEN_VERSION_LABEL,
 } from "../../../lib/geogen/version";
 import { clearRecentProjects, readRecentProjects } from "../../home/recent-projects";
@@ -316,14 +315,6 @@ export function SettingsDialog({
                 <div className="gg-kv-row">
                   <dt>Processamento</dt>
                   <dd>100% local no navegador (sem upload externo)</dd>
-                </div>
-                <div className="gg-kv-row">
-                  <dt>Repositório</dt>
-                  <dd>
-                    <a href={GEOGEN_REPO_URL} target="_blank" rel="noreferrer">
-                      github.com/febragga/geogenviewer
-                    </a>
-                  </dd>
                 </div>
               </dl>
             </div>

@@ -1,4 +1,4 @@
-export const GEOGEN_VERSION = "0.9.1";
+export const GEOGEN_VERSION = "0.9.11";
 export const GEOGEN_VERSION_LABEL = `v${GEOGEN_VERSION}`;
 export const GEOGEN_SHORT_VERSION = GEOGEN_VERSION_LABEL.split(".").slice(0, 2).join(".");
 export const GEOGEN_CONTRACT_VERSION = "1.0.0";
