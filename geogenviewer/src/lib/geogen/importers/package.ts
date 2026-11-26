@@ -15,6 +15,7 @@ import {
 import { importGlb, type ImportedModel } from "./glb.ts";
 
 export interface LoadedScenePackage {
+  manifest?: ManifestV1;
   model: ImportedModel;
   sceneGraph: ViewerSceneGraph;
   objectByComponentId: Map<string, Object3D>;
@@ -710,6 +711,7 @@ export async function importGlbWithManifestPackage(
     };
 
     return {
+      manifest,
       model,
       sceneGraph,
       objectByComponentId,

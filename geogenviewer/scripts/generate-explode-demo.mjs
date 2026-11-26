@@ -395,9 +395,9 @@ function buildPavilionGlbAndManifest() {
     schemaVersion: "1.0.0",
     project: {
       id: "pavilhao-explosao-v04",
-      title: "Pavilhão Estrutural Sintético (Demo V0.4)",
-      revisionId: "rev-04",
-      description: "Modelo sintético modular para validação de vista explodida (fundação, pilares, vigas compostas, lajes, escada e conectores).",
+      title: "Pavilhão Estrutural Sintético",
+      revisionId: "rev-05",
+      description: "Modelo sintético modular para inspeção, vista explodida e montagem em seis etapas.",
       geometryKind: "physicalModel",
       scaleDenominator: 25,
       displayUnit: "mm",
@@ -446,6 +446,20 @@ function buildPavilionGlbAndManifest() {
     ],
     blocks: [{ id: "blk-conector-v04", name: "Conector Estrutural V04" }],
     elements,
+    assembly: {
+      steps: [
+        ["base", "Fundação", "foundation", 0.6, [0, 0.06, 0]],
+        ["pillars", "Pilares", "column", 1.1, [0, 0.18, 0]],
+        ["connections", "Conectores", "connector", 0.8, [0.08, 0.12, 0]],
+        ["beams", "Vigas e viga composta", "beam", 1.2, [0, 0.24, 0]],
+        ["slabs", "Lajes", "slab", 1, [0, 0.18, 0]],
+        ["stair", "Escada", "stair", 1.1, [-0.12, 0.04, 0]],
+      ].map(([id, title, category, durationSeconds, insertionOffsetM], index, sequence) => ({
+        id, title, durationSeconds, insertionOffsetM,
+        elementIds: elements.filter((element) => element.category === category).map((element) => element.id),
+        dependsOn: index > 0 ? [sequence[index - 1][0]] : [],
+      })),
+    },
   };
 
   return { glbBuffer, manifest, sha256 };
@@ -458,4 +472,4 @@ writeFileSync(
   JSON.stringify(manifest, null, 2),
   "utf8"
 );
-console.log(`Generated V0.4 Pavilion Demo: ${manifest.elements.length} elements, GLB SHA-256 = ${sha256}`);
+console.log(`Generated Synthetic Pavilion Demo: ${manifest.elements.length} elements, GLB SHA-256 = ${sha256}`);

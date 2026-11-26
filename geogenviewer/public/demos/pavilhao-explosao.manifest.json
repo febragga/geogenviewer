@@ -2,9 +2,9 @@
   "schemaVersion": "1.0.0",
   "project": {
     "id": "pavilhao-explosao-v04",
-    "title": "Pavilhão Estrutural Sintético (Demo V0.4)",
-    "revisionId": "rev-04",
-    "description": "Modelo sintético modular para validação de vista explodida (fundação, pilares, vigas compostas, lajes, escada e conectores).",
+    "title": "Pavilhão Estrutural Sintético",
+    "revisionId": "rev-05",
+    "description": "Modelo sintético modular para inspeção, vista explodida e montagem em seis etapas.",
     "geometryKind": "physicalModel",
     "scaleDenominator": 25,
     "displayUnit": "mm",
@@ -1339,5 +1339,115 @@
         "tipo": "Lance composto com 4 degraus"
       }
     }
-  ]
+  ],
+  "assembly": {
+    "steps": [
+      {
+        "id": "base",
+        "title": "Fundação",
+        "durationSeconds": 0.6,
+        "insertionOffsetM": [
+          0,
+          0.06,
+          0
+        ],
+        "elementIds": [
+          "fd-sapata-01",
+          "fd-sapata-02",
+          "fd-sapata-03",
+          "fd-sapata-04"
+        ],
+        "dependsOn": []
+      },
+      {
+        "id": "pillars",
+        "title": "Pilares",
+        "durationSeconds": 1.1,
+        "insertionOffsetM": [
+          0,
+          0.18,
+          0
+        ],
+        "elementIds": [
+          "pl-pilar-01",
+          "pl-pilar-02",
+          "pl-pilar-03",
+          "pl-pilar-04"
+        ],
+        "dependsOn": [
+          "base"
+        ]
+      },
+      {
+        "id": "connections",
+        "title": "Conectores",
+        "durationSeconds": 0.8,
+        "insertionOffsetM": [
+          0.08,
+          0.12,
+          0
+        ],
+        "elementIds": [
+          "cn-encaixe-01",
+          "cn-encaixe-02",
+          "cn-encaixe-03",
+          "cn-encaixe-04"
+        ],
+        "dependsOn": [
+          "pillars"
+        ]
+      },
+      {
+        "id": "beams",
+        "title": "Vigas e viga composta",
+        "durationSeconds": 1.2,
+        "insertionOffsetM": [
+          0,
+          0.24,
+          0
+        ],
+        "elementIds": [
+          "vg-long-norte",
+          "vg-long-sul",
+          "vg-composta-central"
+        ],
+        "dependsOn": [
+          "connections"
+        ]
+      },
+      {
+        "id": "slabs",
+        "title": "Lajes",
+        "durationSeconds": 1,
+        "insertionOffsetM": [
+          0,
+          0.18,
+          0
+        ],
+        "elementIds": [
+          "lj-painel-oeste",
+          "lj-painel-leste"
+        ],
+        "dependsOn": [
+          "beams"
+        ]
+      },
+      {
+        "id": "stair",
+        "title": "Escada",
+        "durationSeconds": 1.1,
+        "insertionOffsetM": [
+          -0.12,
+          0.04,
+          0
+        ],
+        "elementIds": [
+          "esc-lance-01"
+        ],
+        "dependsOn": [
+          "slabs"
+        ]
+      }
+    ]
+  }
 }
