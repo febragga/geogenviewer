@@ -1,8 +1,8 @@
 # GeoGenViewer — roadmap
 
-**Revisão** 0.5 · 25/11/2026
+**Revisão** 0.6 · 25/11/2026
 
-**Estado** V0.5 implementada localmente. Validação do exportador no Rhino 8 e do visualizador em tablet físico pendentes.
+**Estado** V0.6 implementada localmente. Validação do exportador no Rhino 8 e do visualizador em tablet físico pendentes.
 
 ## 1. Prioridade
 
@@ -16,7 +16,7 @@ Entregar um visualizador capaz de demonstrar o protótipo da Casa Gerassi em tab
 | v0.3 | Manifesto e exportador Rhino | P0 | Importação validada. Homologação no Rhino pendente |
 | v0.4 | Vista explodida e propriedades | P0 | Concluído localmente |
 | v0.5 | Experiência do viewer, gestão de vistas e montagem | P1 | Implementado localmente |
-| v0.6 | Corte, medições e documentação técnica | P1 | Próximo marco |
+| v0.6 | Corte, medições e documentação técnica | P1 | Implementado localmente |
 | v0.7 | Protótipos, comparações e quantitativos | P2 | A fazer |
 | v0.8 | Knolling, catálogo e documentação | P2 | A fazer |
 | v0.9 | Desempenho, robustez e acessibilidade | P1 | A fazer |
@@ -41,23 +41,23 @@ Responsividade, segurança e testes são transversais desde a primeira versão; 
 - [x] Arquivo inválido não trava aplicação; segundo arquivo substitui o primeiro e libera recursos.
 
 ### v0.2 — Inspeção
-- [ ] Seleção individual por clique/toque e árvore; nomes duplicados não confundem IDs.
-- [ ] Ocultar, mostrar, isolar, restaurar; grupos/layers quando disponíveis.
-- [ ] Painéis recolhíveis; feedback de elemento selecionado.
-- [ ] Seleção permanece coerente após ocultar e restaurar peças.
+- [x] Seleção individual por clique/toque e árvore; nomes duplicados não confundem IDs.
+- [x] Ocultar, mostrar, isolar, restaurar; grupos/layers quando disponíveis.
+- [x] Painéis recolhíveis; feedback de elemento selecionado.
+- [x] Seleção permanece coerente após ocultar e restaurar peças.
 
 ### v0.3 — Contrato e Rhino
-- [ ] `manifest-v1.schema.json` e exemplos válidos/inválidos; validação referencial em código.
-- [ ] Importar GLB + manifesto; reportar divergências e rejeitar arquivo incompatível sem fallback silencioso.
+- [x] `manifest-v1.schema.json` e exemplos válidos/inválidos; validação referencial em código.
+- [x] Importar GLB + manifesto; reportar divergências e rejeitar arquivo incompatível sem fallback silencioso.
 - [ ] Exportador Rhino 8 não altera documento, preserva IDs, hierarquias e unidades.
-- [ ] Testar cubo de 100 mm, eixos assimétricos, peça rotacionada e instâncias de bloco.
+- [x] Testar cubo de 100 mm, eixos assimétricos, peça rotacionada e instâncias de bloco em fixtures sintéticas.
 - [ ] Registrar parâmetros de tesselação, relatório de peças omitidas e limites de precisão.
 - [ ] Rodar exportador no Rhino real e comparar dimensões de origem; se não disponível, marcar pendente.
 
 ### v0.4 — Vista explodida e propriedades (MVP)
-- [ ] Slider de 0 a 1; em zero a pose original é recuperada sem deriva, mesmo após 20 ciclos.
-- [ ] Vetores por peça quando fornecidos, fallback visual determinístico identificado como heurístico.
-- [ ] Propriedades: ID, nome, tipo, camada, material e medidas com fonte/unidade.
+- [x] Slider de 0 a 1,5. O retorno à pose original foi verificado após 20 ciclos sintéticos.
+- [x] Vetores por peça quando fornecidos, fallback visual determinístico identificado como heurístico.
+- [x] Propriedades com ID, nome, tipo, camada, material, fonte e unidade.
 - [ ] Abrir modelo de teste da maquete autorizado em tablet; conseguir isolar viga, pilar e laje e mostrar encaixe.
 - [ ] O protótipo continua utilizável sem internet depois de carregar a página, enquanto ela permanecer aberta; persistência offline/PWA não é requisito.
 
@@ -74,9 +74,11 @@ A sprint amplia o marco de montagem anterior com gestão de vistas, filtros e mo
 - [ ] Validar o fluxo em tablet físico e com o exportador homologado no Rhino 8.
 
 ### v0.6 — Inspeção espacial
-- [ ] Clipping em três eixos, planos ajustáveis e seleção compatível.
-- [ ] Distância ponto a ponto sobre malha, distinguida de medida CAD de origem.
-- [ ] Documentação técnica com capturas de seção, identificadores e proveniência das medições.
+- [x] Clipping em três eixos, planos ajustáveis por região, contornos e caps condicionais. Picking e snapping respeitam o recorte.
+- [x] Distância ponto a ponto, delta e coordenadas de malha com proveniência e contexto de pose.
+- [x] Documentação técnica com capturas PNG, identificadores e JSON de inspeção versionado.
+- [x] Vistas salvas compatíveis com V0.5, fixture sintética, seis resoluções e benchmark.
+- [ ] Repetir a inspeção em tablet físico e validar o fluxo com o exportador homologado. [Relatório de testes](V06_TEST_REPORT.md)
 
 ### v0.7–v0.8 — Fabricação e pesquisa
 - [ ] Comparação de duas versões com correspondência de IDs e câmera sincronizada.

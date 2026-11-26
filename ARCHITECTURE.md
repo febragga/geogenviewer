@@ -185,3 +185,14 @@ O motor de montagem compila a ordem autorada em intervalos cumulativos e usa rel
 Os modos visuais aplicam variantes de material preservando as referências GLB. As arestas técnicas têm cache por geometria e são descartadas com a cena. O renderer desenha sob demanda e usa limites de DPR conforme a qualidade escolhida. Exportar PNG usa um alvo de renderização temporário na viewport ativa.
 
 As vistas nomeadas persistem câmera, projeção, alvo, altura aparente, visibilidade e exibição no navegador. Combinações de filtros e rascunhos de montagem também usam persistência local. O pacote carregado expõe o manifesto validado e preserva a geometria importada. O editor revalida a sequência com as regras 1.0.0 e preserva os campos de geometria e o hash no download. Persistir preferências no manifesto ligaria configurações do usuário ao exportador e alteraria o contrato.
+
+
+## V0.6 — Inspeção espacial
+
+O módulo de inspeção em `src/lib/geogen/inspection/` guarda configurações serializáveis, resolve planos ortogonais CAD, calcula medições e valida as referências. O estado de inspeção usa identidade semântica e SHA-256 quando disponível. O manifesto CAD e a malha permanecem fontes distintas do documento de inspeção.
+
+O scene controller aplica os planos shader por passe WebGL e restaura os estados no fim de cada região. O mesmo predicado seleciona o primeiro hit preservado para picking e snap. Contornos e caps CPU usam geometria temporária em cache, que é descartada junto ao contexto de cena. Os materiais de apresentação são reutilizados quando regiões técnicas e sombreadas convivem no quadro.
+
+As medições persistem ponto local, caminho relativo ao componente e ocorrência. A projeção das anotações compartilha as regras da vista ativa com a composição Canvas 2D dos PNGs. A captura técnica tem metadados congelados no instante do render. Named Views V0.5 continuam legíveis e o formato estendido acrescenta estado de inspeção e layout.
+
+[Motor de cortes](V06_SECTION_ENGINE_SPEC.md) · [Motor de medidas](V06_MEASUREMENT_SPEC.md)
