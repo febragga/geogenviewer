@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
@@ -151,6 +151,52 @@ async function main() {
     const axeViewerLight = await new AxeBuilder({ page }).analyze();
     await page.locator(".gg-theme-toggle").click();
     await page.waitForTimeout(150);
+
+    // V0.2 + V0.3 UI audit: open dual GLB + manifest package, inspect tree/search/visibility/properties & invalid fallback
+    await page
+      .locator('input[type="file"]')
+      .setInputFiles([
+        path.join(appDir, "public/demos/contrato-exemplo.glb"),
+        path.join(appDir, "public/demos/contrato-exemplo.manifest.json"),
+      ]);
+    await page.locator(".gg-topbar__model .gg-badge", { hasText: /GLB \+ Manifesto/i }).waitFor({ timeout: 10000 });
+    await page.waitForTimeout(300);
+
+    const searchInput = page.locator('.gg-input--search').first();
+    await searchInput.fill("100");
+    await page.waitForTimeout(120);
+    const cubeRowBtn = page.locator('.gg-tree-select-btn', { hasText: "Cubo de 100 mm" }).first();
+    await cubeRowBtn.click();
+    await page.waitForTimeout(150);
+    await page.locator('.gg-kv-value-wrap', { hasText: "ex-cube-100" }).first().waitFor({ timeout: 5000 });
+    await searchInput.fill("");
+
+    // Switch Structure tabs (Camadas / Grupos / Componentes)
+    await page.getByRole("tab", { name: "Camadas" }).click();
+    await page.waitForTimeout(100);
+    await page.getByRole("tab", { name: "Grupos" }).click();
+    await page.waitForTimeout(100);
+    await page.getByRole("tab", { name: "Componentes" }).click();
+
+    // Hide & Show All interaction
+    await page.getByRole("button", { name: /^Ocultar$/i }).first().click();
+    await page.waitForTimeout(100);
+    await page.getByRole("button", { name: /^Mostrar tudo$/i }).first().click();
+    await page.waitForTimeout(100);
+
+    // Strict validation + explicit fallback test
+    const badManifestPayload = Buffer.from('{"schemaVersion":"2.0.0"}', "utf8");
+    const estruturaPayload = readFileSync(path.join(appDir, "public/demos/estrutura.glb"));
+    await page
+      .locator('input[type="file"]')
+      .setInputFiles([
+        { name: "estrutura.glb", mimeType: "model/gltf-binary", buffer: estruturaPayload },
+        { name: "invalido.json", mimeType: "application/json", buffer: badManifestPayload },
+      ]);
+    await page.getByRole("button", { name: /Abrir somente o GLB/i }).waitFor({ timeout: 5000 });
+    await page.getByRole("button", { name: /Abrir somente o GLB/i }).click();
+    await page.locator(".gg-topbar__model .gg-badge", { hasText: /GLB Básico/i }).waitFor({ timeout: 5000 });
+    await page.waitForTimeout(200);
 
     await page.setViewportSize({ width: 1024, height: 768 });
     await page.waitForTimeout(400);

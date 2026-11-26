@@ -2,6 +2,7 @@
 
 import { Menu } from "@base-ui/react/menu";
 import Link from "next/link";
+import type { ViewerSceneGraph } from "../../../lib/geogen/domain/model";
 import { copy } from "../copy";
 import {
   BrandMarkIcon,
@@ -9,6 +10,7 @@ import {
   CubeIcon,
   FolderOpenIcon,
   HelpIcon,
+  ManifestIcon,
   MaximizeIcon,
   MoreIcon,
   SidebarLeftIcon,
@@ -19,6 +21,7 @@ import { ActionTooltip } from "./ui-tooltip";
 
 interface ViewerTopbarProps {
   modelName?: string;
+  sceneMode?: ViewerSceneGraph["mode"];
   isBusy: boolean;
   leftOpen: boolean;
   rightOpen: boolean;
@@ -26,6 +29,7 @@ interface ViewerTopbarProps {
   onToggleRight: () => void;
   onOpenFile: () => void;
   onLoadDemo: () => void;
+  onLoadContractDemo: () => void;
   onOpenHelp: () => void;
   onOpenCommand: () => void;
   onEnterFocusMode: () => void;
@@ -34,6 +38,7 @@ interface ViewerTopbarProps {
 
 export function ViewerTopbar({
   modelName,
+  sceneMode,
   isBusy,
   leftOpen,
   rightOpen,
@@ -41,6 +46,7 @@ export function ViewerTopbar({
   onToggleRight,
   onOpenFile,
   onLoadDemo,
+  onLoadContractDemo,
   onOpenHelp,
   onOpenCommand,
   onEnterFocusMode,
@@ -61,7 +67,15 @@ export function ViewerTopbar({
         <div className="gg-topbar__model">
           <h1 className="gg-topbar__title">{modelName ?? copy.noModel}</h1>
           {modelName && (
-            <span className="gg-badge gg-badge--neutral">{copy.modeBasic}</span>
+            <span
+              className={`gg-badge ${
+                sceneMode === "manifest-full"
+                  ? "gg-badge--accent"
+                  : "gg-badge--neutral"
+              }`}
+            >
+              {sceneMode === "manifest-full" ? copy.modeManifest : copy.modeBasic}
+            </span>
           )}
         </div>
       </div>
@@ -139,6 +153,18 @@ export function ViewerTopbar({
           </button>
         </ActionTooltip>
 
+        <ActionTooltip label={copy.demoContract}>
+          <button
+            type="button"
+            className="gg-btn gg-btn--secondary gg-hide-md"
+            disabled={isBusy}
+            onClick={onLoadContractDemo}
+          >
+            <ManifestIcon size={15} strokeWidth={1.75} />
+            <span>{copy.demoContract}</span>
+          </button>
+        </ActionTooltip>
+
         <ActionTooltip label={copy.focusModeEnter}>
           <button
             type="button"
@@ -174,6 +200,14 @@ export function ViewerTopbar({
             <Menu.Portal>
               <Menu.Positioner sideOffset={6} align="end" className="gg-menu-pos">
                 <Menu.Popup className="gg-popover-menu">
+                  <Menu.Item
+                    className="gg-menu-item"
+                    disabled={isBusy}
+                    onClick={onLoadContractDemo}
+                  >
+                    <ManifestIcon size={15} strokeWidth={1.75} />
+                    <span>{copy.demoContract}</span>
+                  </Menu.Item>
                   <Menu.Item
                     className="gg-menu-item"
                     disabled={isBusy}

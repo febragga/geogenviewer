@@ -11,12 +11,16 @@ import {
   type DragEvent,
 } from "react";
 import { Group, Panel, Separator } from "react-resizable-panels";
-import { Vector3 } from "three";
+import { maxGlbBytes } from "../../lib/geogen/importers/glb";
 import {
-  importGlb,
-  maxGlbBytes,
-  type ImportedModel,
-} from "../../lib/geogen/importers/glb";
+  importGlbBasicPackage,
+  importGlbWithManifestPackage,
+  type LoadedScenePackage,
+} from "../../lib/geogen/importers/package";
+import {
+  ManifestValidationError,
+  maxManifestBytes,
+} from "../../lib/geogen/validation/manifest";
 import { CommandPalette } from "./components/command-palette";
 import { ControlsDialog } from "./components/controls-dialog";
 import {
@@ -24,19 +28,19 @@ import {
   CloseIcon,
   CubeIcon,
   FolderOpenIcon,
+  ManifestIcon,
 } from "./components/icons";
 import { toggleColorScheme } from "./components/theme-toggle";
 import {
   LeftHierarchyPanel,
   MobileBottomSheet,
   RightPropertiesPanel,
-  type SceneNodeSummary,
-  type SceneSummary,
 } from "./components/viewer-panels";
 import { ViewerToolbar } from "./components/viewer-toolbar";
 import { ViewerTopbar } from "./components/viewer-topbar";
 import { copy } from "./copy";
 import type { CameraCommand, NavigationMode } from "./scene/viewport";
+import { useViewerStore } from "./state/viewer-store";
 
 const Viewport = dynamic(() => import("./scene/viewport"), { ssr: false });
 
@@ -59,35 +63,16 @@ function createMediaStore(query: string) {
 const wideDesktopStore = createMediaStore("(min-width: 1180px)");
 const desktopLayoutStore = createMediaStore("(min-width: 1024px)");
 
-function summarizeScene(
-  model: ImportedModel,
-  fileSizeBytes: number
-): SceneSummary {
-  let nodeCount = 0;
-  let meshCount = 0;
-  model.scene.traverse((obj) => {
-    if (obj !== model.scene) nodeCount += 1;
-    if ((obj as { isMesh?: boolean }).isMesh) meshCount += 1;
-  });
-  const size = model.bounds.getSize(new Vector3());
-  const rootNodes: SceneNodeSummary[] = model.scene.children.map(
-    (child, index) => ({
-      key: `${child.uuid}-${index}`,
-      name: child.name?.trim() || `Nó ${index + 1}`,
-      elementId:
-        typeof child.userData?.geogenElementId === "string"
-          ? child.userData.geogenElementId
-          : null,
-      hasMesh: Boolean((child as { isMesh?: boolean }).isMesh),
-    })
+function isKnownUserError(message: string): boolean {
+  return /^(O arquivo|Selecione|O GLB|A versão|Exporte|A cena|Manifesto|Incompatibilidade|Conflito|Referência)/.test(
+    message
   );
-  return {
-    fileSizeBytes,
-    nodeCount,
-    meshCount,
-    boundsMeters: [size.x, size.y, size.z],
-    rootNodes,
-  };
+}
+
+interface PendingFallback {
+  fileName: string;
+  glbBytes: ArrayBuffer;
+  reason: string;
 }
 
 export function Viewer() {
@@ -96,17 +81,34 @@ export function Viewer() {
   const dragDepthRef = useRef(0);
 
   const [loaded, setLoaded] = useState<{
-    model: ImportedModel;
+    scenePackage: LoadedScenePackage;
     name: string;
     id: number;
-    summary: SceneSummary;
   }>();
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
+  const [pendingFallback, setPendingFallback] = useState<PendingFallback | null>(
+    null
+  );
   const [lost, setLost] = useState(false);
   const [mode, setMode] = useState<NavigationMode>("orbit");
-  const [command, setCommand] = useState<CameraCommand>({ kind: "reset" });
+  const [command, setCommand] = useState<CameraCommand>({ kind: "reset", seq: 0 });
   const [isDraggingFile, setIsDraggingFile] = useState(false);
+
+  const selectedIds = useViewerStore((s) => s.selectedIds);
+  const hoveredId = useViewerStore((s) => s.hoveredId);
+  const hiddenIds = useViewerStore((s) => s.hiddenIds);
+  const isolatedIds = useViewerStore((s) => s.isolatedIds);
+  const multiSelectMode = useViewerStore((s) => s.multiSelectMode);
+
+  const setSceneGraph = useViewerStore((s) => s.setSceneGraph);
+  const select = useViewerStore((s) => s.select);
+  const clearSelection = useViewerStore((s) => s.clearSelection);
+  const setHoveredId = useViewerStore((s) => s.setHoveredId);
+  const hideIds = useViewerStore((s) => s.hideIds);
+  const isolateIds = useViewerStore((s) => s.isolateIds);
+  const showAll = useViewerStore((s) => s.showAll);
+  const setMultiSelectMode = useViewerStore((s) => s.setMultiSelectMode);
 
   const isWideDesktop = useSyncExternalStore(
     wideDesktopStore.subscribe,
@@ -136,61 +138,226 @@ export function Viewer() {
     const requestCounter = requestRef;
     return () => {
       requestCounter.current++;
+      useViewerStore.getState().setSceneGraph(null);
     };
   }, []);
 
-  useEffect(() => () => loaded?.model.dispose(), [loaded]);
+  useEffect(() => () => loaded?.scenePackage.dispose(), [loaded]);
 
-  const open = useCallback(async (file?: File) => {
-    const id = ++requestRef.current;
-    setStatus(copy.reading);
-    setError("");
-    try {
-      if (file && file.size > maxGlbBytes) throw new Error(copy.tooLarge);
-      const bytes = file
-        ? await file.arrayBuffer()
-        : await fetch("/demos/estrutura.glb").then((response) => {
-            if (!response.ok) throw new Error(copy.invalid);
-            return response.arrayBuffer();
-          });
-      if (id !== requestRef.current) return;
-      setStatus(copy.decoding);
-      const model = await importGlb(bytes);
-      if (id !== requestRef.current) {
-        model.dispose();
+  const issueCommand = useCallback((next: Omit<CameraCommand, "seq">) => {
+    setCommand((prev) => ({ ...next, seq: (prev.seq ?? 0) + 1 }));
+  }, []);
+
+  const activatePackage = useCallback(
+    (scenePackage: LoadedScenePackage, displayName: string, id: number) => {
+      setLoaded({ scenePackage, name: displayName, id });
+      setSceneGraph(scenePackage.sceneGraph);
+      setPendingFallback(null);
+      setLost(false);
+      issueCommand({ kind: "reset" });
+      setAnnouncement(`${copy.loadedSuccessAnnouncement} ${displayName}`);
+    },
+    [issueCommand, setSceneGraph]
+  );
+
+  const openFiles = useCallback(
+    async (files: File[]) => {
+      const id = ++requestRef.current;
+      setError("");
+      setPendingFallback(null);
+
+      const glbFiles = files.filter((f) => f.name.toLowerCase().endsWith(".glb"));
+      const jsonFiles = files.filter((f) => f.name.toLowerCase().endsWith(".json"));
+
+      if (glbFiles.length === 0 && jsonFiles.length > 0) {
+        setError(copy.jsonNeedsGlb);
         return;
       }
-      const name = file?.name ?? copy.demoName;
-      const summary = summarizeScene(model, bytes.byteLength);
-      setLoaded({ model, name, id, summary });
-      setCommand({ kind: "reset" });
-      setLost(false);
-      setAnnouncement(`${copy.loadedSuccessAnnouncement} ${name}`);
+      if (glbFiles.length !== 1 || jsonFiles.length > 1) {
+        setError(copy.onlyOneGlbWarning);
+        return;
+      }
+
+      const glbFile = glbFiles[0];
+      const jsonFile = jsonFiles[0] ?? null;
+
+      setStatus(copy.reading);
+      try {
+        if (glbFile.size > maxGlbBytes) throw new Error(copy.tooLarge);
+        if (jsonFile && jsonFile.size > maxManifestBytes) {
+          throw new Error(copy.tooLarge);
+        }
+
+        const glbBytes = await glbFile.arrayBuffer();
+        const jsonBytes = jsonFile ? await jsonFile.arrayBuffer() : null;
+        if (id !== requestRef.current) return;
+
+        setStatus(copy.decoding);
+        if (jsonBytes) {
+          try {
+            const pkg = await importGlbWithManifestPackage(
+              glbBytes,
+              jsonBytes,
+              glbFile.name
+            );
+            if (id !== requestRef.current) {
+              pkg.dispose();
+              return;
+            }
+            const label = pkg.sceneGraph.projectTitle || glbFile.name;
+            activatePackage(pkg, label, id);
+          } catch (cause) {
+            if (id !== requestRef.current) return;
+            const reason =
+              cause instanceof ManifestValidationError
+                ? `${cause.message}${
+                    cause.details.length > 0 ? ` (${cause.details[0]})` : ""
+                  }`
+                : cause instanceof Error && cause.message
+                  ? cause.message
+                  : copy.manifestFailedChoiceTitle;
+            setPendingFallback({
+              fileName: glbFile.name,
+              glbBytes,
+              reason,
+            });
+          }
+          return;
+        }
+
+        const pkg = await importGlbBasicPackage(glbBytes, glbFile.name);
+        if (id !== requestRef.current) {
+          pkg.dispose();
+          return;
+        }
+        activatePackage(pkg, glbFile.name, id);
+      } catch (cause) {
+        if (id === requestRef.current) {
+          const message = cause instanceof Error ? cause.message : "";
+          setError(isKnownUserError(message) ? message : copy.invalid);
+        }
+      } finally {
+        if (id === requestRef.current) setStatus("");
+      }
+    },
+    [activatePackage]
+  );
+
+  const openBasicFallback = useCallback(async () => {
+    if (!pendingFallback) return;
+    const id = ++requestRef.current;
+    const { fileName, glbBytes } = pendingFallback;
+    setPendingFallback(null);
+    setError("");
+    setStatus(copy.decoding);
+    try {
+      const pkg = await importGlbBasicPackage(glbBytes, fileName);
+      if (id !== requestRef.current) {
+        pkg.dispose();
+        return;
+      }
+      activatePackage(pkg, fileName, id);
     } catch (cause) {
       if (id === requestRef.current) {
         const message = cause instanceof Error ? cause.message : "";
-        setError(
-          /^(O arquivo|Selecione|O GLB|A versão|Exporte|A cena)/.test(message)
-            ? message
-            : copy.invalid
-        );
+        setError(isKnownUserError(message) ? message : copy.invalid);
       }
     } finally {
       if (id === requestRef.current) setStatus("");
     }
-  }, []);
+  }, [activatePackage, pendingFallback]);
+
+  const loadDemo = useCallback(
+    async (kind: "basic" | "contract") => {
+      const id = ++requestRef.current;
+      setStatus(copy.reading);
+      setError("");
+      setPendingFallback(null);
+      try {
+        if (kind === "basic") {
+          const glbBytes = await fetch("/demos/estrutura.glb").then((response) => {
+            if (!response.ok) throw new Error(copy.invalid);
+            return response.arrayBuffer();
+          });
+          if (id !== requestRef.current) return;
+          setStatus(copy.decoding);
+          const pkg = await importGlbBasicPackage(glbBytes, "estrutura.glb");
+          if (id !== requestRef.current) {
+            pkg.dispose();
+            return;
+          }
+          activatePackage(pkg, copy.demoName, id);
+          return;
+        }
+
+        const [glbBytes, jsonBytes] = await Promise.all([
+          fetch("/demos/contrato-exemplo.glb").then((response) => {
+            if (!response.ok) throw new Error(copy.invalid);
+            return response.arrayBuffer();
+          }),
+          fetch("/demos/contrato-exemplo.manifest.json").then((response) => {
+            if (!response.ok) throw new Error(copy.invalid);
+            return response.arrayBuffer();
+          }),
+        ]);
+        if (id !== requestRef.current) return;
+        setStatus(copy.decoding);
+        const pkg = await importGlbWithManifestPackage(
+          glbBytes,
+          jsonBytes,
+          "contrato-exemplo.glb"
+        );
+        if (id !== requestRef.current) {
+          pkg.dispose();
+          return;
+        }
+        activatePackage(pkg, copy.demoContractName, id);
+      } catch (cause) {
+        if (id === requestRef.current) {
+          const message = cause instanceof Error ? cause.message : "";
+          setError(isKnownUserError(message) ? message : copy.invalid);
+        }
+      } finally {
+        if (id === requestRef.current) setStatus("");
+      }
+    },
+    [activatePackage]
+  );
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
       const params = new URLSearchParams(window.location.search);
-      if (params.get("demo") === "1") {
-        void open();
+      const demoParam = params.get("demo");
+      if (demoParam === "1") {
+        void loadDemo("basic");
+      } else if (demoParam === "contrato") {
+        void loadDemo("contract");
       }
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [open]);
+  }, [loadDemo]);
 
   const onContextLost = useCallback(() => setLost(true), []);
+
+  const handleViewportSelect = useCallback(
+    (id: string | null, options: { multi: boolean }) => {
+      if (!id) {
+        if (!options.multi) clearSelection();
+        return;
+      }
+      select(id, options.multi ? "toggle" : "replace");
+      const compName = loaded?.scenePackage.sceneGraph.components[id]?.name ?? id;
+      setAnnouncement(`${copy.selectionAnnouncement} ${compName}`);
+    },
+    [clearSelection, loaded, select]
+  );
+
+  const handleFrameIds = useCallback(
+    (ids: string[]) => {
+      issueCommand({ kind: "fit", targetIds: ids });
+    },
+    [issueCommand]
+  );
 
   const toggleLeftPanel = useCallback(() => {
     if (window.matchMedia("(max-width: 767px)").matches) {
@@ -241,30 +408,59 @@ export function Viewer() {
       const key = event.key.toLowerCase();
       if (key === "f" && loaded && !lost) {
         event.preventDefault();
-        setCommand({ kind: "fit" });
+        const currentSel = useViewerStore.getState().selectedIds;
+        issueCommand({
+          kind: "fit",
+          targetIds: currentSel.length > 0 ? currentSel : undefined,
+        });
       } else if (key === "r" && loaded && !lost) {
         event.preventDefault();
-        setCommand({ kind: "reset" });
+        issueCommand({ kind: "reset" });
+      } else if (key === "h" && loaded && !lost) {
+        const currentSel = useViewerStore.getState().selectedIds;
+        if (currentSel.length > 0) {
+          event.preventDefault();
+          hideIds(currentSel);
+        }
+      } else if (key === "i" && loaded && !lost) {
+        const currentSel = useViewerStore.getState().selectedIds;
+        if (currentSel.length > 0) {
+          event.preventDefault();
+          isolateIds(currentSel);
+        }
+      } else if (key === "a" && loaded && !lost) {
+        event.preventDefault();
+        showAll();
       } else if (event.key === "[") {
         event.preventDefault();
         toggleLeftPanel();
       } else if (event.key === "]") {
         event.preventDefault();
         toggleRightPanel();
-      } else if (event.key === "Escape" && focusMode) {
-        event.preventDefault();
-        setFocusMode(false);
+      } else if (event.key === "Escape") {
+        if (focusMode) {
+          event.preventDefault();
+          setFocusMode(false);
+        } else if (useViewerStore.getState().selectedIds.length > 0) {
+          event.preventDefault();
+          clearSelection();
+        }
       }
     }
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [
+    clearSelection,
     commandOpen,
     focusMode,
     helpOpen,
+    hideIds,
+    isolateIds,
+    issueCommand,
     loaded,
     lost,
+    showAll,
     toggleLeftPanel,
     toggleRightPanel,
   ]);
@@ -296,9 +492,12 @@ export function Viewer() {
     event.preventDefault();
     dragDepthRef.current = 0;
     setIsDraggingFile(false);
-    const file = event.dataTransfer.files?.[0];
-    if (file) void open(file);
+    const files = Array.from(event.dataTransfer.files ?? []);
+    if (files.length > 0) void openFiles(files);
   }
+
+  const hasVisibilityOverrides =
+    hiddenIds.length > 0 || isolatedIds !== null;
 
   const fallback = (
     <div role="alert" className="gg-state-card">
@@ -336,9 +535,16 @@ export function Viewer() {
       {loaded && !lost ? (
         <Viewport
           key={loaded.id}
-          model={loaded.model}
+          scenePackage={loaded.scenePackage}
           command={command}
           mode={mode}
+          selectedIds={selectedIds}
+          hoveredId={hoveredId}
+          hiddenIds={hiddenIds}
+          isolatedIds={isolatedIds}
+          multiSelectMode={multiSelectMode}
+          onSelect={handleViewportSelect}
+          onHover={setHoveredId}
           onContextLost={onContextLost}
           fallback={fallback}
         />
@@ -355,7 +561,7 @@ export function Viewer() {
               type="button"
               className="gg-btn gg-btn--primary"
               onClick={() => {
-                setCommand({ kind: "reset" });
+                issueCommand({ kind: "reset" });
                 setLost(false);
               }}
             >
@@ -387,7 +593,16 @@ export function Viewer() {
                 type="button"
                 className="gg-btn gg-btn--secondary"
                 disabled={Boolean(status)}
-                onClick={() => void open()}
+                onClick={() => void loadDemo("contract")}
+              >
+                <ManifestIcon size={15} strokeWidth={1.75} />
+                <span>{copy.demoContract}</span>
+              </button>
+              <button
+                type="button"
+                className="gg-btn gg-btn--secondary"
+                disabled={Boolean(status)}
+                onClick={() => void loadDemo("basic")}
               >
                 <CubeIcon size={15} strokeWidth={1.75} />
                 <span>{copy.demo}</span>
@@ -413,6 +628,33 @@ export function Viewer() {
             <span className="gg-progress-bar" />
           </span>
           <span>{status}</span>
+        </div>
+      )}
+
+      {pendingFallback && (
+        <div className="gg-error-banner gg-error-banner--choice" role="alert">
+          <AlertIcon size={16} strokeWidth={1.75} className="gg-error-banner__icon" />
+          <div className="gg-error-banner__body">
+            <strong>{copy.manifestFailedChoiceTitle}</strong>
+            <p className="gg-error-banner__text">{pendingFallback.reason}</p>
+            <div className="gg-error-banner__actions">
+              <button
+                type="button"
+                className="gg-btn gg-btn--secondary gg-btn--xs"
+                onClick={() => void openBasicFallback()}
+              >
+                {copy.manifestOpenBasicFallback}
+              </button>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="gg-btn gg-btn--ghost gg-btn--icon-sm"
+            aria-label={copy.dismissError}
+            onClick={() => setPendingFallback(null)}
+          >
+            <CloseIcon size={15} strokeWidth={1.75} />
+          </button>
         </div>
       )}
 
@@ -446,8 +688,25 @@ export function Viewer() {
         <ViewerToolbar
           mode={mode}
           disabled={lost}
+          multiSelectMode={multiSelectMode}
+          selectedCount={selectedIds.length}
+          hasVisibilityOverrides={hasVisibilityOverrides}
           onModeChange={setMode}
-          onCommand={setCommand}
+          onToggleMultiSelect={() => setMultiSelectMode(!multiSelectMode)}
+          onHideSelected={() => hideIds(selectedIds)}
+          onIsolateSelected={() => isolateIds(selectedIds)}
+          onShowAll={showAll}
+          onClearSelection={clearSelection}
+          onCommand={(next) => {
+            if (next.kind === "fit") {
+              issueCommand({
+                kind: "fit",
+                targetIds: selectedIds.length > 0 ? selectedIds : undefined,
+              });
+            } else {
+              issueCommand(next);
+            }
+          }}
         />
       )}
     </div>
@@ -461,13 +720,15 @@ export function Viewer() {
         {!focusMode && (
           <ViewerTopbar
             modelName={loaded?.name}
+            sceneMode={loaded?.scenePackage.sceneGraph.mode}
             isBusy={Boolean(status)}
             leftOpen={leftOpen || mobileTab === "structure"}
             rightOpen={rightOpen || mobileTab === "properties"}
             onToggleLeft={toggleLeftPanel}
             onToggleRight={toggleRightPanel}
             onOpenFile={() => inputRef.current?.click()}
-            onLoadDemo={() => void open()}
+            onLoadDemo={() => void loadDemo("basic")}
+            onLoadContractDemo={() => void loadDemo("contract")}
             onOpenHelp={() => setHelpOpen(true)}
             onOpenCommand={() => setCommandOpen(true)}
             onEnterFocusMode={() => setFocusMode(true)}
@@ -477,36 +738,33 @@ export function Viewer() {
 
         <input
           type="file"
-          accept=".glb,model/gltf-binary"
+          accept=".glb,model/gltf-binary,.json,application/json"
+          multiple
           aria-label={copy.open}
           ref={inputRef}
           hidden
           onChange={(event) => {
-            const file = event.currentTarget.files?.[0];
+            const files = Array.from(event.currentTarget.files ?? []);
             event.currentTarget.value = "";
-            if (file) void open(file);
+            if (files.length > 0) void openFiles(files);
           }}
         />
 
         <main className="gg-workspace">
           {isDesktopLayout && !focusMode ? (
-            <Group
-              orientation="horizontal"
-              className="gg-panel-group"
-            >
+            <Group orientation="horizontal" className="gg-panel-group">
               {leftOpen && (
                 <>
                   <Panel
                     id="structure-panel"
-                    defaultSize={264}
+                    defaultSize={272}
                     minSize={220}
-                    maxSize={380}
+                    maxSize={400}
                     groupResizeBehavior="preserve-pixel-size"
                     className="gg-resizable-panel"
                   >
                     <LeftHierarchyPanel
-                      modelName={loaded?.name}
-                      summary={loaded?.summary ?? null}
+                      onFrameIds={handleFrameIds}
                       onClose={() => setLeftOverride(false)}
                     />
                   </Panel>
@@ -534,15 +792,14 @@ export function Viewer() {
                   />
                   <Panel
                     id="properties-panel"
-                    defaultSize={272}
+                    defaultSize={284}
                     minSize={240}
-                    maxSize={400}
+                    maxSize={420}
                     groupResizeBehavior="preserve-pixel-size"
                     className="gg-resizable-panel"
                   >
                     <RightPropertiesPanel
-                      modelName={loaded?.name}
-                      summary={loaded?.summary ?? null}
+                      onFrameIds={handleFrameIds}
                       onClose={() => setRightOverride(false)}
                     />
                   </Panel>
@@ -563,16 +820,14 @@ export function Viewer() {
               )}
               {!focusMode && leftOpen && (
                 <LeftHierarchyPanel
-                  modelName={loaded?.name}
-                  summary={loaded?.summary ?? null}
+                  onFrameIds={handleFrameIds}
                   onClose={() => setLeftOverride(false)}
                 />
               )}
               {viewportSurface}
               {!focusMode && rightOpen && (
                 <RightPropertiesPanel
-                  modelName={loaded?.name}
-                  summary={loaded?.summary ?? null}
+                  onFrameIds={handleFrameIds}
                   onClose={() => setRightOverride(false)}
                 />
               )}
@@ -583,9 +838,8 @@ export function Viewer() {
         {!focusMode && (
           <MobileBottomSheet
             activeTab={mobileTab}
-            modelName={loaded?.name}
-            summary={loaded?.summary ?? null}
             onTabChange={setMobileTab}
+            onFrameIds={handleFrameIds}
             onClose={() => setMobileTab(null)}
           />
         )}
@@ -602,12 +856,25 @@ export function Viewer() {
           hasModel={Boolean(loaded)}
           isLost={lost}
           isBusy={Boolean(status)}
+          hasSelection={selectedIds.length > 0}
+          hasVisibilityOverrides={hasVisibilityOverrides}
           onOpenFile={() => inputRef.current?.click()}
-          onLoadDemo={() => void open()}
-          onFit={() => setCommand({ kind: "fit" })}
-          onReset={() => setCommand({ kind: "reset" })}
+          onLoadDemo={() => void loadDemo("basic")}
+          onLoadContractDemo={() => void loadDemo("contract")}
+          onFit={() =>
+            issueCommand({
+              kind: "fit",
+              targetIds: selectedIds.length > 0 ? selectedIds : undefined,
+            })
+          }
+          onReset={() => issueCommand({ kind: "reset" })}
           onSetOrbit={() => setMode("orbit")}
           onSetPan={() => setMode("pan")}
+          onHideSelected={() => hideIds(selectedIds)}
+          onIsolateSelected={() => isolateIds(selectedIds)}
+          onShowAll={showAll}
+          onClearSelection={clearSelection}
+          onToggleMultiSelect={() => setMultiSelectMode(!multiSelectMode)}
           onToggleLeft={toggleLeftPanel}
           onToggleRight={toggleRightPanel}
           onToggleFocus={() => setFocusMode((prev) => !prev)}

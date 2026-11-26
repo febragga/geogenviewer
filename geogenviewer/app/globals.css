@@ -1449,6 +1449,326 @@ a {
   color: var(--gg-text-secondary);
 }
 
+/* ---------- V0.2 / V0.3 Tree, Search, Selection & Manifest Fallback ---------- */
+
+.gg-panel__body--tree {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1 1 auto;
+  min-block-size: 0;
+}
+
+.gg-search-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.gg-search-field__icon {
+  position: absolute;
+  left: 10px;
+  color: var(--gg-text-muted);
+  pointer-events: none;
+}
+
+.gg-input--search {
+  inline-size: 100%;
+  min-block-size: 32px;
+  padding: 4px 10px 4px 30px;
+  border-radius: var(--gg-radius-md);
+  border: 1px solid var(--gg-border-subtle);
+  background: var(--gg-bg-subtle);
+  color: var(--gg-text-primary);
+  font-size: 12px;
+}
+
+.gg-input--search:focus-visible {
+  outline: 2px solid var(--gg-accent);
+  outline-offset: 1px;
+  border-color: var(--gg-accent);
+}
+
+.gg-tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.gg-tabs--compact {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  padding: 3px;
+  border-radius: var(--gg-radius-md);
+  background: var(--gg-bg-subtle);
+  border: 1px solid var(--gg-border-subtle);
+}
+
+.gg-tab {
+  min-block-size: 28px;
+  padding: 0 8px;
+  border-radius: var(--gg-radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--gg-text-secondary);
+  font-size: 11.5px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gg-tab[aria-selected="true"] {
+  background: var(--gg-bg-panel);
+  color: var(--gg-accent);
+  border-color: var(--gg-accent-border);
+  font-weight: 600;
+}
+
+.gg-tree-meta-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--gg-text-secondary);
+}
+
+.gg-tree-meta-bar__summary {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gg-tree-meta-bar__btns {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.gg-mini-link-btn {
+  padding: 2px 5px;
+  border: none;
+  border-radius: var(--gg-radius-sm);
+  background: transparent;
+  color: var(--gg-accent);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.gg-mini-link-btn:hover {
+  background: var(--gg-accent-soft);
+}
+
+.gg-tree-scroll {
+  flex: 1 1 auto;
+  min-block-size: 140px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border-top: 1px solid var(--gg-border-subtle);
+  padding-top: 4px;
+}
+
+.gg-tree-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.gg-tree-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-block-size: 32px;
+  padding-right: 4px;
+  border-radius: var(--gg-radius-sm);
+  border: 1px solid transparent;
+}
+
+.gg-tree-row:hover,
+.gg-tree-row--hovered {
+  background: var(--gg-bg-subtle);
+}
+
+.gg-tree-row--selected {
+  background: var(--gg-accent-soft);
+  border-color: var(--gg-accent-border);
+}
+
+.gg-tree-row--hidden .gg-tree-label,
+.gg-tree-row--hidden .gg-tree-id {
+  opacity: 0.56;
+  text-decoration: line-through;
+}
+
+.gg-tree-chevron,
+.gg-tree-chevron-spacer {
+  inline-size: 20px;
+  block-size: 24px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gg-tree-chevron {
+  border: none;
+  background: transparent;
+  color: var(--gg-text-secondary);
+  border-radius: var(--gg-radius-sm);
+  cursor: pointer;
+  padding: 0;
+}
+
+.gg-tree-chevron:hover {
+  background: var(--gg-bg-active);
+  color: var(--gg-text-primary);
+}
+
+.gg-tree-select-btn {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  min-block-size: 28px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 4px;
+  border: none;
+  background: transparent;
+  color: var(--gg-text-primary);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.gg-tree-icon {
+  color: var(--gg-text-secondary);
+  flex-shrink: 0;
+}
+
+.gg-tree-row--selected .gg-tree-icon {
+  color: var(--gg-accent);
+}
+
+.gg-swatch {
+  inline-size: 9px;
+  block-size: 9px;
+  border-radius: 2px;
+  border: 1px solid var(--gg-border-strong);
+  flex-shrink: 0;
+}
+
+.gg-tree-label {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gg-tree-id {
+  font-size: 10.5px;
+  color: var(--gg-text-muted);
+  max-inline-size: 64px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.gg-tree-row__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.gg-tree-action-btn {
+  inline-size: 24px;
+  block-size: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--gg-radius-sm);
+  background: transparent;
+  color: var(--gg-text-secondary);
+  cursor: pointer;
+  padding: 0;
+}
+
+.gg-tree-action-btn:hover:not(:disabled) {
+  background: var(--gg-bg-active);
+  color: var(--gg-text-primary);
+}
+
+.gg-tree-action-btn--active {
+  color: var(--gg-accent);
+  background: var(--gg-accent-soft);
+}
+
+.gg-selection-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.gg-btn--xs {
+  min-block-size: 28px;
+  padding: 3px 8px;
+  font-size: 11.5px;
+}
+
+.gg-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.gg-inline-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--gg-accent);
+  font-weight: 500;
+}
+
+.gg-node-item--btn {
+  inline-size: 100%;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--gg-text-primary);
+  text-align: left;
+  cursor: pointer;
+}
+
+.gg-node-item--btn:hover {
+  background: var(--gg-bg-subtle);
+  border-color: var(--gg-border-subtle);
+}
+
+.gg-error-banner--choice {
+  align-items: flex-start;
+}
+
+.gg-error-banner__body {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.gg-error-banner__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 /* ---------- Responsive Rules ---------- */
 
 .gg-label-md {
@@ -1465,6 +1785,12 @@ a {
 
 .gg-tablet-scrim {
   display: none;
+}
+
+@media (max-width: 1320px) {
+  .gg-hide-lg {
+    display: none;
+  }
 }
 
 @media (max-width: 1179px) {

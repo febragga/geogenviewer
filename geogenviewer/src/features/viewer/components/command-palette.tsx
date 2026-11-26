@@ -5,13 +5,19 @@ import { Command } from "cmdk";
 import { useState } from "react";
 import { copy } from "../copy";
 import {
+  ClearSelectionIcon,
   CloseIcon,
   CubeIcon,
+  EyeIcon,
+  EyeOffIcon,
   FitViewIcon,
   FolderOpenIcon,
   HandIcon,
   HelpIcon,
+  IsolateIcon,
+  ManifestIcon,
   MaximizeIcon,
+  MultiSelectIcon,
   OrbitIcon,
   ResetCameraIcon,
   SidebarLeftIcon,
@@ -25,12 +31,20 @@ interface CommandPaletteProps {
   hasModel: boolean;
   isLost: boolean;
   isBusy: boolean;
+  hasSelection: boolean;
+  hasVisibilityOverrides: boolean;
   onOpenFile: () => void;
   onLoadDemo: () => void;
+  onLoadContractDemo: () => void;
   onFit: () => void;
   onReset: () => void;
   onSetOrbit: () => void;
   onSetPan: () => void;
+  onHideSelected: () => void;
+  onIsolateSelected: () => void;
+  onShowAll: () => void;
+  onClearSelection: () => void;
+  onToggleMultiSelect: () => void;
   onToggleLeft: () => void;
   onToggleRight: () => void;
   onToggleFocus: () => void;
@@ -44,12 +58,20 @@ export function CommandPalette({
   hasModel,
   isLost,
   isBusy,
+  hasSelection,
+  hasVisibilityOverrides,
   onOpenFile,
   onLoadDemo,
+  onLoadContractDemo,
   onFit,
   onReset,
   onSetOrbit,
   onSetPan,
+  onHideSelected,
+  onIsolateSelected,
+  onShowAll,
+  onClearSelection,
+  onToggleMultiSelect,
   onToggleLeft,
   onToggleRight,
   onToggleFocus,
@@ -128,7 +150,16 @@ export function CommandPalette({
                 >
                   <FolderOpenIcon className="gg-cmd__icon" />
                   <span className="gg-cmd__label">{copy.open}</span>
-                  <span className="gg-cmd__meta">Local · GLB 2.0</span>
+                  <span className="gg-cmd__meta">GLB / JSON</span>
+                </Command.Item>
+                <Command.Item
+                  className="gg-cmd__item"
+                  disabled={isBusy}
+                  onSelect={() => run(onLoadContractDemo)}
+                >
+                  <ManifestIcon className="gg-cmd__icon" />
+                  <span className="gg-cmd__label">{copy.demoContract}</span>
+                  <span className="gg-cmd__meta">GLB + JSON v1.0</span>
                 </Command.Item>
                 <Command.Item
                   className="gg-cmd__item"
@@ -138,6 +169,52 @@ export function CommandPalette({
                   <CubeIcon className="gg-cmd__icon" />
                   <span className="gg-cmd__label">{copy.demo}</span>
                   <span className="gg-cmd__meta">estrutura.glb</span>
+                </Command.Item>
+              </Command.Group>
+
+              <Command.Group heading={copy.commandGroupSelection} className="gg-cmd__group">
+                <Command.Item
+                  className="gg-cmd__item"
+                  disabled={cameraDisabled}
+                  onSelect={() => run(onToggleMultiSelect)}
+                >
+                  <MultiSelectIcon className="gg-cmd__icon" />
+                  <span className="gg-cmd__label">{copy.multiSelect}</span>
+                </Command.Item>
+                <Command.Item
+                  className="gg-cmd__item"
+                  disabled={cameraDisabled || !hasSelection}
+                  onSelect={() => run(onHideSelected)}
+                >
+                  <EyeOffIcon className="gg-cmd__icon" />
+                  <span className="gg-cmd__label">{copy.hideSelected}</span>
+                  <kbd className="gg-cmd__kbd">H</kbd>
+                </Command.Item>
+                <Command.Item
+                  className="gg-cmd__item"
+                  disabled={cameraDisabled || !hasSelection}
+                  onSelect={() => run(onIsolateSelected)}
+                >
+                  <IsolateIcon className="gg-cmd__icon" />
+                  <span className="gg-cmd__label">{copy.isolateSelected}</span>
+                  <kbd className="gg-cmd__kbd">I</kbd>
+                </Command.Item>
+                <Command.Item
+                  className="gg-cmd__item"
+                  disabled={cameraDisabled || !hasVisibilityOverrides}
+                  onSelect={() => run(onShowAll)}
+                >
+                  <EyeIcon className="gg-cmd__icon" />
+                  <span className="gg-cmd__label">{copy.showAll}</span>
+                  <kbd className="gg-cmd__kbd">A</kbd>
+                </Command.Item>
+                <Command.Item
+                  className="gg-cmd__item"
+                  disabled={cameraDisabled || !hasSelection}
+                  onSelect={() => run(onClearSelection)}
+                >
+                  <ClearSelectionIcon className="gg-cmd__icon" />
+                  <span className="gg-cmd__label">{copy.clearSelection}</span>
                 </Command.Item>
               </Command.Group>
 
