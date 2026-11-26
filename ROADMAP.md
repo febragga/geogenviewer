@@ -100,7 +100,8 @@ A sprint amplia o marco de montagem anterior com gestão de vistas, filtros e mo
 ### v0.9–v1.0 — Estabilização e deploy
 - [x] Product Design V0.9: marca `#3B82F6`, Home Launchpad, Cubo de Navegação 3D sólido, famílias de workspace, Organização do Usuário (`organization-v1.schema.json`), Menu de Contexto, Configurações e otimização `InstancedMesh` ([Relatório V0.9](V09_IMPLEMENTATION_REPORT.md), [Desempenho V0.9](V09_PERFORMANCE_REPORT.md)).
 - [x] Verificações automatizadas: `lint`, `typecheck`, 62 testes unitários (`tests/*.test.mjs`), `build` e 6 suítes Playwright (`test:ui`, `test:v05`..`test:v09`) com 0 violações `axe` ([Relatório de Testes](V09_TEST_REPORT.md)).
-- [ ] Medir em dispositivos físicos (tablet/smartphone reais), validar exportação real do Rhino 8 (`GeoGenExporter`) e testar com modelo autorizado da Casa Gerassi.
+- [x] V0.9.1: auditoria de engenharia, correções de identidade, retenção de estado, rendering e recuperação. [Implementação](V091_IMPLEMENTATION_REPORT.md) · [Regressão](V091_REGRESSION_REPORT.md).
+- [ ] Medir em dispositivos físicos (tablet/smartphone reais), validar exportação real do Rhino 8 (`GeoGenExporter`) e testar com modelo autorizado da Casa Gerassi. [Checklist de homologação](V1_RELEASE_CANDIDATE_CHECKLIST.md).
 - [ ] Build de produção final e smoke test em URL de preview (`geogenviewer.fernandobragaportfolio.com.br`); configurar CNAME DNS only e HTTPS quando aprovado.
 - [ ] Verificar que nenhum dado da IC foi publicado inadvertidamente antes do release V1.0.
 

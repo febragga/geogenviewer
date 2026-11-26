@@ -1,0 +1,54 @@
+{
+  "environment": {
+    "node": "v22.14.0",
+    "platform": "win32",
+    "arch": "x64"
+  },
+  "measurements": [
+    {
+      "count": 100,
+      "loadBothMs": 12.395,
+      "matchingMs": 0.187,
+      "geometryAndDiffMs": 3.476,
+      "quantitiesAndFabricationMs": 1.185,
+      "filterMs": 0.013,
+      "tableDataMs": 0.07,
+      "disposeMs": 0.156,
+      "changed": 12,
+      "tableEntries": 14,
+      "usedGeometries": 2,
+      "disposedGeometries": 2,
+      "processHeapDeltaMiB": 5.456
+    },
+    {
+      "count": 1000,
+      "loadBothMs": 84.797,
+      "matchingMs": 0.357,
+      "geometryAndDiffMs": 20.997,
+      "quantitiesAndFabricationMs": 10.053,
+      "filterMs": 0.09,
+      "tableDataMs": 0.147,
+      "disposeMs": 0.518,
+      "changed": 120,
+      "tableEntries": 122,
+      "usedGeometries": 2,
+      "disposedGeometries": 2,
+      "processHeapDeltaMiB": 20.624
+    },
+    {
+      "count": 10000,
+      "loadBothMs": 529.144,
+      "matchingMs": 7.96,
+      "geometryAndDiffMs": 120.226,
+      "quantitiesAndFabricationMs": 51.091,
+      "filterMs": 0.798,
+      "tableDataMs": 0.703,
+      "disposeMs": 4.031,
+      "changed": 1200,
+      "tableEntries": 1202,
+      "usedGeometries": 2,
+      "disposedGeometries": 2,
+      "processHeapDeltaMiB": 181.616
+    }
+  ]
+}

@@ -1,0 +1,136 @@
+{
+  "sizes": [
+    {
+      "size": "1440 × 900",
+      "canvas": [
+        882,
+        856
+      ],
+      "count": 1,
+      "contextLost": false,
+      "clipped": [],
+      "toolbarOverflow": 0,
+      "overflow": 0,
+      "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+    },
+    {
+      "size": "1920 × 1080",
+      "canvas": [
+        1362,
+        1036
+      ],
+      "count": 1,
+      "contextLost": false,
+      "clipped": [],
+      "toolbarOverflow": 0,
+      "overflow": 0,
+      "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+    },
+    {
+      "size": "1920 × 1080 · modo limpo",
+      "canvas": [
+        1920,
+        1080
+      ],
+      "count": 1,
+      "contextLost": false,
+      "clipped": [],
+      "toolbarOverflow": 0,
+      "overflow": 0,
+      "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+    },
+    {
+      "size": "1280 × 800",
+      "canvas": [
+        722,
+        756
+      ],
+      "count": 1,
+      "contextLost": false,
+      "clipped": [],
+      "toolbarOverflow": 0,
+      "overflow": 0,
+      "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+    },
+    {
+      "size": "1024 × 768 · touch",
+      "canvas": [
+        1024,
+        574
+      ],
+      "count": 1,
+      "contextLost": false,
+      "clipped": [],
+      "toolbarOverflow": 0,
+      "overflow": 0,
+      "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+    },
+    {
+      "size": "768 × 1024 · touch",
+      "canvas": [
+        768,
+        830
+      ],
+      "count": 1,
+      "contextLost": false,
+      "clipped": [],
+      "toolbarOverflow": 0,
+      "overflow": 0,
+      "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+    },
+    {
+      "size": "390 × 844 · touch",
+      "canvas": [
+        390,
+        791
+      ],
+      "count": 1,
+      "contextLost": false,
+      "clipped": [],
+      "toolbarOverflow": 0,
+      "overflow": 0,
+      "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+    }
+  ],
+  "measurements": {
+    "single": [
+      "FPS em atividade",
+      "18",
+      "Draw calls",
+      "24",
+      "Triângulos",
+      "276",
+      "Geometrias",
+      "2",
+      "Materiais",
+      "7",
+      "Componentes",
+      "18",
+      "Carga do modelo",
+      "22 ms"
+    ],
+    "quad": [
+      "FPS em atividade",
+      "—",
+      "Draw calls",
+      "96",
+      "Triângulos",
+      "1104",
+      "Geometrias",
+      "2",
+      "Materiais",
+      "7",
+      "Componentes",
+      "18",
+      "Carga do modelo",
+      "22 ms"
+    ]
+  },
+  "issues": [],
+  "accessibility": {
+    "quad": [],
+    "filters": [],
+    "assembly": [],
+    "editor": []
+  }
+}

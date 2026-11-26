@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.9.1] · 26/11/2026 — Auditoria e estabilização
+
+- Pré-validação GLB e vínculo único de malhas a ocorrências do manifesto CAD.
+- Organização com escopo por hash, projeto e revisão, máscaras de grupos independentes e histórico atômico ao criar uma camada com a seleção.
+- Fallback de renderização para transparência, transformações incompatíveis e exibição técnica. Picking com limites atualizados e ancoragem na malha original.
+- Preferências de tema compartilhadas entre home e viewer, metadados de produção e versão centralizada.
+- Cancelamento e recuperação, diagnóstico de armazenamento e indicação do limite de ilustrações do manual.
+- [Auditoria](V091_ENGINEERING_AUDIT.md) · [Checklist V1.0](V1_RELEASE_CANDIDATE_CHECKLIST.md)
+
 ## [0.9.0] · 26/11/2026 — Product Design, Performance, Robustez e Organização do Usuário
 
 - Identidade visual oficial com marca triangular `#3B82F6`, versão centralizada `0.9.0` e web manifest completos.

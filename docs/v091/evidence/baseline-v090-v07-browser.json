@@ -1,0 +1,146 @@
+{
+  "a11y": {
+    "compare-light": [],
+    "compare-overlay": [],
+    "quantities-analytics": [],
+    "quantities-table": [],
+    "compare-dark-768": [],
+    "quantities-dark-768": [],
+    "compare-dark-390": [],
+    "quantities-dark-390": []
+  },
+  "dimensions": [
+    {
+      "size": [
+        1920,
+        1080
+      ],
+      "canvas": [
+        1360,
+        1036
+      ],
+      "canvasCount": 1,
+      "contexts": 1,
+      "overflow": 0
+    },
+    {
+      "size": [
+        1440,
+        900
+      ],
+      "canvas": [
+        950,
+        856
+      ],
+      "canvasCount": 1,
+      "contexts": 1,
+      "overflow": 0
+    },
+    {
+      "size": [
+        1280,
+        800
+      ],
+      "canvas": [
+        844,
+        756
+      ],
+      "canvasCount": 1,
+      "contexts": 1,
+      "overflow": 0
+    },
+    {
+      "size": [
+        1024,
+        768
+      ],
+      "canvas": [
+        669,
+        715
+      ],
+      "canvasCount": 1,
+      "contexts": 1,
+      "overflow": 0
+    },
+    {
+      "size": [
+        768,
+        1024
+      ],
+      "canvas": [
+        768,
+        548
+      ],
+      "canvasCount": 1,
+      "contexts": 1,
+      "overflow": 0,
+      "quantitiesOverflow": 0
+    },
+    {
+      "size": [
+        390,
+        844
+      ],
+      "canvas": [
+        390,
+        446
+      ],
+      "canvasCount": 1,
+      "contexts": 1,
+      "overflow": 0,
+      "quantitiesOverflow": 0
+    }
+  ],
+  "graphics": {
+    "labSide": {
+      "FPS em atividade": "—",
+      "Draw calls": "44",
+      "Triângulos": "544",
+      "Geometrias": "10",
+      "Materiais": "6",
+      "Componentes": "21",
+      "Carga do modelo": "43 ms"
+    },
+    "labOverlay": {
+      "FPS em atividade": "17",
+      "Draw calls": "66",
+      "Triângulos": "834",
+      "Geometrias": "10",
+      "Materiais": "15",
+      "Componentes": "21",
+      "Carga do modelo": "43 ms"
+    }
+  },
+  "issues": [],
+  "exports": [
+    {
+      "file": "comparison.json",
+      "bytes": 8282
+    },
+    {
+      "file": "diferencas.csv",
+      "bytes": 7771
+    },
+    {
+      "file": "comparacao.png",
+      "bytes": 103042
+    },
+    {
+      "file": "comparacao-com-corte.png",
+      "bytes": 90579
+    },
+    {
+      "file": "fabrication-analysis.json",
+      "bytes": 29753
+    },
+    {
+      "file": "quantitativos.csv",
+      "bytes": 12051
+    }
+  ],
+  "graphicsScale": [],
+  "clipping": {
+    "coloredPixels": 236145,
+    "clippedPixels": 133146
+  }
+}

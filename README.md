@@ -4,7 +4,7 @@ Visualizador web independente (*local-first*) de modelos arquitetônicos e de ge
 
 - **Aplicação Next.js (Root Directory no Vercel):** [`geogenviewer/`](geogenviewer/) — rotas `/` e `/viewer`
 - **Contrato de interoperabilidade Rhino 8 (`v1.0.0`):** [`exporter-contract/`](exporter-contract/)
-- **Versão consolidada atual:** `0.9.0` (`feat/v0.9-product-design-performance` / alvo `v0.9.0`) — [Guia V0.9](V09_USER_GUIDE.md) · [Relatório V0.9](V09_IMPLEMENTATION_REPORT.md) · [Testes V0.9](V09_TEST_REPORT.md) · [Desempenho V0.9](V09_PERFORMANCE_REPORT.md) · [Organização do Usuário](V09_USER_ORGANIZATION_SPEC.md) · [Cubo 3D](V09_NAVIGATION_CUBE_SPEC.md) · [Evidências](docs/v09/evidence/after/)
+- **Versão atual:** `0.9.1` — [Guia V0.9](V09_USER_GUIDE.md) · [Auditoria](V091_ENGINEERING_AUDIT.md) · [Validação](V091_REGRESSION_REPORT.md) · [Desempenho](V091_PERFORMANCE_REPORT.md) · [Checklist V1.0](V1_RELEASE_CANDIDATE_CHECKLIST.md)
 
 ## Funcionalidades implementadas
 
@@ -17,6 +17,8 @@ Visualizador web independente (*local-first*) de modelos arquitetônicos e de ge
 - **V0.8:** Knolling (cinco modos, planos XY/XZ/YZ, fixações e retorno à pose), catálogo com miniaturas em cache e seleção sincronizada, callouts vinculados às ocorrências, listas de peças, fichas A4/A3 e manual imprimível baseado nas etapas autoradas. [Guia V0.8](V08_USER_GUIDE.md) · [Relatório](V08_IMPLEMENTATION_REPORT.md).
 - **V0.9:** Identidade visual `#3B82F6` e Home Launchpad com showcase e projetos recentes, Cubo de Navegação 3D sólido chanfrado com rotação 90°, workspaces em 4 famílias, **Sistema Independente de Camadas e Grupos do Usuário** ([`organization-v1.schema.json`](geogenviewer/schemas/organization-v1.schema.json)) com Undo/Redo e Menu de Contexto, diálogo de **Configurações**, `InstancedMesh` GPU batching (`10.001` → `2` draw calls em 10.000 peças) e cancelamento de carregamento (`AbortController`).
 
+- **V0.9.1:** Validação de identidade, organização por revisão, máscaras independentes de grupos, picking de instâncias e recuperação de carregamento/WebGL. O manual explicita a cobertura das ilustrações. [Implementação](V091_IMPLEMENTATION_REPORT.md)
+
 ## Homologações pendentes
 
 - Execução e homologação do `GeoGenExporter` em ambiente real do Rhino 8.
@@ -25,4 +27,4 @@ Visualizador web independente (*local-first*) de modelos arquitetônicos e de ge
 
 ## Executar e verificar localmente
 
-Consulte [`geogenviewer/README.md`](geogenviewer/README.md) para os scripts `lint`, `typecheck`, `test`, `build` e suítes Playwright (`test:ui`, `test:v05`, `test:v06`, `test:v07`, `test:v08` e `test:v09`).
+Consulte [`geogenviewer/README.md`](geogenviewer/README.md) para os scripts `lint`, `typecheck`, `test`, `build` e suítes Playwright (`test:ui`, `test:v05` a `test:v09` e `test:v091`).
