@@ -1,0 +1,630 @@
+{
+  "schemaVersion": "1.0.0",
+  "project": {
+    "id": "contrato-exemplo-v1",
+    "title": "Fixture de Contrato Rhino/GeoGen v1",
+    "revisionId": "rev-01",
+    "description": "Exemplo sintético contemplando cubo 100 mm, pilar, viga, peça multi-mesh, instâncias de bloco e layers aninhados.",
+    "geometryKind": "physicalModel",
+    "scaleDenominator": 50,
+    "displayUnit": "mm",
+    "prototypeId": "proto-contrato-01"
+  },
+  "source": {
+    "application": "Rhino",
+    "applicationVersion": "8",
+    "exporterVersion": "contract-example-1.0.0",
+    "sourceUnit": "mm",
+    "sourceUpAxis": "Z",
+    "sourceOrigin": [
+      0,
+      0,
+      0
+    ],
+    "metersPerSourceUnit": 0.001
+  },
+  "geometry": {
+    "file": "model.example.glb",
+    "format": "glb",
+    "coordinateSystem": "RH_Y_UP",
+    "unit": "m",
+    "nodeMatchStrategy": "extras",
+    "sha256": "d410ee9c444ce67d7748bb6b5626ce677583392f3dca3e19f3aa74c5d36eb8d2"
+  },
+  "layers": [
+    {
+      "id": "l-estrutura",
+      "name": "Estrutura",
+      "parentId": null,
+      "fullPath": "Estrutura",
+      "colorHex": "#5A7D95",
+      "visible": true
+    },
+    {
+      "id": "l-estrutura-pilares",
+      "name": "Pilares",
+      "parentId": "l-estrutura",
+      "fullPath": "Estrutura::Pilares",
+      "colorHex": "#3D576B",
+      "visible": true
+    },
+    {
+      "id": "l-estrutura-vigas",
+      "name": "Vigas",
+      "parentId": "l-estrutura",
+      "fullPath": "Estrutura::Vigas",
+      "colorHex": "#2E6B99",
+      "visible": true
+    },
+    {
+      "id": "l-fabricacao",
+      "name": "Fabricação",
+      "parentId": null,
+      "fullPath": "Fabricação",
+      "colorHex": "#B5DAF2",
+      "visible": true
+    },
+    {
+      "id": "l-fabricacao-conectores",
+      "name": "Conectores",
+      "parentId": "l-fabricacao",
+      "fullPath": "Fabricação::Conectores",
+      "colorHex": "#D9A847",
+      "visible": true
+    },
+    {
+      "id": "l-referencia",
+      "name": "Referência Dimensional",
+      "parentId": null,
+      "fullPath": "Referência Dimensional",
+      "colorHex": "#EA6829",
+      "visible": true
+    }
+  ],
+  "groups": [
+    {
+      "id": "g-portico",
+      "name": "Pórtico de Teste",
+      "parentId": null
+    },
+    {
+      "id": "g-encaixes",
+      "name": "Elementos com Encaixe",
+      "parentId": null
+    },
+    {
+      "id": "g-calibracao",
+      "name": "Calibração",
+      "parentId": null
+    }
+  ],
+  "materials": [
+    {
+      "id": "mat-pla",
+      "name": "PLA Fosco",
+      "colorHex": "#8A96A3",
+      "densityKgM3": 1240
+    },
+    {
+      "id": "mat-acrilico",
+      "name": "Acrílico Técnico",
+      "colorHex": "#D9A847",
+      "densityKgM3": 1180
+    }
+  ],
+  "blocks": [
+    {
+      "id": "blk-connector-a",
+      "name": "Conector Encaixe A",
+      "sourceBlockId": "00000000-0000-4000-8000-00000000b10a"
+    }
+  ],
+  "elements": [
+    {
+      "id": "ex-cube-100",
+      "name": "Cubo de 100 mm",
+      "category": "other",
+      "layerId": "l-referencia",
+      "groupIds": [
+        "g-calibracao"
+      ],
+      "materialId": "mat-pla",
+      "parentId": null,
+      "glbNodeName": "Cubo de 100 mm",
+      "sourceObjectId": "00000000-0000-4000-8000-00000000c100",
+      "blockDefinitionId": null,
+      "instancePath": null,
+      "geometryType": "extrusion",
+      "colorHex": "#EA6829",
+      "isClosed": true,
+      "isValid": true,
+      "boundingBoxM": {
+        "min": [
+          0.33,
+          0,
+          0.11
+        ],
+        "max": [
+          0.43,
+          0.1,
+          0.21
+        ],
+        "source": "cad"
+      },
+      "dimensions": {
+        "lengthM": 0.1,
+        "widthM": 0.1,
+        "thicknessM": 0.1,
+        "source": "cad"
+      },
+      "areaM2": {
+        "value": 0.06,
+        "source": "cad"
+      },
+      "volumeM3": {
+        "value": 0.001,
+        "source": "cad"
+      },
+      "centroidM": {
+        "value": [
+          0.38,
+          0.05,
+          0.16
+        ],
+        "source": "cad"
+      },
+      "explodeOffsetM": [
+        0,
+        0,
+        0.06
+      ],
+      "assemblyDirectionM": [
+        0,
+        1,
+        0
+      ],
+      "connectorIds": [],
+      "userText": {
+        "finalidade": "Calibracao 100 mm"
+      },
+      "properties": {
+        "papel": "Gabarito dimensional"
+      },
+      "fabrication": {
+        "prototypeId": "proto-contrato-01",
+        "scaleDenominator": 50,
+        "material": "PLA",
+        "toleranceMm": 0.2
+      }
+    },
+    {
+      "id": "ex-column-01",
+      "name": "Pilar P01",
+      "category": "column",
+      "layerId": "l-estrutura-pilares",
+      "groupIds": [
+        "g-portico"
+      ],
+      "materialId": "mat-pla",
+      "parentId": null,
+      "glbNodeName": "Pilar P01",
+      "sourceObjectId": "00000000-0000-4000-8000-00000000p001",
+      "blockDefinitionId": null,
+      "instancePath": null,
+      "geometryType": "brep",
+      "colorHex": "#3D576B",
+      "isClosed": true,
+      "isValid": true,
+      "boundingBoxM": {
+        "min": [
+          -0.02,
+          0,
+          -0.02
+        ],
+        "max": [
+          0.02,
+          0.3,
+          0.02
+        ],
+        "source": "cad"
+      },
+      "dimensions": {
+        "lengthM": 0.3,
+        "widthM": 0.04,
+        "thicknessM": 0.04,
+        "source": "cad"
+      },
+      "areaM2": {
+        "value": 0.0512,
+        "source": "cad"
+      },
+      "volumeM3": {
+        "value": 0.00048,
+        "source": "cad"
+      },
+      "centroidM": {
+        "value": [
+          0,
+          0.15,
+          0
+        ],
+        "source": "cad"
+      },
+      "explodeOffsetM": [
+        -0.04,
+        0,
+        0
+      ],
+      "assemblyDirectionM": [
+        0,
+        1,
+        0
+      ],
+      "connectorIds": [
+        "ex-conn-inst-02"
+      ],
+      "userText": {
+        "eixo": "A1"
+      },
+      "properties": {
+        "funcao": "Apoio vertical"
+      },
+      "fabrication": {
+        "prototypeId": "proto-contrato-01",
+        "scaleDenominator": 50,
+        "material": "PLA",
+        "toleranceMm": 0.15
+      }
+    },
+    {
+      "id": "ex-beam-01",
+      "name": "Viga V01",
+      "category": "beam",
+      "layerId": "l-estrutura-vigas",
+      "groupIds": [
+        "g-portico",
+        "g-encaixes"
+      ],
+      "materialId": "mat-pla",
+      "parentId": null,
+      "glbNodeName": "Viga V01",
+      "sourceObjectId": "00000000-0000-4000-8000-00000000b001",
+      "blockDefinitionId": null,
+      "instancePath": null,
+      "geometryType": "brep",
+      "colorHex": "#2E6B99",
+      "isClosed": true,
+      "isValid": true,
+      "boundingBoxM": {
+        "min": [
+          -0.02,
+          0.3,
+          -0.02
+        ],
+        "max": [
+          0.38,
+          0.34,
+          0.02
+        ],
+        "source": "cad"
+      },
+      "dimensions": {
+        "lengthM": 0.4,
+        "widthM": 0.04,
+        "thicknessM": 0.04,
+        "source": "cad"
+      },
+      "areaM2": {
+        "value": 0.0672,
+        "source": "cad"
+      },
+      "volumeM3": {
+        "value": 0.00064,
+        "source": "cad"
+      },
+      "centroidM": {
+        "value": [
+          0.18,
+          0.32,
+          0
+        ],
+        "source": "cad"
+      },
+      "explodeOffsetM": [
+        0,
+        0.08,
+        0
+      ],
+      "assemblyDirectionM": [
+        0,
+        -1,
+        0
+      ],
+      "connectorIds": [
+        "ex-conn-inst-01",
+        "ex-conn-inst-02"
+      ],
+      "userText": {
+        "vao": "400 mm (maquete)"
+      },
+      "properties": {
+        "engaste": "Sobre conectores"
+      },
+      "fabrication": {
+        "prototypeId": "proto-contrato-01",
+        "scaleDenominator": 50,
+        "material": "PLA",
+        "toleranceMm": 0.15
+      }
+    },
+    {
+      "id": "ex-composite-01",
+      "name": "Base Composta C01",
+      "category": "foundation",
+      "layerId": "l-estrutura",
+      "groupIds": [
+        "g-portico",
+        "g-encaixes"
+      ],
+      "materialId": "mat-pla",
+      "parentId": null,
+      "glbNodeName": "Base Composta C01",
+      "sourceObjectId": "00000000-0000-4000-8000-00000000f001",
+      "blockDefinitionId": null,
+      "instancePath": null,
+      "geometryType": "composite",
+      "colorHex": "#8A949E",
+      "isClosed": true,
+      "isValid": true,
+      "boundingBoxM": {
+        "min": [
+          -0.07,
+          0,
+          -0.22
+        ],
+        "max": [
+          0.07,
+          0.05,
+          -0.14
+        ],
+        "source": "cad"
+      },
+      "dimensions": {
+        "lengthM": 0.14,
+        "widthM": 0.08,
+        "thicknessM": 0.05,
+        "source": "cad"
+      },
+      "areaM2": {
+        "value": 0.0378,
+        "source": "cad"
+      },
+      "volumeM3": {
+        "value": 0.000354,
+        "source": "cad"
+      },
+      "centroidM": {
+        "value": [
+          0,
+          0.017,
+          -0.18
+        ],
+        "source": "cad"
+      },
+      "explodeOffsetM": [
+        0,
+        -0.05,
+        -0.04
+      ],
+      "assemblyDirectionM": [
+        0,
+        1,
+        0
+      ],
+      "connectorIds": [],
+      "userText": {
+        "multiMesh": "2 sub-malhas"
+      },
+      "properties": {
+        "composicao": "Sapata + pino guia"
+      },
+      "fabrication": {
+        "prototypeId": "proto-contrato-01",
+        "scaleDenominator": 50,
+        "material": "PLA",
+        "toleranceMm": 0.2
+      }
+    },
+    {
+      "id": "ex-conn-inst-01",
+      "name": "Conector Bloco A [1]",
+      "category": "connector",
+      "layerId": "l-fabricacao-conectores",
+      "groupIds": [
+        "g-encaixes"
+      ],
+      "materialId": "mat-acrilico",
+      "parentId": null,
+      "glbNodeName": "Conector Bloco A [1]",
+      "sourceObjectId": "00000000-0000-4000-8000-00000000e001",
+      "blockDefinitionId": "blk-connector-a",
+      "instancePath": "00000000-0000-4000-8000-00000000e001/0",
+      "geometryType": "blockInstance",
+      "colorHex": "#D9A847",
+      "isClosed": true,
+      "isValid": true,
+      "boundingBoxM": {
+        "min": [
+          0.335,
+          0.295,
+          -0.025
+        ],
+        "max": [
+          0.385,
+          0.345,
+          0.025
+        ],
+        "source": "cad"
+      },
+      "dimensions": {
+        "lengthM": 0.05,
+        "widthM": 0.05,
+        "thicknessM": 0.05,
+        "source": "cad"
+      },
+      "areaM2": {
+        "value": 0.015,
+        "source": "cad"
+      },
+      "volumeM3": {
+        "value": 0.000125,
+        "source": "cad"
+      },
+      "centroidM": {
+        "value": [
+          0.36,
+          0.32,
+          0
+        ],
+        "source": "cad"
+      },
+      "explodeOffsetM": [
+        0.05,
+        0.04,
+        0
+      ],
+      "assemblyDirectionM": [
+        0,
+        -1,
+        0
+      ],
+      "connectorIds": [],
+      "userText": {
+        "tipoEncaixe": "Macho-fêmea"
+      },
+      "properties": {
+        "instancia": 1
+      },
+      "fabrication": {
+        "prototypeId": "proto-contrato-01",
+        "scaleDenominator": 50,
+        "material": "Acrílico",
+        "toleranceMm": 0.1
+      }
+    },
+    {
+      "id": "ex-conn-inst-02",
+      "name": "Conector Bloco A [2]",
+      "category": "connector",
+      "layerId": "l-fabricacao-conectores",
+      "groupIds": [
+        "g-encaixes"
+      ],
+      "materialId": "mat-acrilico",
+      "parentId": null,
+      "glbNodeName": "Conector Bloco A [2]",
+      "sourceObjectId": "00000000-0000-4000-8000-00000000e002",
+      "blockDefinitionId": "blk-connector-a",
+      "instancePath": "00000000-0000-4000-8000-00000000e002/0",
+      "geometryType": "blockInstance",
+      "colorHex": "#D9A847",
+      "isClosed": true,
+      "isValid": true,
+      "boundingBoxM": {
+        "min": [
+          -0.035,
+          0.295,
+          -0.035
+        ],
+        "max": [
+          0.035,
+          0.345,
+          0.035
+        ],
+        "source": "cad"
+      },
+      "dimensions": {
+        "lengthM": 0.05,
+        "widthM": 0.05,
+        "thicknessM": 0.05,
+        "source": "cad"
+      },
+      "areaM2": {
+        "value": 0.015,
+        "source": "cad"
+      },
+      "volumeM3": {
+        "value": 0.000125,
+        "source": "cad"
+      },
+      "centroidM": {
+        "value": [
+          0,
+          0.32,
+          0
+        ],
+        "source": "cad"
+      },
+      "explodeOffsetM": [
+        -0.05,
+        0.04,
+        0
+      ],
+      "assemblyDirectionM": [
+        0,
+        -1,
+        0
+      ],
+      "connectorIds": [],
+      "userText": {
+        "tipoEncaixe": "Macho-fêmea rotacionado 45°"
+      },
+      "properties": {
+        "instancia": 2
+      },
+      "fabrication": {
+        "prototypeId": "proto-contrato-01",
+        "scaleDenominator": 50,
+        "material": "Acrílico",
+        "toleranceMm": 0.1
+      }
+    }
+  ],
+  "assembly": {
+    "steps": [
+      {
+        "id": "step-1",
+        "title": "Posicionar base composta e pilar",
+        "elementIds": [
+          "ex-composite-01",
+          "ex-column-01"
+        ],
+        "dependsOn": [],
+        "durationSeconds": 1,
+        "insertionOffsetM": [
+          0,
+          0.04,
+          0
+        ]
+      },
+      {
+        "id": "step-2",
+        "title": "Acoplar conectores e viga",
+        "elementIds": [
+          "ex-conn-inst-01",
+          "ex-conn-inst-02",
+          "ex-beam-01"
+        ],
+        "dependsOn": [
+          "step-1"
+        ],
+        "durationSeconds": 1,
+        "insertionOffsetM": [
+          0,
+          0.05,
+          0
+        ]
+      }
+    ]
+  }
+}

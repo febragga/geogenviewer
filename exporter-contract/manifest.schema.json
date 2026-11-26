@@ -1,0 +1,421 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://geogenviewer.fernandobragaportfolio.com.br/schemas/manifest-v1.schema.json",
+  "title": "GeoGenViewer Manifest v1",
+  "description": "Contrato de intercâmbio semântico e de interoperabilidade CAD entre exportadores (ex.: GeoGenExporter no Rhino 8) e o GeoGenViewer.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "project",
+    "source",
+    "geometry",
+    "layers",
+    "groups",
+    "materials",
+    "elements"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "pattern": "^1\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$",
+      "description": "Versão SemVer compatível com a major 1."
+    },
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title", "revisionId", "geometryKind", "scaleDenominator", "displayUnit"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "title": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "revisionId": { "$ref": "#/$defs/identifier" },
+        "description": { "type": ["string", "null"], "maxLength": 4096 },
+        "geometryKind": {
+          "type": "string",
+          "enum": ["physicalModel", "fullScale", "unknown"]
+        },
+        "scaleDenominator": {
+          "type": ["number", "null"],
+          "exclusiveMinimum": 0
+        },
+        "displayUnit": {
+          "type": "string",
+          "enum": ["mm", "cm", "m"]
+        },
+        "prototypeId": {
+          "type": ["string", "null"],
+          "maxLength": 128
+        }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["application", "sourceUnit", "sourceUpAxis", "sourceOrigin", "metersPerSourceUnit"],
+      "properties": {
+        "application": { "type": ["string", "null"], "maxLength": 128 },
+        "applicationVersion": { "type": ["string", "null"], "maxLength": 64 },
+        "exporterVersion": { "type": ["string", "null"], "maxLength": 64 },
+        "sourceUnit": {
+          "type": ["string", "null"],
+          "enum": ["mm", "cm", "m", "in", "ft", null]
+        },
+        "sourceUpAxis": {
+          "type": ["string", "null"],
+          "enum": ["Z", "Y", null]
+        },
+        "sourceOrigin": {
+          "oneOf": [
+            { "$ref": "#/$defs/vec3" },
+            { "type": "null" }
+          ]
+        },
+        "metersPerSourceUnit": {
+          "type": ["number", "null"],
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "geometry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["file", "format", "coordinateSystem", "unit"],
+      "properties": {
+        "file": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 255,
+          "pattern": "^[^/\\\\:*?\"<>|\\x00-\\x1f]+\\.glb$"
+        },
+        "format": {
+          "type": "string",
+          "const": "glb"
+        },
+        "coordinateSystem": {
+          "type": "string",
+          "const": "RH_Y_UP"
+        },
+        "unit": {
+          "type": "string",
+          "const": "m"
+        },
+        "nodeMatchStrategy": {
+          "type": "string",
+          "enum": ["extras", "nameExact", "namePrefix"],
+          "default": "extras"
+        },
+        "sha256": {
+          "type": ["string", "null"],
+          "pattern": "^[0-9a-fA-F]{64}$"
+        }
+      }
+    },
+    "layers": {
+      "type": "array",
+      "maxItems": 10000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name", "parentId"],
+        "properties": {
+          "id": { "$ref": "#/$defs/identifier" },
+          "name": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "parentId": {
+            "oneOf": [{ "$ref": "#/$defs/identifier" }, { "type": "null" }]
+          },
+          "fullPath": { "type": ["string", "null"], "maxLength": 1024 },
+          "colorHex": {
+            "oneOf": [{ "$ref": "#/$defs/hexColor" }, { "type": "null" }]
+          },
+          "visible": { "type": "boolean" }
+        }
+      }
+    },
+    "groups": {
+      "type": "array",
+      "maxItems": 10000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name", "parentId"],
+        "properties": {
+          "id": { "$ref": "#/$defs/identifier" },
+          "name": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "parentId": {
+            "oneOf": [{ "$ref": "#/$defs/identifier" }, { "type": "null" }]
+          }
+        }
+      }
+    },
+    "materials": {
+      "type": "array",
+      "maxItems": 5000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name"],
+        "properties": {
+          "id": { "$ref": "#/$defs/identifier" },
+          "name": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "colorHex": {
+            "oneOf": [{ "$ref": "#/$defs/hexColor" }, { "type": "null" }]
+          },
+          "densityKgM3": {
+            "type": ["number", "null"],
+            "exclusiveMinimum": 0
+          },
+          "costPerKg": {
+            "oneOf": [
+              { "type": "null" },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["amount", "currency"],
+                "properties": {
+                  "amount": { "type": "number", "minimum": 0 },
+                  "currency": { "type": "string", "pattern": "^[A-Z]{3}$" }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    "blocks": {
+      "type": "array",
+      "maxItems": 5000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name"],
+        "properties": {
+          "id": { "$ref": "#/$defs/identifier" },
+          "name": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "sourceBlockId": { "type": ["string", "null"], "maxLength": 128 }
+        }
+      }
+    },
+    "elements": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 50000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name", "category", "layerId", "groupIds", "materialId"],
+        "properties": {
+          "id": { "$ref": "#/$defs/identifier" },
+          "name": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "category": {
+            "type": "string",
+            "enum": [
+              "column",
+              "beam",
+              "slab",
+              "stair",
+              "foundation",
+              "connector",
+              "wall",
+              "roof",
+              "other"
+            ]
+          },
+          "layerId": {
+            "oneOf": [{ "$ref": "#/$defs/identifier" }, { "type": "null" }]
+          },
+          "groupIds": {
+            "type": "array",
+            "items": { "$ref": "#/$defs/identifier" }
+          },
+          "materialId": {
+            "oneOf": [{ "$ref": "#/$defs/identifier" }, { "type": "null" }]
+          },
+          "parentId": {
+            "oneOf": [{ "$ref": "#/$defs/identifier" }, { "type": "null" }]
+          },
+          "glbNodeName": {
+            "type": ["string", "null"],
+            "maxLength": 256
+          },
+          "sourceObjectId": {
+            "type": ["string", "null"],
+            "maxLength": 128
+          },
+          "blockDefinitionId": {
+            "oneOf": [{ "$ref": "#/$defs/identifier" }, { "type": "null" }]
+          },
+          "instancePath": {
+            "type": ["string", "null"],
+            "maxLength": 512
+          },
+          "geometryType": {
+            "type": ["string", "null"],
+            "enum": ["brep", "extrusion", "mesh", "subd", "blockInstance", "composite", "other", null]
+          },
+          "colorHex": {
+            "oneOf": [{ "$ref": "#/$defs/hexColor" }, { "type": "null" }]
+          },
+          "isClosed": { "type": ["boolean", "null"] },
+          "isValid": { "type": ["boolean", "null"] },
+          "boundingBoxM": {
+            "oneOf": [
+              { "type": "null" },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["min", "max", "source"],
+                "properties": {
+                  "min": { "$ref": "#/$defs/vec3" },
+                  "max": { "$ref": "#/$defs/vec3" },
+                  "source": { "$ref": "#/$defs/provenance" }
+                }
+              }
+            ]
+          },
+          "dimensions": {
+            "oneOf": [
+              { "type": "null" },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["source"],
+                "properties": {
+                  "lengthM": { "type": ["number", "null"], "minimum": 0 },
+                  "widthM": { "type": ["number", "null"], "minimum": 0 },
+                  "thicknessM": { "type": ["number", "null"], "minimum": 0 },
+                  "source": { "$ref": "#/$defs/provenance" }
+                }
+              }
+            ]
+          },
+          "areaM2": {
+            "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/measuredScalar" }]
+          },
+          "volumeM3": {
+            "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/measuredScalar" }]
+          },
+          "centroidM": {
+            "oneOf": [
+              { "type": "null" },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["value", "source"],
+                "properties": {
+                  "value": { "$ref": "#/$defs/vec3" },
+                  "source": { "$ref": "#/$defs/provenance" }
+                }
+              }
+            ]
+          },
+          "explodeOffsetM": {
+            "oneOf": [{ "$ref": "#/$defs/vec3" }, { "type": "null" }]
+          },
+          "assemblyDirectionM": {
+            "oneOf": [{ "$ref": "#/$defs/vec3" }, { "type": "null" }]
+          },
+          "connectorIds": {
+            "type": "array",
+            "items": { "$ref": "#/$defs/identifier" }
+          },
+          "userText": {
+            "type": "object",
+            "additionalProperties": { "type": "string", "maxLength": 2048 }
+          },
+          "properties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": ["string", "number", "boolean", "null"],
+              "maxLength": 2048
+            }
+          },
+          "fabrication": {
+            "oneOf": [
+              { "type": "null" },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "prototypeId": { "type": ["string", "null"], "maxLength": 128 },
+                  "scaleDenominator": { "type": ["number", "null"], "exclusiveMinimum": 0 },
+                  "material": { "type": ["string", "null"], "maxLength": 256 },
+                  "toleranceMm": { "type": ["number", "null"], "minimum": 0 },
+                  "connectorNote": { "type": ["string", "null"], "maxLength": 1024 }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    "assembly": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["steps"],
+          "properties": {
+            "steps": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["id", "title", "elementIds", "dependsOn"],
+                "properties": {
+                  "id": { "$ref": "#/$defs/identifier" },
+                  "title": { "type": "string", "minLength": 1, "maxLength": 256 },
+                  "elementIds": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": { "$ref": "#/$defs/identifier" }
+                  },
+                  "dependsOn": {
+                    "type": "array",
+                    "items": { "$ref": "#/$defs/identifier" }
+                  },
+                  "durationSeconds": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  "insertionOffsetM": { "$ref": "#/$defs/vec3" }
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9._:#/@-]+$"
+    },
+    "vec3": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": { "type": "number" }
+    },
+    "hexColor": {
+      "type": "string",
+      "pattern": "^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$"
+    },
+    "provenance": {
+      "type": "string",
+      "enum": ["cad", "mesh", "authored"]
+    },
+    "measuredScalar": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "source"],
+      "properties": {
+        "value": { "type": "number", "minimum": 0 },
+        "source": { "$ref": "#/$defs/provenance" }
+      }
+    }
+  }
+}

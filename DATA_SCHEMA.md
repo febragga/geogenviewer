@@ -1,7 +1,7 @@
 # GeoGenViewer — contrato de dados
 
 **Versão proposta:** 1.0.0 · 25/11/2026  
-**Status:** especificação inicial; schema executável e exportador ainda não implementados.
+**Status:** schema executável (`geogenviewer/schemas/manifest-v1.schema.json` e `exporter-contract/manifest.schema.json`) e exemplos sintéticos (`exporter-contract/manifest.example.json` + `model.example.glb`) disponíveis; exportador externo em desenvolvimento paralelo.
 
 ## 1. Objetivo e transporte
 
@@ -114,16 +114,17 @@ Exemplo sintético; medidas, IDs e sequência abaixo não correspondem à Casa G
 | `schemaVersion` | string SemVer; versão major desconhecida rejeitada; minor não suportada não interpretada silenciosamente |
 | `project` | objeto obrigatório: `id`, `title`, `revisionId`, `geometryKind` (`physicalModel`, `fullScale`, `unknown`), `scaleDenominator` número positivo ou null, `displayUnit` (`mm`, `cm`, `m`); `description` opcional |
 | `source` | objeto obrigatório: `application`, `sourceUnit`, `sourceUpAxis`, `sourceOrigin`, `metersPerSourceUnit`; `applicationVersion` opcional; se origem desconhecida, usar valores nulos explicitamente e não permitir conversão inversa |
-| `geometry` | obrigatório; `file` nome base `.glb` sem caminho, `format`, `coordinateSystem`, `unit` constantes; `sha256` opcional (64 caracteres hexadecimais) |
-| `layers`, `groups`, `materials`, `elements` | arrays obrigatórios, vazios permitidos exceto `elements` para manifesto com geometria selecionável |
-| `layer/group` | `id`, `name`, `parentId` (null ou ID da mesma coleção), obrigatórios |
-| `material` | `id`, `name` obrigatórios; `densityKgM3` opcional, número positivo ou null; `costPerKg` opcional, objeto `{amount,currency}` com ISO 4217 |
-| `element` | `id`, `name`, `category`, `layerId` (ou null), `groupIds`, `materialId` (ou null), obrigatórios; `sourceObjectId` opcional/null |
+| `geometry` | obrigatório; `file` nome base `.glb` sem caminho, `format`, `coordinateSystem`, `unit` constantes; `nodeMatchStrategy` (`extras`, `nameExact`, `namePrefix`, default `extras`); `sha256` opcional (64 caracteres hexadecimais) |
+| `layers`, `groups`, `materials`, `elements` | arrays obrigatórios, vazios permitidos exceto `elements` para manifesto com geometria selecionável; `blocks` opcional para definições de bloco Rhino |
+| `layer/group` | `id`, `name`, `parentId` (null ou ID da mesma coleção), obrigatórios; `layer` aceita `fullPath`, `colorHex` e `visible` opcionais |
+| `material` | `id`, `name` obrigatórios; `colorHex` opcional; `densityKgM3` opcional, número positivo ou null; `costPerKg` opcional, objeto `{amount,currency}` com ISO 4217 |
+| `element` | `id`, `name`, `category`, `layerId` (ou null), `groupIds`, `materialId` (ou null), obrigatórios; `parentId`, `glbNodeName`, `sourceObjectId`, `blockDefinitionId`, `instancePath`, `geometryType`, `colorHex`, `isClosed`, `isValid` opcionais/null |
 | `category` | `column`, `beam`, `slab`, `stair`, `foundation`, `connector`, `wall`, `roof`, `other`; enum inicial extensível por revisão |
+| `boundingBoxM` | opcional/null; `{ min: [x,y,z], max: [x,y,z], source }` no espaço GLB Y-up em metros (distinta de `dimensions`) |
 | `dimensions` | opcional/null; `lengthM`, `widthM`, `thicknessM` números não negativos ou null; `source` (`cad`, `mesh`, `authored`) obrigatório quando presente |
-| `volumeM3` | opcional/null, objeto `{value, source}` com valor não negativo e fonte `cad`, `mesh` ou `authored`; não estimar volume de superfície aberta |
-| `explodeOffsetM` | opcional/null; vetor xyz no espaço mundial de repouso |
-| `properties` | opcional; mapa de string para string/número/boolean/null, sem HTML |
+| `areaM2`, `volumeM3`, `centroidM` | opcionais/null; `{ value, source }` (`cad`, `mesh`, `authored`); **nunca** estimar volume de superfície aberta (`isClosed === false`) |
+| `explodeOffsetM`, `assemblyDirectionM` | opcionais/null; vetores xyz no espaço mundial de repouso; `connectorIds` array opcional de IDs |
+| `userText`, `properties`, `fabrication` | opcionais; mapas de chave-valor sem HTML/scripts (`fabrication` agrupa `prototypeId`, `scaleDenominator`, `material`, `toleranceMm`, `connectorNote`) |
 | `assembly` | opcional/null; objeto com `steps` ordenados |
 | `step` | `id`, `title`, `elementIds`, `dependsOn` obrigatórios; `durationSeconds` positivo opcional (default 1); `insertionOffsetM` vetor opcional (default zero) |
 
@@ -131,7 +132,7 @@ IDs são strings não vazias (até 128 caracteres), únicas por coleção; nomes
 
 ## 5. Correspondência com GLB
 
-- Cada elemento corresponde a um nó-raiz selecionável do GLB com `extras.geogenElementId` igual ao `element.id`; suas primitivas e descendentes sem ID pertencem a ele. Um elemento pode conter múltiplas malhas nesse subtree.
+- Cada elemento corresponde a um nó-raiz selecionável do GLB com `extras.geogenElementId` igual ao `element.id` (ou correspondência explícita por `glbNodeName` quando `geometry.nodeMatchStrategy` for `"nameExact"` ou `"namePrefix"`); suas primitivas e descendentes sem ID pertencem a ele. Um elemento pode conter múltiplas malhas nesse subtree.
 - Cada ID ocorre em exatamente um nó-raiz por cena ativa; proibir raízes de elemento aninhadas no MVP. Nós estruturais sem ID são permitidos fora das raízes, mas toda geometria selecionável deve estar sob uma raiz.
 - glTF `extras` do nó deve ser preservado e lido pelo importador (verificar mapeamento `userData` do loader com fixture). Não depender da ordem dos nós quando há manifesto.
 - Preservar transform original do pai; para deslocar em coordenadas mundiais, converter para espaço local do pai com inversa apropriada. Instâncias com geometria compartilhada continuam com IDs individuais. Otimização não pode romper esta regra.

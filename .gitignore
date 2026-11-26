@@ -2,10 +2,13 @@ node_modules/
 .next/
 *.3dm
 *.glb
-!geogenviewer/public/demos/estrutura.glb
+!geogenviewer/public/demos/*.glb
+!exporter-contract/model.example.glb
 *.gltf
 *.geogen
 manifest.json
+!manifest.example.json
+!exporter-contract/manifest.example.json
 /private/
 .env*
 .vercel/
