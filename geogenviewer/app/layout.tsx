@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import "./analytics.css";
+import "./documentation.css";
 
 export const metadata: Metadata = {
   title: "GeoGenViewer",

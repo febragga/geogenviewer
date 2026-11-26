@@ -6,7 +6,7 @@ import type { Workspace } from "./state/viewer-store";
 
 import { v07 } from "./v07-copy";
 
-export const workspaces: Record<Workspace, string> = { explore: "Explorar", explode: "Explodir", assembly: "Montagem", inspect: "Inspecionar", compare: v07.compare, quantities: v07.quantities };
+export const workspaces: Record<Workspace, string> = { explore: "Explorar", explode: "Explodir", assembly: "Montagem", inspect: "Inspecionar", compare: v07.compare, quantities: v07.quantities, knolling: "Knolling", catalog: "Catálogo" };
 export const presets: Record<ViewPreset, string> = {
   perspective: "Perspectiva", axonometric: "Axonométrica", top: "Superior", bottom: "Inferior",
   front: "Frontal", back: "Posterior", left: "Esquerda", right: "Direita",

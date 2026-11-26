@@ -90,7 +90,7 @@ function interpolatePose(from: CameraPose, to: CameraPose, t: number): CameraPos
   };
 }
 
-async function capturePng(renderer: WebGLRenderer, source: ViewCamera, options: PngOptions, draw: () => void,
+export async function capturePng(renderer: WebGLRenderer, source: ViewCamera, options: PngOptions, draw: () => void,
   composite: (ctx: CanvasRenderingContext2D, width: number, height: number) => void) {
   const aspect = source instanceof PerspectiveCamera ? source.aspect : (source.right - source.left) / (source.top - source.bottom);
   const limit = renderer.capabilities.maxTextureSize;
@@ -351,7 +351,10 @@ function createRig(
           if (runtime) runtime.draw({ slot: index, camera, region, render, technical: settings, capture: true }, moving, pose);
           else render();
         },
-        (ctx, outputWidth, outputHeight) => { if (settings) runtime?.capture(index, camera, ctx, outputWidth, outputHeight, region.width, settings); });
+        (ctx, outputWidth, outputHeight) => {
+          if (settings) runtime?.capture(index, camera, ctx, outputWidth, outputHeight, region.width, settings);
+          options.decorate?.(ctx, outputWidth, outputHeight, camera, index);
+        });
       beforeDraw(index);
       invalidate();
       return result;
@@ -440,7 +443,7 @@ function createRig(
         materials: stats.materials,
       };
       if (typeof CustomEvent !== "undefined") {
-        canvas.dispatchEvent(new CustomEvent("geogen-camera-frame", { bubbles: true, detail: { orientation: slots[activeSlot()].controls.object.quaternion, pose: activePose() } }));
+        canvas.dispatchEvent(new CustomEvent("geogen-camera-frame", { bubbles: true, detail: { orientation: slots[activeSlot()].controls.object.quaternion, pose: activePose(), camera: slots[activeSlot()].controls.object, slot: activeSlot(), region: regions.find((item) => item.slot === activeSlot()) } }));
       }
     },
     dispose() {

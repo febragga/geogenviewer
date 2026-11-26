@@ -10,11 +10,11 @@ import { InspectionHint, InspectionTools } from "./inspection-tools";
 import { DisplayOptions } from "./display-options";
 import { FilterOptions } from "./filter-options";
 import { NavigationCube } from "./navigation-cube";
-import { ViewOptions } from "./view-options";
+import { ViewOptions, type ViewDocumentation } from "./view-options";
 import { ViewerPopover } from "./viewer-popover";
 
-export function ViewportTools({ loaded, loadTime, onFit, onReset, comparison = false }: {
-  loaded: LoadedScenePackage; loadTime: number; onFit: (selected?: string[]) => void; onReset: () => void; comparison?: boolean;
+export function ViewportTools({ loaded, loadTime, onFit, onReset, comparison = false, documentation }: {
+  loaded: LoadedScenePackage; loadTime: number; onFit: (selected?: string[]) => void; onReset: () => void; comparison?: boolean; documentation?: ViewDocumentation;
 }) {
   const layout = usePresentation((state) => state.layout);
   const active = usePresentation((state) => state.active);
@@ -35,7 +35,7 @@ export function ViewportTools({ loaded, loadTime, onFit, onReset, comparison = f
         ))}
       </div>}
       <div className="gg-v05-tools" role="group" aria-label="Ferramentas da viewport">
-        <ViewerPopover label={v05.views} icon={<Layers2 size={15} />}><ViewOptions loaded={loaded} comparison={comparison} /></ViewerPopover>
+        <ViewerPopover label={v05.views} icon={<Layers2 size={15} />}><ViewOptions loaded={loaded} comparison={comparison} documentation={documentation} /></ViewerPopover>
         <ViewerPopover label={v05.filters} icon={<Filter size={15} />}><FilterOptions loaded={loaded} onFit={onFit} /></ViewerPopover>
         <ViewerPopover label={v05.display} title={v05.settings} icon={<SlidersHorizontal size={15} />}>
           <DisplayOptions count={loaded.sceneGraph.componentOrder.length} loadTime={loadTime} onReset={onReset} comparison={comparison} />

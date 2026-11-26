@@ -27,4 +27,11 @@
 
 - A comparação geométrica é aproximada e utiliza malhas tesselladas do GLB.
 - Seguem pendentes: homologação em **tablet físico**, execução do `GeoGenExporter` no **Rhino 8** real e validação com **modelo autorizado da Casa Gerassi** (nenhum arquivo privado versionado).
-- **Próximo marco (V0.8):** knolling, catálogo e documentação técnica utilizando a identidade por ocorrência e dados de fabricação consolidados na V0.7.
+## V0.8 — branch local de feature · 26/11/2026
+
+- Base `93f8f74`, tag `v0.7.0`. Branch `feat/v0.8-knolling-component-catalog`.
+- Domínios de knolling, catálogo, callouts e documentação em `geogenviewer/src/lib/geogen/documentation/`. O laboratório `catalog-lab` tem duas revisões sintéticas.
+- Os exports guardam configurações e referências no schema auxiliar V0.8. O catálogo consome quantitativos e fabricação da V0.7 e distingue revisão de ocorrência.
+- [Implementação](V08_IMPLEMENTATION_REPORT.md) · [Testes e evidências](V08_TEST_REPORT.md) · [Desempenho](V08_PERFORMANCE_REPORT.md) · [Guia](V08_USER_GUIDE.md).
+- Verificação local concluída com 55 testes unitários, lint, TypeScript, build e cinco suítes Playwright. A auditoria V0.8 passou nas seis resoluções com um contexto WebGL e zero violações axe nos seis estados. Exemplos e dados brutos ficam em `docs/v08/`.
+- A V0.9 concentra desempenho, robustez, acessibilidade e refinamento da interface, incluindo cabeçalho da home e cubo de navegação.

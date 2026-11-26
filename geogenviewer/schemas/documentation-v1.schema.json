@@ -1,0 +1,635 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GeoGenViewer documentation 1.0.0",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0.0"
+    },
+    "kind": {
+      "enum": [
+        "documentation",
+        "catalog",
+        "knolling"
+      ]
+    },
+    "identity": {
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "revisionId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "projectId",
+        "revisionId",
+        "sha256"
+      ],
+      "additionalProperties": false
+    },
+    "settings": {
+      "type": "object",
+      "properties": {
+        "layout": {
+          "type": "object",
+          "properties": {
+            "plane": {
+              "enum": [
+                "XY",
+                "XZ",
+                "YZ"
+              ]
+            },
+            "mode": {
+              "enum": [
+                "grid",
+                "grouped",
+                "shelf",
+                "types",
+                "assembly"
+              ]
+            },
+            "orientation": {
+              "enum": [
+                "preserve",
+                "world",
+                "quarter",
+                "longest",
+                "manual"
+              ]
+            },
+            "group": {
+              "enum": [
+                "category",
+                "layer",
+                "material",
+                "group",
+                "type",
+                "assembly",
+                "prototype"
+              ]
+            },
+            "sort": {
+              "enum": [
+                "name",
+                "part",
+                "type",
+                "category",
+                "layer",
+                "material",
+                "length",
+                "projected",
+                "area",
+                "volume",
+                "mass",
+                "assembly"
+              ]
+            },
+            "spacingM": {
+              "type": "number",
+              "minimum": 0
+            },
+            "groupSpacingM": {
+              "type": "number",
+              "minimum": 0
+            },
+            "widthM": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "marginM": {
+              "type": "number",
+              "minimum": 0
+            },
+            "columns": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            },
+            "alignment": {
+              "enum": [
+                "start",
+                "center",
+                "end"
+              ]
+            },
+            "direction": {
+              "enum": [
+                "forward",
+                "reverse"
+              ]
+            },
+            "overrides": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "properties": {
+                  "rotation": {
+                    "type": "number"
+                  },
+                  "fixed": {
+                    "anyOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "array",
+                        "minItems": 2,
+                        "maxItems": 2,
+                        "items": {
+                          "type": "number"
+                        }
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "rotation",
+                  "fixed"
+                ],
+                "additionalProperties": false
+              },
+              "maxProperties": 10000
+            }
+          },
+          "required": [
+            "plane",
+            "mode",
+            "orientation",
+            "group",
+            "sort",
+            "spacingM",
+            "groupSpacingM",
+            "widthM",
+            "marginM",
+            "columns",
+            "alignment",
+            "direction",
+            "overrides"
+          ],
+          "additionalProperties": false
+        },
+        "scope": {
+          "enum": [
+            "all",
+            "selected",
+            "visible",
+            "filtered",
+            "layer",
+            "group",
+            "category",
+            "material",
+            "type",
+            "assembly",
+            "modified"
+          ]
+        },
+        "scopeValue": {
+          "type": "string",
+          "maxLength": 4096
+        },
+        "labels": {
+          "type": "boolean"
+        },
+        "quantities": {
+          "type": "boolean"
+        },
+        "groups": {
+          "type": "boolean"
+        },
+        "types": {
+          "type": "object",
+          "properties": {
+            "overrides": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "maxProperties": 10000
+            },
+            "confirmed": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "maxItems": 10000
+            },
+            "blocks": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "overrides",
+            "confirmed",
+            "blocks"
+          ],
+          "additionalProperties": false
+        },
+        "catalog": {
+          "type": "object",
+          "properties": {
+            "view": {
+              "enum": [
+                "cards",
+                "table",
+                "list",
+                "types",
+                "categories"
+              ]
+            },
+            "density": {
+              "enum": [
+                "compact",
+                "comfortable",
+                "detailed"
+              ]
+            },
+            "query": {
+              "type": "string",
+              "maxLength": 4096
+            },
+            "scope": {
+              "enum": [
+                "all",
+                "selected",
+                "visible",
+                "filtered",
+                "layer",
+                "group",
+                "category",
+                "material",
+                "type",
+                "assembly",
+                "modified"
+              ]
+            },
+            "scopeValue": {
+              "type": "string",
+              "maxLength": 4096
+            },
+            "filterStatus": {
+              "enum": [
+                "all",
+                "added",
+                "removed",
+                "modified",
+                "unchanged",
+                "unresolved"
+              ]
+            },
+            "group": {
+              "enum": [
+                "category",
+                "layer",
+                "material",
+                "group",
+                "type",
+                "assembly",
+                "prototype"
+              ]
+            },
+            "columns": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "part",
+                  "type",
+                  "category",
+                  "layer",
+                  "material",
+                  "dimensions",
+                  "volume",
+                  "mass",
+                  "status"
+                ]
+              },
+              "maxItems": 9
+            },
+            "property": {
+              "type": "string",
+              "maxLength": 4096
+            },
+            "propertyValue": {
+              "type": "string",
+              "maxLength": 4096
+            },
+            "prototype": {
+              "type": "string",
+              "maxLength": 4096
+            },
+            "thumbnail": {
+              "enum": [
+                "axonometric",
+                "orthographic",
+                "technical",
+                "mono",
+                "materials"
+              ]
+            }
+          },
+          "required": [
+            "view",
+            "density",
+            "query",
+            "scope",
+            "scopeValue",
+            "filterStatus",
+            "group",
+            "columns",
+            "property",
+            "propertyValue",
+            "prototype",
+            "thumbnail"
+          ],
+          "additionalProperties": false
+        },
+        "callouts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "elementId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "kind": {
+                "enum": [
+                  "part",
+                  "number",
+                  "technical",
+                  "assembly",
+                  "custom"
+                ]
+              },
+              "text": {
+                "type": "string",
+                "maxLength": 4096
+              },
+              "anchor": {
+                "type": "array",
+                "minItems": 3,
+                "maxItems": 3,
+                "items": {
+                  "type": "number"
+                }
+              },
+              "offset": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 2,
+                "items": {
+                  "type": "number"
+                }
+              },
+              "leader": {
+                "enum": [
+                  "line",
+                  "dot",
+                  "arrow",
+                  "dash",
+                  "none"
+                ]
+              },
+              "visible": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "id",
+              "elementId",
+              "kind",
+              "text",
+              "anchor",
+              "offset",
+              "leader",
+              "visible"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 10000
+        },
+        "sheet": {
+          "type": "object",
+          "properties": {
+            "template": {
+              "enum": [
+                "component",
+                "type",
+                "assembly",
+                "knolling",
+                "inspection",
+                "comparison"
+              ]
+            },
+            "title": {
+              "type": "string",
+              "maxLength": 4096
+            },
+            "subtitle": {
+              "type": "string",
+              "maxLength": 4096
+            },
+            "page": {
+              "enum": [
+                "A4",
+                "A3"
+              ]
+            },
+            "orientation": {
+              "enum": [
+                "portrait",
+                "landscape"
+              ]
+            },
+            "marginMm": {
+              "type": "number",
+              "minimum": 5,
+              "maximum": 35
+            },
+            "background": {
+              "type": "string",
+              "pattern": "^#[0-9a-fA-F]{6}$"
+            },
+            "brand": {
+              "type": "string",
+              "maxLength": 4096
+            },
+            "notes": {
+              "type": "string",
+              "maxLength": 4096
+            },
+            "frames": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "axonometric",
+                  "front",
+                  "top",
+                  "left",
+                  "right",
+                  "back",
+                  "bottom",
+                  "current"
+                ]
+              },
+              "maxItems": 8
+            },
+            "fields": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "identity",
+                  "dimensions",
+                  "fabrication",
+                  "measurements",
+                  "assembly",
+                  "parts",
+                  "callouts"
+                ]
+              },
+              "maxItems": 7
+            },
+            "measurementIds": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "maxItems": 10000
+            },
+            "labels": {
+              "type": "boolean"
+            },
+            "leaders": {
+              "type": "boolean"
+            },
+            "legend": {
+              "type": "boolean"
+            },
+            "titleInCapture": {
+              "type": "boolean"
+            },
+            "grid": {
+              "type": "boolean"
+            },
+            "axes": {
+              "type": "boolean"
+            },
+            "measurements": {
+              "type": "boolean"
+            },
+            "identifiers": {
+              "type": "boolean"
+            },
+            "scale": {
+              "type": "boolean"
+            },
+            "transparent": {
+              "type": "boolean"
+            },
+            "density": {
+              "enum": [
+                "compact",
+                "comfortable",
+                "detailed"
+              ]
+            },
+            "stage": {
+              "enum": [
+                "before",
+                "during",
+                "after"
+              ]
+            },
+            "progress": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          },
+          "required": [
+            "template",
+            "title",
+            "subtitle",
+            "page",
+            "orientation",
+            "marginMm",
+            "background",
+            "brand",
+            "notes",
+            "frames",
+            "fields",
+            "measurementIds",
+            "labels",
+            "leaders",
+            "legend",
+            "titleInCapture",
+            "grid",
+            "axes",
+            "measurements",
+            "identifiers",
+            "scale",
+            "transparent",
+            "density",
+            "stage",
+            "progress"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "layout",
+        "scope",
+        "scopeValue",
+        "labels",
+        "quantities",
+        "groups",
+        "types",
+        "catalog",
+        "callouts",
+        "sheet"
+      ],
+      "additionalProperties": false
+    },
+    "report": {
+      "type": "object"
+    },
+    "generatedAt": {
+      "type": "string",
+      "minLength": 16,
+      "maxLength": 40
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "kind",
+    "identity",
+    "settings",
+    "generatedAt"
+  ],
+  "additionalProperties": false
+}

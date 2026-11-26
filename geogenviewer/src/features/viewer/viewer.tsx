@@ -15,6 +15,7 @@ import { Group, Panel, Separator } from "react-resizable-panels";
 import { maxGlbBytes } from "../../lib/geogen/importers/glb";
 import { defaultHiddenIds, hiddenByFilters, visibleIds } from "../../lib/geogen/domain/visibility";
 import { captureRevision, type Revision } from "../../lib/geogen/revisions/revision";
+import { catalogEntries } from "../../lib/geogen/documentation/catalog";
 import {
   importGlbBasicPackage,
   importGlbWithManifestPackage,
@@ -26,6 +27,9 @@ import {
 } from "../../lib/geogen/validation/manifest";
 import { AssemblyPanel } from "./components/assembly-panel";
 import { ComparisonPanel, RevisionViewLabels } from "./components/comparison-panel";
+import { DocumentationPanel } from "./components/documentation-panel";
+import { DocumentationOverlay } from "./components/documentation-overlay";
+import type { RenderDocumentationImage } from "./scene/documentation-renderer";
 import { QuantitiesPanel, type AnalysisConfig, type QuantitiesLayout } from "./components/quantities-panel";
 import { CommandPalette } from "./components/command-palette";
 import { ControlsDialog } from "./components/controls-dialog";
@@ -57,7 +61,10 @@ import { useEffectiveVisibility } from "./state/visibility-state";
 import { connectViewportScopes } from "./state/viewport-scopes";
 import { useViewerStore } from "./state/viewer-store";
 import { useRevisionComparison, useSecondaryRevision, type Side } from "./state/revision-workspace";
-import { v07 } from "./v07-copy";
+import { v07, changeLabels } from "./v07-copy";
+import { v08 } from "./v08-copy";
+import { catalogTimeline, useDocumentationWorkspace } from "./state/documentation-workspace";
+import { useKnollingMotion } from "./state/documentation-store";
 
 const Viewport = dynamic(() => import("./scene/viewport"), { ssr: false });
 
@@ -124,7 +131,8 @@ export function Viewer() {
   const workspace = useViewerStore((s) => s.workspace);
   const comparing = workspace === "compare";
   const quantities = workspace === "quantities";
-  const analytics = comparing || quantities;
+  const publication = workspace === "knolling" || workspace === "catalog" ? workspace : null;
+  const analytics = comparing || quantities || Boolean(publication);
   const secondary = useSecondaryRevision();
   const [reversed, setReversed] = useState(false);
   const base = reversed && secondary.revision ? secondary.revision : loaded?.revision ?? null;
@@ -147,6 +155,23 @@ export function Viewer() {
   const quantitySelected = ownQuantity ? selectedIds : secondaryIds;
   const background = usePresentation((s) => s.display.background);
   const effective = useEffectiveVisibility();
+  const docs = useDocumentationWorkspace(loaded?.revision ?? null, secondary.revision, base, comp, publication,
+    selectedIds, effective.visible, filters, analysisConfigs, quantitySecondarySelection, setQuantitySecondarySelection);
+  const [documentationRenderer, setDocumentationRenderer] = useState<RenderDocumentationImage | null>(null);
+  const attachDocumentationRenderer = useCallback((service: RenderDocumentationImage | null) => setDocumentationRenderer(() => service), []);
+  const docUsingPeer = publication === "catalog" && !docs.isPrimary && Boolean(secondary.revision);
+  const docSide = reversed ? "base" : "comparison";
+  const docSelectedId = docs.selected[0];
+  const counterpart = useMemo(() => {
+    if (!publication || !docs.revision || !base || !compared || !docSelectedId) return null;
+    const left = docs.revision === base;
+    const row = comp.diffs.find((candidate) => candidate.confirmed && (left ? candidate.baseId : candidate.comparisonId) === docSelectedId);
+    const id = left ? row?.comparisonId : row?.baseId;
+    if (!id) return null;
+    const revision = left ? compared : base;
+    const entry = catalogEntries(revision, catalogTimeline(revision), new Map(), analysisConfigs[revision.key]?.settings, new Set([id]))[0];
+    return entry ? { revision, entry, changes: row?.changes.map((change) => changeLabels[change]) } : null;
+  }, [publication, docs.revision, base, compared, docSelectedId, comp.diffs, analysisConfigs]);
   const isolatedIds = useViewerStore((s) => s.isolatedIds);
   const multiSelectMode = useViewerStore((s) => s.multiSelectMode);
   const explodeOpen = useViewerStore((s) => s.explodeOpen);
@@ -256,7 +281,7 @@ export function Viewer() {
       useInspection.getState().load(scenePackage);
       setLoaded({ scenePackage, revision, name: displayName, id, loadTime: performance.now() - loadStartedAt.current });
       setSceneGraph(scenePackage.sceneGraph);
-      if (priorWorkspace === "compare" || priorWorkspace === "quantities") useViewerStore.getState().setWorkspace(priorWorkspace);
+      if (priorWorkspace === "compare" || priorWorkspace === "quantities" || priorWorkspace === "knolling" || priorWorkspace === "catalog") useViewerStore.getState().setWorkspace(priorWorkspace);
       setPendingFallback(null);
       setLost(false);
       issueCommand({ kind: "reset" });
@@ -375,7 +400,7 @@ export function Viewer() {
   }, [activatePackage, pendingFallback]);
 
   const loadDemo = useCallback(
-    async (kind: "basic" | "contract" | "pavilion" | "inspection" | "revision") => {
+    async (kind: "basic" | "contract" | "pavilion" | "inspection" | "revision" | "catalog") => {
       const id = ++requestRef.current;
       loadStartedAt.current = performance.now();
       setStatus(copy.reading);
@@ -403,10 +428,11 @@ export function Viewer() {
           contract: { stem: "contrato-exemplo", title: copy.demoContractName },
           inspection: { stem: "inspection-lab", title: v06.labTitle },
           revision: { stem: "revision-lab/proto-01/model", title: v07.revisionLab },
+          catalog: { stem: "catalog-lab/rev-01/model", title: v08.labTitle },
         }[kind];
         const fileName = demo.stem.split("/").at(-1) + ".glb";
         const glbUrl = "/demos/" + demo.stem + ".glb";
-        const jsonUrl = kind === "revision" ? "/demos/revision-lab/proto-01/manifest.json" : "/demos/" + demo.stem + ".manifest.json";
+        const jsonUrl = kind === "revision" || kind === "catalog" ? "/demos/" + demo.stem.replace(/model$/, "manifest.json") : "/demos/" + demo.stem + ".manifest.json";
         const title = demo.title;
 
         const [glbBytes, jsonBytes] = await Promise.all([
@@ -433,6 +459,10 @@ export function Viewer() {
         activatePackage(pkg, title, id);
         if (kind === "inspection") useViewerStore.getState().setWorkspace("inspect");
         if (kind === "revision") useViewerStore.getState().setWorkspace("compare");
+        if (kind === "catalog") {
+          useKnollingMotion.getState().set(1);
+          useViewerStore.getState().setWorkspace("knolling");
+        }
       } catch (cause) {
         if (id === requestRef.current) {
           const message = cause instanceof Error ? cause.message : "";
@@ -489,6 +519,13 @@ export function Viewer() {
     useViewerStore.getState().setWorkspace("compare");
     void loadDemo("revision");
     void secondary.demo();
+  }
+
+  function loadCatalogLab() {
+    setReversed(false);
+    docs.setRevisionSide("primary");
+    void loadDemo("catalog");
+    void secondary.demo("catalog");
   }
 
   const onContextLost = useCallback(() => setLost(true), []);
@@ -734,6 +771,10 @@ export function Viewer() {
         <Viewport
           key={loaded.id}
           scenePackage={loaded.scenePackage}
+          revision={loaded.revision}
+          knolling={docs.scene}
+          annotationVersion={docs.groups ?? docs.annotations}
+          onDocumentationRenderer={attachDocumentationRenderer}
           command={command}
           mode={mode}
           selectedIds={selectedIds}
@@ -750,9 +791,11 @@ export function Viewer() {
           onHover={setHoveredId}
           onContextLost={onContextLost}
           fallback={fallback}
-          comparison={base && compared && (comparing || (quantities && !ownQuantity)) ? {
+          comparison={base && compared && (comparing || (quantities && !ownQuantity) || docUsingPeer) ? {
             base, comparison: compared, state: comp, primaryKey: loaded.revision.key, compact, onCaptureChange,
-            single: quantities ? actualSide : undefined, quantitySelection: quantitySelected, onQuantitySelect: selectQuantityFromModel,
+            single: docUsingPeer ? docSide : quantities ? actualSide : undefined,
+            quantitySelection: docUsingPeer ? docs.selected : quantitySelected,
+            onQuantitySelect: docUsingPeer ? (id, multi) => docs.peerSelect(id ? [id] : [], multi) : selectQuantityFromModel,
           } : undefined}
         />
       ) : lost ? (
@@ -829,6 +872,7 @@ export function Viewer() {
             </div>
             <button type="button" className="gg-btn gg-btn--secondary" disabled={Boolean(status) || secondary.busy}
               onClick={loadRevisionLab}>{v07.revisionLab}</button>
+            <button type="button" className="gg-btn gg-btn--secondary" disabled={Boolean(status) || secondary.busy} onClick={loadCatalogLab}>{v08.lab}</button>
             <p className="gg-dropzone__privacy">{copy.local}</p>
           </section>
         </div>
@@ -897,7 +941,8 @@ export function Viewer() {
       {loaded && !lost && (
         <ViewportTools key={"tools-" + loaded.id} loaded={loaded.scenePackage} loadTime={loaded.loadTime}
           onFit={handleFrameIds} onReset={() => issueCommand({ kind: "reset" })}
-          comparison={Boolean(base && compared && (comparing || (quantities && !ownQuantity)))} />
+          comparison={Boolean(base && compared && (comparing || (quantities && !ownQuantity) || docUsingPeer))}
+          documentation={docs.isPrimary && docs.revision && docs.settings ? { revision: docs.revision, settings: docs.settings, apply: docs.change } : undefined} />
       )}
 
       {loaded && !lost && (
@@ -912,6 +957,8 @@ export function Viewer() {
       )}
 
       {comparing && base && compared && <RevisionViewLabels state={comp} compact={compact} />}
+      {loaded && !lost && !comparing && !docUsingPeer && docs.isPrimary && (docs.annotations.length > 0 || docs.groups) &&
+        <DocumentationOverlay revision={loaded.revision} annotations={docs.annotations} mask={docs.mask} groups={docs.groups} />}
 
       {loaded && !lost && explodeOpen && !analytics && (
         <ExplodePanel
@@ -994,7 +1041,7 @@ export function Viewer() {
         />
 
         <main className="gg-workspace" data-v07={analytics && !focusMode || undefined}
-          data-v07-layout={quantities && !focusMode ? quantitiesLayout : undefined}>
+          data-v07-layout={quantities && !focusMode ? quantitiesLayout : undefined} data-v08={publication && !focusMode || undefined}>
           <Group orientation="horizontal" className="gg-panel-group">
             {isDesktopLayout && !focusMode && leftOpen && (
               <>
@@ -1037,6 +1084,25 @@ export function Viewer() {
             onLab={loadRevisionLab} onFit={() => issueCommand({ kind: "fit" })} capture={capture} />}
           {base && quantities && !focusMode && <QuantitiesPanel configs={analysisConfigs} onConfig={onAnalysisConfig} base={base} comparison={compared} analysis={comp} side={actualSide} onSide={setQuantitySide}
               layout={quantitiesLayout} onLayout={setQuantitiesLayout} scopes={quantityScopes} selected={quantitySelected} onSelect={selectQuantity} />}
+          {publication && docs.revision && !focusMode && <DocumentationPanel key={docs.revision.key} docs={docs} peer={secondary.revision}
+            knolling={publication === "knolling"} renderer={documentationRenderer} counterpart={counterpart}
+            onSelect={(ids) => docs.isPrimary ? useViewerStore.getState().selectMany(ids) : docs.peerSelect(ids)}
+            onIsolate={(ids) => {
+              if (!docs.isPrimary) { docs.peerSelect(ids); handleFrameIds(ids); return; }
+              useViewerStore.getState().isolateIds(ids); handleFrameIds(ids);
+            }}
+            onLocate={(ids, step) => {
+              if (!docs.isPrimary) {
+                useViewerStore.getState().setWorkspace("compare");
+                if (ids[0]) comp.select({ side: docSide, id: ids[0] });
+                return;
+              }
+              useViewerStore.getState().showAll(); useViewerStore.getState().selectMany(ids);
+              useViewerStore.getState().setWorkspace(step == null ? "explore" : "assembly");
+              if (step != null) useAssembly.getState().seek(docs.timeline.schedule[step]?.start ?? 0);
+              handleFrameIds(ids);
+            }}
+            onFit={handleFrameIds} />}
         </main>
 
         {loaded && workspace === "assembly" && !focusMode && <AssemblyPanel />}

@@ -92,9 +92,9 @@ export function useSecondaryRevision() {
     });
   }
 
-  async function demo() {
+  async function demo(kind: "revision" | "catalog" = "revision") {
     return load(async () => {
-      const directory = "/demos/revision-lab/proto-02/";
+      const directory = kind === "catalog" ? "/demos/catalog-lab/rev-02/" : "/demos/revision-lab/proto-02/";
       const [glb, manifest] = await Promise.all(["model.glb", "manifest.json"].map(async (file) => {
         const response = await fetch(directory + file);
         if (!response.ok) throw new Error("O protótipo sintético está indisponível.");

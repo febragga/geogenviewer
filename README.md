@@ -16,6 +16,8 @@ Visualizador web independente (*local-first*) de modelos arquitetônicos e de ge
 
 - **V0.7:** Dois GLBs no workspace Comparar, alinhamento, correspondência por identidade e revisão manual, diff em pose de repouso, quantitativos por ocorrência e análise de fabricação com proveniência e cobertura. Exportações locais CSV, JSON e PNG. [Guia V0.7](V07_USER_GUIDE.md) · [Relatório](V07_IMPLEMENTATION_REPORT.md).
 
+- **V0.8 na branch de feature:** Knolling, catálogo, callouts, listas de peças e fichas técnicas com montagem imprimível. [Guia V0.8](V08_USER_GUIDE.md) · [Relatório](V08_IMPLEMENTATION_REPORT.md) · [Testes](V08_TEST_REPORT.md).
+
 ## Homologações pendentes
 
 - Execução e homologação do `GeoGenExporter` em ambiente real do Rhino 8.
@@ -24,4 +26,4 @@ Visualizador web independente (*local-first*) de modelos arquitetônicos e de ge
 
 ## Executar e verificar localmente
 
-Consulte [`geogenviewer/README.md`](geogenviewer/README.md) para os scripts `lint`, `typecheck`, `test`, `build` e suítes Playwright (`test:ui`, `test:v05`, `test:v06` e `test:v07`). O botão **Laboratório de revisões** em `/viewer` carrega o par sintético.
+Consulte [`geogenviewer/README.md`](geogenviewer/README.md) para os scripts `lint`, `typecheck`, `test`, `build` e suítes Playwright (`test:ui`, `test:v05`, `test:v06`, `test:v07` e `test:v08`). O botão **Laboratório de catálogo** em `/viewer` carrega as revisões sintéticas da V0.8.

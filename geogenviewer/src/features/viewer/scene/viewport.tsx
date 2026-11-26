@@ -34,6 +34,11 @@ import {
 import type { LoadedScenePackage } from "../../../lib/geogen/importers/package";
 import type { ExplodeTransitionRequest } from "../state/viewer-store";
 import { ComparisonScene, type CompareSceneProps } from "./comparison-scene";
+import { KnollingPose } from "../../../lib/geogen/documentation/knolling-pose";
+import { type LayoutResult, type PlaneName } from "../../../lib/geogen/documentation/knolling";
+import type { Revision } from "../../../lib/geogen/revisions/revision";
+import { useKnollingMotion } from "../state/documentation-store";
+import { DocumentationRenderer, type RenderDocumentationImage } from "./documentation-renderer";
 
 export type CameraCommand = {
   kind: "fit" | "reset" | "closer" | "farther";
@@ -42,6 +47,7 @@ export type CameraCommand = {
 };
 
 export type NavigationMode = "orbit" | "pan";
+type KnollingScene = { result: LayoutResult; mask: ReadonlySet<string>; plane: PlaneName };
 
 const dragThresholdPx = 6;
 const boundsTmpSize = new Vector3();
@@ -95,6 +101,9 @@ function SceneController({
   onHover,
   onContextLost,
   acceptCommand,
+  revision,
+  knolling,
+  annotationVersion,
 }: {
   scenePackage: LoadedScenePackage;
   controller: ExplodedViewController;
@@ -114,6 +123,9 @@ function SceneController({
   onHover: (id: string | null) => void;
   onContextLost: () => void;
   acceptCommand: (command: CameraCommand) => boolean;
+  revision: Revision;
+  knolling?: KnollingScene;
+  annotationVersion?: unknown;
 }) {
   const { gl, scene: rootScene, invalidate } = useThree();
   const sphere = useMemo(() => controller.restSceneBounds.getBoundingSphere(new Sphere()), [controller]);
@@ -123,12 +135,20 @@ function SceneController({
   const motion = useCallback(() => {
     const state = useAssembly.getState();
     const workspace = useViewerStore.getState().workspace;
-    const moving = workspace === "assembly" ? state.playback.status === "playing" : useViewerStore.getState().explodeTransition !== null;
-    return { moving, pose: [controller.factor, state.playback.seconds, moving ? performance.now() : 0].join(":") };
+    const motion = useKnollingMotion.getState();
+    const moving = workspace === "knolling" ? motion.playing : workspace === "assembly" ? state.playback.status === "playing" : useViewerStore.getState().explodeTransition !== null;
+    return { moving, pose: [controller.factor, state.playback.seconds, workspace === "knolling" ? motion.amount : 0, moving ? performance.now() : 0].join(":") };
   }, [controller]);
   const cameras = useViewportCameras(sphere, onContextLost, onDraw, inspector, motion);
   const assemblyPose = useMemo(() => new AssemblyPose(scenePackage.model.scene, scenePackage.objectByComponentId), [scenePackage]);
   const workspace = useViewerStore((state) => state.workspace);
+  const knollPose = useMemo(() => new KnollingPose(revision), [revision]);
+  const knollRef = useRef(knolling);
+  const lastPlane = useRef<PlaneName | null>(null);
+  useEffect(() => {
+    knollRef.current = knolling;
+    invalidate();
+  }, [knolling, annotationVersion, invalidate]);
   const display = usePresentation((state) => state.display);
   const lastAppliedAssembly = useRef<{ time: number; timeline: ReturnType<typeof useAssembly.getState>["timeline"]; ghost: boolean; solo: number | null } | null>(null);
 
@@ -240,8 +260,39 @@ function SceneController({
   }, [cameras, mode]);
 
   useEffect(() => {
+    if (workspace !== "knolling") return;
+    const view = usePresentation.getState();
+    const access = view.access;
+    const previous = access?.pose(view.active);
+    const slot = view.active;
+    const stop = useKnollingMotion.subscribe((state, old) => {
+      if (state.playing !== old.playing || !state.playing) invalidate();
+    });
+    return () => {
+      stop();
+      lastPlane.current = null;
+      knollPose.reset();
+      useKnollingMotion.getState().pause();
+      if (previous && usePresentation.getState().access === access) access?.applySlot(slot, previous);
+      invalidate();
+    };
+  }, [workspace, knollPose, invalidate]);
+
+  useEffect(() => {
     if (!acceptCommand(command)) return;
-    const bounds = fitBounds(scenePackage, controller, visibilityRef.current.hiddenIds, visibilityRef.current.isolatedIds, command);
+    const layout = knollRef.current;
+    let bounds = fitBounds(scenePackage, controller, visibilityRef.current.hiddenIds, visibilityRef.current.isolatedIds, command);
+    if (layout && useKnollingMotion.getState().amount > 0) {
+      if (!command.targetIds?.length) bounds = layout.result.bounds;
+      else {
+        const selection = new Box3();
+        for (const id of command.targetIds) {
+          const object = scenePackage.objectByComponentId.get(id);
+          if (object) selection.expandByObject(object);
+        }
+        if (!selection.isEmpty()) bounds = selection;
+      }
+    }
     const clipped = command.kind === "fit" ? clippedBounds(bounds, activeClipping(usePresentation.getState().active)) : bounds;
     if (!clipped.isEmpty()) cameras.current?.command(command.kind, clipped.getBoundingSphere(new Sphere()));
   }, [acceptCommand, cameras, command, controller, scenePackage]);
@@ -291,12 +342,16 @@ function SceneController({
       const technical = config && sectionAt(config, slot).mode === "technical" && activeClipping(slot).length > 0;
       const inputs = [
         view.display, technical, selection, scene.workspace, scope.selectedIds, hovered, scope.filters, scope.hiddenIds,
-        scope.isolatedIds, assembly.timeline, assembly.stepIndex, assembly.ghost, assembly.solo,
+        scope.isolatedIds, assembly.timeline, assembly.stepIndex, assembly.ghost, assembly.solo, knollRef.current?.mask,
       ];
       const changed = inputs.some((value, index) => value !== last[index]);
       if (changed) {
         last = inputs;
         const { denied, ghosts } = resolveVisibility(scenePackage.sceneGraph, scope, scene.workspace, assembly);
+        const layout = knollRef.current;
+        if (scene.workspace === "knolling" && layout) {
+          for (const id of scenePackage.sceneGraph.componentOrder) if (!layout.mask.has(id)) denied.add(id);
+        }
         const displaySettings = technical ? { ...view.display, mode: "technical" as const } : view.display;
         sceneDisplay.apply(displaySettings, new Set(selection ? scope.selectedIds : []), hovered, denied, scope.isolatedIds ? new Set(scope.isolatedIds) : null, ghosts);
         if (!view.shareVisibility) syncReferenceLines(explodeRef.current.showReferenceLines, Array.from(denied), scope.isolatedIds);
@@ -336,6 +391,26 @@ function SceneController({
       lastAppliedAssembly.current = { time, timeline, ghost, solo };
     }
     if (playback.status === "playing") invalidate();
+  }, -1);
+
+
+
+  useEffect(() => {
+    if (!knolling || knolling.result.bounds.isEmpty()) return;
+    const rig = cameras.current;
+    if (lastPlane.current !== knolling.plane) {
+      lastPlane.current = knolling.plane;
+      usePresentation.getState().access?.preset(knolling.plane === "XY" ? "top" : knolling.plane === "XZ" ? "front" : "right");
+    }
+    rig?.command("fit", knolling.result.bounds.getBoundingSphere(new Sphere()));
+  }, [knolling, cameras]);
+
+  useFrame(() => {
+    const layout = knollRef.current;
+    if (workspace !== "knolling" || !layout) return;
+    const motion = useKnollingMotion.getState();
+    knollPose.apply(layout.result, motion.frame(performance.now()));
+    if (motion.playing) invalidate();
   }, -1);
 
   // Apply non-destructive Exploded View transforms (when not inside an animated transition)
@@ -625,6 +700,10 @@ export default function Viewport({
   onContextLost,
   fallback,
   comparison,
+  revision,
+  knolling,
+  onDocumentationRenderer,
+  annotationVersion,
 }: {
   scenePackage: LoadedScenePackage;
   command: CameraCommand;
@@ -644,6 +723,10 @@ export default function Viewport({
   onContextLost: () => void;
   fallback: ReactNode;
   comparison?: CompareSceneProps;
+  revision: Revision;
+  knolling?: KnollingScene;
+  onDocumentationRenderer: (service: RenderDocumentationImage | null) => void;
+  annotationVersion?: unknown;
 }) {
   const controller = useMemo(
     () => new ExplodedViewController(scenePackage),
@@ -681,6 +764,7 @@ export default function Viewport({
         role="region"
         aria-label="Modelo tridimensional"
       >
+        <DocumentationRenderer attach={onDocumentationRenderer} />
         {comparison ? <ComparisonScene {...comparison} command={command} acceptCommand={acceptCommand} mode={mode} onContextLost={onContextLost} /> : <>
         <hemisphereLight intensity={2.2 * settings.light} groundColor="#788698" />
         <directionalLight position={[sphere.center.x + span, sphere.center.y + span, sphere.center.z + span]} intensity={2.6 * settings.light}
@@ -703,6 +787,9 @@ export default function Viewport({
         </mesh>}
         <SceneController
           scenePackage={scenePackage}
+          revision={revision}
+          knolling={knolling}
+          annotationVersion={annotationVersion}
           acceptCommand={acceptCommand}
           controller={controller}
           command={command}
