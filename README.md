@@ -4,7 +4,7 @@ Visualizador web independente (*local-first*) de modelos arquitetônicos e de ge
 
 - **Aplicação Next.js (Root Directory no Vercel):** [`geogenviewer/`](geogenviewer/) — rotas `/` e `/viewer`
 - **Contrato de interoperabilidade Rhino 8 (`v1.0.0`):** [`exporter-contract/`](exporter-contract/)
-- A linha estável está em `v0.6.0` na `main`. A V0.7 está na branch `feat/v0.7-revision-fabrication-analytics`.
+- **Versão consolidada atual:** `0.7.0` (`main`, tag `v0.7.0`) — [Guia V0.7](V07_USER_GUIDE.md) · [Relatório](V07_IMPLEMENTATION_REPORT.md) · [Testes](V07_TEST_REPORT.md) · [Desempenho](V07_PERFORMANCE_REPORT.md) · [Exemplos CSV/JSON](docs/v07/examples)
 
 ## Funcionalidades implementadas
 

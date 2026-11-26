@@ -1,8 +1,8 @@
 # GeoGenViewer — roadmap
 
-**Revisão** 0.6.0 · 25/11/2026
+**Revisão** 0.7.0 · 26/11/2026
 
-**Estado** Versão `0.6.0` consolidada na branch `main`. Validação do `GeoGenExporter` no Rhino 8 real, teste em tablet físico e inspeção com modelo real autorizado da Casa Gerassi permanecem pendentes.
+**Estado** Versão `0.7.0` consolidada na branch `main`. Validação do `GeoGenExporter` no Rhino 8 real, teste em tablet físico e inspeção com modelo real autorizado da Casa Gerassi permanecem pendentes.
 
 ## 1. Prioridade
 
@@ -17,7 +17,7 @@ Entregar um visualizador capaz de demonstrar o protótipo da Casa Gerassi em tab
 | v0.4 | Vista explodida e propriedades | P0 | Concluído localmente |
 | v0.5 | Experiência do viewer, gestão de vistas e montagem | P1 | Implementado localmente |
 | v0.6 | Corte, medições e documentação técnica | P1 | Implementado localmente |
-| v0.7 | Protótipos, comparações e quantitativos | P2 | Implementada na branch de feature. Ver [relatório](V07_IMPLEMENTATION_REPORT.md). |
+| v0.7 | Protótipos, comparações e quantitativos | P2 | Implementado e consolidado na `main` (`v0.7.0`). Ver [relatório](V07_IMPLEMENTATION_REPORT.md). |
 | v0.8 | Knolling, catálogo e documentação | P2 | A fazer |
 | v0.9 | Desempenho, robustez e acessibilidade | P1 | A fazer |
 | v1.0 | Publicação estável e validação | P1 | A fazer |
