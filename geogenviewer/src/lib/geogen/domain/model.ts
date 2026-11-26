@@ -196,6 +196,9 @@ export interface CadMetadataRecord {
   areaM2: MeasuredScalar | null;
   volumeM3: MeasuredScalar | null;
   centroidM: MeasuredVec3 | null;
+  explodeOffsetM: [number, number, number] | null;
+  assemblyDirectionM: [number, number, number] | null;
+  connectorIds: string[];
   userText: Record<string, string>;
   properties: Record<string, string | number | boolean | null>;
   fabrication: ElementFabrication | null;
