@@ -1,7 +1,8 @@
 # GeoGenViewer — roadmap
 
-**Revisão:** 0.1 · 25/11/2026  
-**Estado:** V0.0 concluída e visualizador básico V0.1 validado em desktop e tablet emulado.
+**Revisão** 0.5 · 25/11/2026
+
+**Estado** V0.5 implementada localmente. Validação do exportador no Rhino 8 e do visualizador em tablet físico pendentes.
 
 ## 1. Prioridade
 
@@ -11,11 +12,11 @@ Entregar um visualizador capaz de demonstrar o protótipo da Casa Gerassi em tab
 |---|---|---|---|
 | v0.0 | Bootstrap, documentação, fixture | P0 | Concluído localmente |
 | v0.1 | GLB local, câmera, reset | P0 | Primeira fatia validada em navegador |
-| v0.2 | Seleção, árvore, visibilidade | P0 | A fazer |
-| v0.3 | Manifesto e exportador Rhino | P0 | A fazer |
-| v0.4 | Vista explodida e propriedades | P0 | A fazer |
-| v0.5 | Montagem e sequência explícita | P1 | A fazer |
-| v0.6 | Corte, medições, estilos | P1 | A fazer |
+| v0.2 | Seleção, árvore, visibilidade | P0 | Concluído localmente |
+| v0.3 | Manifesto e exportador Rhino | P0 | Importação validada. Homologação no Rhino pendente |
+| v0.4 | Vista explodida e propriedades | P0 | Concluído localmente |
+| v0.5 | Experiência do viewer, gestão de vistas e montagem | P1 | Implementado localmente |
+| v0.6 | Corte, medições e documentação técnica | P1 | Próximo marco |
 | v0.7 | Protótipos, comparações e quantitativos | P2 | A fazer |
 | v0.8 | Knolling, catálogo e documentação | P2 | A fazer |
 | v0.9 | Desempenho, robustez e acessibilidade | P1 | A fazer |
@@ -60,16 +61,22 @@ Responsividade, segurança e testes são transversais desde a primeira versão; 
 - [ ] Abrir modelo de teste da maquete autorizado em tablet; conseguir isolar viga, pilar e laje e mostrar encaixe.
 - [ ] O protótipo continua utilizável sem internet depois de carregar a página, enquanto ela permanecer aberta; persistência offline/PWA não é requisito.
 
-### v0.5 — Montagem
-- [ ] Timeline com passos autorados, play/pause, scrub e reset; visibilidade consistente ao retroceder.
-- [ ] Ordem pilares → vigas → lajes somente quando definida no manifesto do caso; não inferir automaticamente sequência física.
-- [ ] Passos com múltiplas peças, validação de dependências e mensagens quando não há sequência.
-- [ ] Animar inserções lineares quando fornecidas; não declarar ausência de colisão.
+### v0.5 — Experiência do visualizador e montagem
+
+A sprint amplia o marco de montagem anterior com gestão de vistas, filtros e modos de exibição. Os estilos originalmente previstos para a V0.6 foram antecipados. [Auditoria da sprint](V05_VIEWER_AUDIT.md)
+
+- [x] Perspectiva e ortográfica, presets, cubo de navegação e quatro layouts em um único contexto WebGL.
+- [x] Vistas e combinações de filtros salvas por modelo. Seleção e visibilidade opcionais por região.
+- [x] Workspaces Explorar, Explodir e Montagem, modo limpo, apresentação e PNG da região ativa.
+- [x] Timeline autorada, reprodução, pausa, scrub, loop e inserções determinísticas.
+- [x] Editor com passos de múltiplas peças e exportação de manifesto 1.0.0 validado.
+- [x] Fixtures, teste unitário e de integração, auditoria Playwright e benchmarks.
+- [ ] Validar o fluxo em tablet físico e com o exportador homologado no Rhino 8.
 
 ### v0.6 — Inspeção espacial
 - [ ] Clipping em três eixos, planos ajustáveis e seleção compatível.
 - [ ] Distância ponto a ponto sobre malha, distinguida de medida CAD de origem.
-- [ ] Estilos sólido, monocromático e wireframe; avaliar contorno/blueprint sem penalizar tablet.
+- [ ] Documentação técnica com capturas de seção, identificadores e proveniência das medições.
 
 ### v0.7–v0.8 — Fabricação e pesquisa
 - [ ] Comparação de duas versões com correspondência de IDs e câmera sincronizada.

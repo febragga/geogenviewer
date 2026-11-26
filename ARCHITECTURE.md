@@ -149,3 +149,39 @@ Referências: https://vercel.com/docs/domains/set-up-custom-domain ; https://ver
 - **Convenção CAD explícita (`cadVectorToGltf` / `cadAxisToGltf`):** os eixos apresentados ao usuário seguem o sistema do Rhino (`Z` vertical CAD mapeado internamente para `+Y` no glTF), evitando confusão entre eixos de origem e eixos de renderização.
 - **Animação R3F sem spam no Zustand:** transições animadas (`explodeTransition`) avançam via `useFrame` em `SceneController` (`frameloop="demand"` com `invalidate()` por quadro), atualizando slider/leitura numérica do `ExplodePanel` por assinatura direta em memória até o fator final estabilizar.
 - **Linhas de referência em lote único:** um único `THREE.LineSegments` com `LineDashedMaterial` e buffer pré-alocado (`raycast = () => {}`) acompanha visibilidade e tema claro/escuro sem criar nós React por componente.
+
+
+## V0.5 — Câmeras, visibilidade e montagem
+
+### Regiões de renderização
+
+Um Canvas R3F contém uma instância da cena importada. O render manual com prioridade positiva desenha cada região usando viewport e scissor, com câmera e alvo próprios. O raycast usa a câmera e as coordenadas normalizadas da região sob o ponteiro. Single, dual horizontal, dual vertical e quad reaproveitam os mesmos nós e recursos. Quatro Canvases simplificariam os limites dos controles, mas duplicariam contextos WebGL e aumentariam o custo de memória e troca de modelos.
+
+A troca de projeção conserva alvo, orientação e altura aparente no plano que contém o alvo. O enquadramento considera a menor dimensão útil da região. Alvo e altura ortográfica podem ser copiados entre regiões mantendo a direção de cada câmera. Quando seleção ou visibilidade são independentes, a árvore e o inspector acompanham a região ativa e o renderer aplica o escopo de cada região antes do desenho.
+
+O contrato usa `(x, y, z) Rhino → (x, z, -y) Three.js`. Cada direção abaixo aponta do alvo para a câmera.
+
+| Vista | Rhino | Three.js | Eixo visual para cima no Three.js |
+|---|---|---|---|
+| Superior | +Z | +Y | −Z, equivalente a +Y do Rhino |
+| Inferior | −Z | −Y | +Z |
+| Frontal | −Y | +Z | +Y |
+| Posterior | +Y | −Z | +Y |
+| Esquerda | −X | −X | +Y |
+| Direita | +X | +X | +Y |
+| Axonométrica | +X, −Y, +Z | +X, +Y, +Z | +Y |
+| Perspectiva inicial | +X, −Y, +Z com pesos ajustados | +X, +Y, +Z com pesos ajustados | +Y |
+
+### Composição da visibilidade
+
+A abertura semântica inicial oculta os componentes de uma camada marcada como invisível e os das suas subcamadas. O conjunto manual de ocultação pode ser alterado durante a sessão. O renderer combina as permissões de visibilidade do GLB, ocultação manual, interseção com isolamento, filtros e estado da montagem. Cada faceta aceita qualquer opção marcada. Entre facetas, o componente precisa corresponder a todas as facetas ativas. Grupos sobrepostos mantêm a mesma identidade na árvore e no picking.
+
+O isolamento guarda uma cópia das referências do estado anterior de ocultação, seleção de isolamento e filtros. A montagem restringe o conjunto por tempo e preserva os elementos fora da sequência como contexto. A prévia isolada mostra as peças da etapa escolhida. Peças futuras em transparência podem aparecer na cena sem participar do picking. Mostrar tudo limpa as restrições manuais e filtros de sessão. Os estados da montagem permanecem sob controle da timeline.
+
+### Poses, aparência e persistência
+
+O motor de montagem compila a ordem autorada em intervalos cumulativos e usa relógio monotônico na reprodução. O instante determina o estado de cada peça e a fração de seu deslocamento. O controlador converte o vetor mundial por meio da inversa linear da transformação do pai e compõe a posição a partir do repouso. O renderer alterna entre o controlador de explosão e o de montagem ao mudar de workspace. Processar a sequência no renderer com um delta acumulado por frame foi descartado para permitir scrubbing determinístico.
+
+Os modos visuais aplicam variantes de material preservando as referências GLB. As arestas técnicas têm cache por geometria e são descartadas com a cena. O renderer desenha sob demanda e usa limites de DPR conforme a qualidade escolhida. Exportar PNG usa um alvo de renderização temporário na viewport ativa.
+
+As vistas nomeadas persistem câmera, projeção, alvo, altura aparente, visibilidade e exibição no navegador. Combinações de filtros e rascunhos de montagem também usam persistência local. O pacote carregado expõe o manifesto validado e preserva a geometria importada. O editor revalida a sequência com as regras 1.0.0 e preserva os campos de geometria e o hash no download. Persistir preferências no manifesto ligaria configurações do usuário ao exportador e alteraria o contrato.
