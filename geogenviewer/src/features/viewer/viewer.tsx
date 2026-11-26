@@ -45,6 +45,8 @@ import { copy } from "./copy";
 import type { CameraCommand, NavigationMode } from "./scene/viewport";
 import { ViewportTools } from "./components/viewport-tools";
 import { useAssembly } from "./state/assembly-store";
+import { flushInspection, useInspection } from "./state/inspection-store";
+import { v06 } from "./v06-copy";
 import { usePresentation } from "./state/presentation-store";
 import { useEffectiveVisibility } from "./state/visibility-state";
 import { connectViewportScopes } from "./state/viewport-scopes";
@@ -178,15 +180,22 @@ export function Viewer() {
     return () => {
       requestCounter.current++;
       useViewerStore.getState().setSceneGraph(null);
+      useInspection.getState().load(null);
     };
   }, []);
 
   useEffect(connectViewportScopes, []);
 
+  useEffect(() => {
+    window.addEventListener("pagehide", flushInspection);
+    return () => window.removeEventListener("pagehide", flushInspection);
+  }, []);
+
   useEffect(() => () => loaded?.scenePackage.dispose(), [loaded]);
 
   useEffect(() => {
     if (workspace !== "assembly") useAssembly.getState().setSolo(null);
+    useInspection.getState().setTool(workspace === "inspect" ? "sections" : "selection");
   }, [workspace]);
 
   const issueCommand = useCallback((next: Omit<CameraCommand, "seq">) => {
@@ -197,6 +206,7 @@ export function Viewer() {
     (scenePackage: LoadedScenePackage, displayName: string, id: number) => {
       useAssembly.getState().initialize(scenePackage.manifest ?? null);
       usePresentation.getState().resetViews();
+      useInspection.getState().load(scenePackage);
       setLoaded({ scenePackage, name: displayName, id, loadTime: performance.now() - loadStartedAt.current });
       setSceneGraph(scenePackage.sceneGraph);
       setPendingFallback(null);
@@ -317,7 +327,7 @@ export function Viewer() {
   }, [activatePackage, pendingFallback]);
 
   const loadDemo = useCallback(
-    async (kind: "basic" | "contract" | "pavilion") => {
+    async (kind: "basic" | "contract" | "pavilion" | "inspection") => {
       const id = ++requestRef.current;
       loadStartedAt.current = performance.now();
       setStatus(copy.reading);
@@ -340,17 +350,15 @@ export function Viewer() {
           return;
         }
 
-        const isPavilion = kind === "pavilion";
-        const glbUrl = isPavilion
-          ? "/demos/pavilhao-explosao.glb"
-          : "/demos/contrato-exemplo.glb";
-        const jsonUrl = isPavilion
-          ? "/demos/pavilhao-explosao.manifest.json"
-          : "/demos/contrato-exemplo.manifest.json";
-        const fileName = isPavilion
-          ? "pavilhao-explosao.glb"
-          : "contrato-exemplo.glb";
-        const title = isPavilion ? copy.demoExplodeName : copy.demoContractName;
+        const demo = {
+          pavilion: { stem: "pavilhao-explosao", title: copy.demoExplodeName },
+          contract: { stem: "contrato-exemplo", title: copy.demoContractName },
+          inspection: { stem: "inspection-lab", title: v06.labTitle },
+        }[kind];
+        const fileName = demo.stem + ".glb";
+        const glbUrl = "/demos/" + fileName;
+        const jsonUrl = "/demos/" + demo.stem + ".manifest.json";
+        const title = demo.title;
 
         const [glbBytes, jsonBytes] = await Promise.all([
           fetch(glbUrl).then((response) => {
@@ -374,6 +382,7 @@ export function Viewer() {
           return;
         }
         activatePackage(pkg, title, id);
+        if (kind === "inspection") useViewerStore.getState().setWorkspace("inspect");
       } catch (cause) {
         if (id === requestRef.current) {
           const message = cause instanceof Error ? cause.message : "";
@@ -396,6 +405,8 @@ export function Viewer() {
         void loadDemo("contract");
       } else if (demoParam === "pavilhao") {
         void loadDemo("pavilion");
+      } else if (demoParam === "inspecao") {
+        void loadDemo("inspection");
       }
     }, 0);
     return () => window.clearTimeout(timer);
@@ -512,7 +523,12 @@ export function Viewer() {
         event.preventDefault();
         toggleRightPanel();
       } else if (event.key === "Escape") {
-        if (focusMode) {
+        if (useInspection.getState().tool === "measure") {
+          event.preventDefault();
+          const inspection = useInspection.getState();
+          if (inspection.draft) inspection.cancel();
+          else inspection.setTool("selection");
+        } else if (focusMode) {
           event.preventDefault();
           setFocusMode(false);
         } else if (useViewerStore.getState().selectedIds.length > 0) {
@@ -679,6 +695,9 @@ export function Viewer() {
                 <PavilionIcon size={15} strokeWidth={1.75} />
                 <span>{copy.demoExplode}</span>
               </button>
+              <button type="button" className="gg-btn gg-btn--secondary" disabled={Boolean(status)} onClick={() => void loadDemo("inspection")}>
+                <CubeIcon size={15} strokeWidth={1.75} /><span>{v06.lab}</span>
+              </button>
               <button
                 type="button"
                 className="gg-btn gg-btn--secondary"
@@ -836,6 +855,7 @@ export function Viewer() {
             onLoadDemo={() => void loadDemo("basic")}
             onLoadContractDemo={() => void loadDemo("contract")}
             onLoadExplodeDemo={() => void loadDemo("pavilion")}
+            onLoadInspectionDemo={() => void loadDemo("inspection")}
             onOpenHelp={() => setHelpOpen(true)}
             onOpenCommand={() => setCommandOpen(true)}
             onEnterFocusMode={() => setFocusMode(true)}

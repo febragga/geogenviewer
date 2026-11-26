@@ -7,6 +7,7 @@ import {
   type ComponentRecord,
   type ViewerSceneGraph,
 } from "../../../lib/geogen/domain/model";
+import { compareRestBounds } from "../../../lib/geogen/inspection/measurements";
 import { copy } from "../copy";
 import { useViewerStore, type TreeTab } from "../state/viewer-store";
 import { useAssembly } from "../state/assembly-store";
@@ -678,6 +679,14 @@ function SingleComponentDetails({
                   {" / "}
                   max ({cad.boundingBoxM.max.map((n) => formatNumber(n, 3)).join(", ")}) m
                 </dd>
+              </div>
+            )}
+            {cad.boundingBoxM?.source === "cad" && (
+              <div className="gg-kv-row gg-kv-row--stacked">
+                <dt>Diferenças entre envolventes de repouso · CAD × Malha</dt>
+                <dd className="gg-mono gg-tabular">{compareRestBounds(comp)?.map(({ deltaM, percent }, index) => (
+                  <div key={index}>{["X", "Z", "Y"][index]} · {formatMillimeters(deltaM)} ({percent === null ? "—" : formatNumber(percent, 2) + "%"})</div>
+                ))}</dd>
               </div>
             )}
             {cad.areaM2 && (

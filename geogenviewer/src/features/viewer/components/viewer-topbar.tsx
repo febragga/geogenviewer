@@ -4,6 +4,7 @@ import { Menu } from "@base-ui/react/menu";
 import Link from "next/link";
 import type { ViewerSceneGraph } from "../../../lib/geogen/domain/model";
 import { copy } from "../copy";
+import { v06 } from "../v06-copy";
 import { useViewerStore, type Workspace } from "../state/viewer-store";
 import { v05, workspaces } from "../v05-copy";
 import {
@@ -35,6 +36,7 @@ interface ViewerTopbarProps {
   onLoadDemo: () => void;
   onLoadContractDemo: () => void;
   onLoadExplodeDemo: () => void;
+  onLoadInspectionDemo: () => void;
   onOpenHelp: () => void;
   onOpenCommand: () => void;
   onEnterFocusMode: () => void;
@@ -54,6 +56,7 @@ export function ViewerTopbar({
   onLoadDemo,
   onLoadContractDemo,
   onLoadExplodeDemo,
+  onLoadInspectionDemo,
   onOpenHelp,
   onOpenCommand,
   onEnterFocusMode,
@@ -215,6 +218,9 @@ export function ViewerTopbar({
                   >
                     <CubeIcon size={15} strokeWidth={1.75} />
                     <span>{copy.demo}</span>
+                  </Menu.Item>
+                  <Menu.Item className="gg-menu-item" disabled={isBusy} onClick={onLoadInspectionDemo}>
+                    <CubeIcon size={15} strokeWidth={1.75} /><span>{v06.lab}</span>
                   </Menu.Item>
                   <Menu.Item className="gg-menu-item" onClick={onOpenCommand}>
                     <CommandIcon size={15} strokeWidth={1.75} />

@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { LoadedScenePackage } from "../../../lib/geogen/importers/package";
 import { type Projection, type ViewLayout, type ViewPreset } from "../scene/camera-state";
 import { preferenceKey, readLocalList, writeLocalList, type NamedView } from "../state/local-preferences";
+import { useInspection } from "../state/inspection-store";
 import { usePresentation } from "../state/presentation-store";
 import { useViewerStore } from "../state/viewer-store";
 import { layouts, presets, v05 } from "../v05-copy";
@@ -33,9 +34,11 @@ export function ViewOptions({ loaded }: { loaded: LoadedScenePackage }) {
   function capture(id: string, title: string) {
     const pose = access?.pose(active);
     if (!pose) return;
-    const { display } = usePresentation.getState();
+    const { display, layout, maximized } = usePresentation.getState();
     const { filters, hiddenIds, isolatedIds } = useViewerStore.getState();
-    return { id, name: title, pose, display, visibility: { filters, hiddenIds, isolatedIds } } satisfies NamedView;
+    const poses = Array.from({ length: 4 }, (_, slot) => access?.pose(slot) ?? null);
+    const inspection = useInspection.getState().preset();
+    return { id, name: title, pose, display, visibility: { filters, hiddenIds, isolatedIds }, regions: { layout, active, maximized, poses }, inspection } satisfies NamedView;
   }
 
   function create() {
@@ -44,6 +47,7 @@ export function ViewOptions({ loaded }: { loaded: LoadedScenePackage }) {
     if (next) {
       save([...views, next]);
       setChosen(next.id);
+      useInspection.setState({ viewName: next.name });
     }
   }
 
@@ -94,8 +98,15 @@ export function ViewOptions({ loaded }: { loaded: LoadedScenePackage }) {
         <button type="button" className="gg-btn gg-btn--primary" disabled={!name.trim() || !access} onClick={create}>{v05.save}</button>
         <button type="button" className="gg-btn gg-btn--secondary" disabled={!view || !access} onClick={() => {
           if (!view?.pose || !view.visibility || !view.display) return;
-          access?.apply(view.pose);
-          usePresentation.setState({ display: view.display });
+          if (view.regions && access) {
+            const { layout, active, maximized, poses } = view.regions;
+            usePresentation.setState({ layout, active, maximized, display: view.display });
+            poses.forEach((pose, slot) => { if (pose) access.applySlot(slot, pose); });
+          } else {
+            access?.apply(view.pose);
+            usePresentation.setState({ display: view.display });
+          }
+          useInspection.getState().restorePreset(view.inspection, view.name);
           useViewerStore.setState({ ...view.visibility, beforeIsolation: null });
         }}>{v05.apply}</button>
         <button type="button" className="gg-btn gg-btn--secondary" disabled={!view || !access} onClick={() => {

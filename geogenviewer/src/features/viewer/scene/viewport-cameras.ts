@@ -1,5 +1,5 @@
 import { useFrame, useThree } from "@react-three/fiber";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type RefObject } from "react";
 import {
   Matrix4, MOUSE, OrthographicCamera, PerspectiveCamera, Quaternion, Sphere, SRGBColorSpace, TOUCH,
   Vector2, Vector3, Vector4, WebGLRenderTarget, type Scene, type WebGLRenderer,
@@ -10,6 +10,7 @@ import {
   viewRegions, viewSlots, type CameraPose, type Vec3, type ViewRegion,
 } from "./camera-state";
 import { usePresentation, type PngOptions, type RenderStats } from "../state/presentation-store";
+import type { InspectionScene } from "./inspection-scene";
 
 type ViewCamera = PerspectiveCamera | OrthographicCamera;
 type Rig = ReturnType<typeof createRig>;
@@ -77,10 +78,12 @@ function interpolatePose(from: CameraPose, to: CameraPose, t: number): CameraPos
   };
 }
 
-async function capturePng(renderer: WebGLRenderer, scene: Scene, source: ViewCamera, options: PngOptions) {
+async function capturePng(renderer: WebGLRenderer, source: ViewCamera, options: PngOptions, draw: () => void,
+  composite: (ctx: CanvasRenderingContext2D, width: number, height: number) => void) {
   const aspect = source instanceof PerspectiveCamera ? source.aspect : (source.right - source.left) / (source.top - source.bottom);
-  const width = Math.min(renderer.capabilities.maxTextureSize, Math.max(1, Math.round(options.width)));
-  const height = Math.min(renderer.capabilities.maxTextureSize, Math.max(1, Math.round(width / aspect)));
+  const limit = renderer.capabilities.maxTextureSize;
+  const width = Math.max(1, Math.floor(Math.min(limit, limit * aspect, 4096 * Math.sqrt(aspect), options.width)));
+  const height = Math.max(1, Math.round(width / aspect));
   const target = new WebGLRenderTarget(width, height, { colorSpace: SRGBColorSpace });
   const viewport = renderer.getViewport(new Vector4());
   const scissor = renderer.getScissor(new Vector4());
@@ -93,7 +96,7 @@ async function capturePng(renderer: WebGLRenderer, scene: Scene, source: ViewCam
     renderer.setScissorTest(false);
     renderer.setClearAlpha(0);
     renderer.clear();
-    renderer.render(scene, source);
+    draw();
     renderer.readRenderTargetPixels(target, 0, 0, width, height, pixels);
   } finally {
     renderer.setRenderTarget(previous);
@@ -114,6 +117,7 @@ async function capturePng(renderer: WebGLRenderer, scene: Scene, source: ViewCam
     data.data.set(pixels.subarray(start, start + width * 4), row * width * 4);
   }
   ctx.putImageData(data, 0, 0);
+  composite(ctx, width, height);
   if (!options.transparent) {
     ctx.globalCompositeOperation = "destination-over";
     ctx.fillStyle = options.background;
@@ -126,7 +130,8 @@ async function capturePng(renderer: WebGLRenderer, scene: Scene, source: ViewCam
 
 function createRig(
   gl: WebGLRenderer, scene: Scene, sphere: Sphere, invalidate: () => void,
-  onContextLost: () => void, beforeDraw: (slot: number) => void,
+  onContextLost: () => void, beforeDraw: (slot: number, selection?: boolean) => void,
+  inspector: RefObject<InspectionScene | null>, motion: () => { moving: boolean; pose: string },
 ) {
   const canvas = gl.domElement;
   const radius = Math.max(sphere.radius, 0.000001);
@@ -197,7 +202,7 @@ function createRig(
     const region = regions.find((r) => x >= r.x && x < r.x + r.width && y >= r.y && y < r.y + r.height);
     if (!region) return null;
     ndc.set(2 * (x - region.x) / region.width - 1, 1 - 2 * (y - region.y) / region.height);
-    return { slot: region.slot, camera: slots[region.slot].controls.object as ViewCamera };
+    return { ...region, camera: slots[region.slot].controls.object as ViewCamera };
   }
 
   const ndc = new Vector2();
@@ -293,6 +298,13 @@ function createRig(
   const access = {
     pose: (slot: number) => slots[slot]?.pose ?? null,
     apply: applyActive,
+    applySlot: (index: number, pose: CameraPose) => {
+      if (!slots[index]) return;
+      slots[index].transition = null;
+      apply(index, pose);
+      updateProjection(index, pose);
+      invalidate();
+    },
     direction,
     preset: (preset: (typeof viewSlots)[number]) => direction(viewDirections[preset], preset === "perspective" ? "perspective" : "orthographic"),
     projection: (projection: CameraPose["projection"]) => {
@@ -305,8 +317,22 @@ function createRig(
     },
     capture: (options: PngOptions) => {
       const index = activeSlot();
+      const region = regions.find((item) => item.slot === index) ?? { slot: index, x: 0, y: 0, width, height };
+      const camera = slots[index].controls.object as ViewCamera;
+      beforeDraw(index, options.technical?.selection);
+      const runtime = inspector.current;
+      const settings = options.technical;
+      const render = () => gl.render(scene, camera);
+      const { moving, pose } = motion();
+      const result = capturePng(gl, camera, options,
+        () => {
+          if (runtime) runtime.draw({ slot: index, camera, region, render, technical: settings, capture: true }, moving, pose);
+          else render();
+        },
+        (ctx, outputWidth, outputHeight) => { if (settings) runtime?.capture(index, camera, ctx, outputWidth, outputHeight, region.width, settings); });
       beforeDraw(index);
-      return capturePng(gl, scene, slots[index].controls.object as ViewCamera, options);
+      invalidate();
+      return result;
     },
     stats: () => {
       const materials = new Set();
@@ -316,7 +342,7 @@ function createRig(
           for (const item of Array.isArray(material) ? material : [material]) materials.add(item);
         }
       });
-      return { ...stats, fps: performance.now() - previousFrame > 650 ? 0 : stats.fps, materials: materials.size };
+      return { ...stats, fps: performance.now() - previousFrame > 650 ? 0 : stats.fps, materials: materials.size + (inspector.current?.activeCapMaterials ?? 0) };
     },
   };
   usePresentation.setState({ access });
@@ -365,12 +391,18 @@ function createRig(
       gl.info.autoReset = false;
       try {
         gl.setScissorTest(true);
+        const runtime = inspector.current;
+        runtime?.beginFrame();
+        const { moving, pose } = motion();
         for (const region of regions) {
           const y = height - region.y - region.height;
           gl.setViewport(region.x, y, region.width, region.height);
           gl.setScissor(region.x, y, region.width, region.height);
           beforeDraw(region.slot);
-          gl.render(scene, slots[region.slot].controls.object);
+          const camera = slots[region.slot].controls.object;
+          const render = () => gl.render(scene, camera);
+          if (runtime) runtime.draw({ slot: region.slot, camera, region, render }, moving, pose);
+          else render();
         }
       } finally {
         gl.setScissorTest(false);
@@ -405,18 +437,19 @@ function createRig(
   };
 }
 
-export function useViewportCameras(sphere: Sphere, onContextLost: () => void, onDraw: (slot: number) => void) {
+export function useViewportCameras(sphere: Sphere, onContextLost: () => void, onDraw: (slot: number, selection?: boolean) => void,
+  inspector: RefObject<InspectionScene | null>, motion: () => { moving: boolean; pose: string }) {
   const { gl, scene, invalidate } = useThree();
   const width = useThree((state) => state.size.width);
   const height = useThree((state) => state.size.height);
   const rig = useRef<Rig | null>(null);
   const first = useRef(true);
   useEffect(() => {
-    const next = createRig(gl, scene, sphere, invalidate, onContextLost, onDraw);
+    const next = createRig(gl, scene, sphere, invalidate, onContextLost, onDraw, inspector, motion);
     rig.current = next;
     first.current = true;
     return () => { next.dispose(); rig.current = null; };
-  }, [gl, scene, sphere, invalidate, onContextLost, onDraw]);
+  }, [gl, scene, sphere, invalidate, onContextLost, onDraw, inspector, motion]);
   useEffect(() => {
     rig.current?.resize(width, height, first.current);
     first.current = false;

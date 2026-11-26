@@ -4,7 +4,7 @@ import type { ViewLayout, ViewPreset } from "./scene/camera-state";
 import type { DisplayMode, GraphicsQuality } from "./state/presentation-store";
 import type { Workspace } from "./state/viewer-store";
 
-export const workspaces: Record<Workspace, string> = { explore: "Explorar", explode: "Explodir", assembly: "Montagem" };
+export const workspaces: Record<Workspace, string> = { explore: "Explorar", explode: "Explodir", assembly: "Montagem", inspect: "Inspecionar" };
 export const presets: Record<ViewPreset, string> = {
   perspective: "Perspectiva", axonometric: "Axonométrica", top: "Superior", bottom: "Inferior",
   front: "Frontal", back: "Posterior", left: "Esquerda", right: "Direita",

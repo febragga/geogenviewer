@@ -11,6 +11,9 @@
         "test": "node --experimental-strip-types --test tests/*.test.mjs",
         "test:ui": "node scripts/verify-ui.mjs",
         "test:v05": "node scripts/verify-v05.mjs",
+        "test:v06": "node scripts/verify-v06.mjs",
+        "benchmark:v06": "node --experimental-strip-types scripts/benchmark-v06.mjs",
+        "fixture:inspection": "node scripts/generate-inspection-lab.mjs",
         "benchmark:v05": "node --experimental-strip-types scripts/benchmark-v05.mjs",
         "fixture": "node scripts/generate-demo.mjs"
     },

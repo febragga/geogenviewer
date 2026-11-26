@@ -1,6 +1,7 @@
 import type { ManifestV1 } from "../../../lib/geogen/domain/model.ts";
 import type { Filters } from "../../../lib/geogen/domain/visibility.ts";
-import type { CameraPose } from "../scene/camera-state.ts";
+import type { InspectionPreset } from "./inspection-store";
+import type { CameraPose, ViewLayout } from "../scene/camera-state.ts";
 import type { DisplaySettings } from "./presentation-store.ts";
 
 export interface VisibilitySnapshot {
@@ -15,6 +16,8 @@ export interface NamedView {
   pose: CameraPose;
   display: DisplaySettings;
   visibility: VisibilitySnapshot;
+  regions?: { layout: ViewLayout; active: number; maximized: number | null; poses: (CameraPose | null)[] };
+  inspection?: InspectionPreset;
 }
 
 export interface FilterPreset {

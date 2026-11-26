@@ -1,0 +1,32 @@
+export const v06 = {
+  inspect: "Inspeção espacial", selection: "Selecionar", sections: "Cortes", measure: "Medir", capture: "Captura",
+  plane: "Plano", share: "Compartilhar cortes entre vistas", cut: "Ativar corte",
+  position: "Posição CAD", flip: "Inverter lado preservado", gizmo: "Mostrar manipulador",
+  gizmoOpacity: "Opacidade do manipulador", resetPlane: "Restaurar plano", resetAll: "Restaurar todos os cortes",
+  center: "Centro do modelo", centerSelection: "Centro da seleção", fit: "Enquadrar região visível",
+  selectionMin: "Início da seleção", selectionMax: "Fim da seleção",
+  mode: "Representação da seção", fill: "Preencher superfícies fechadas",
+  fillColor: "Cor do preenchimento", outlineColor: "Cor do contorno", opacity: "Opacidade da seção", lineWidth: "Espessura do contorno",
+  axesNote: "Eixos CAD. Z é vertical. A posição é relativa à origem local do modelo.",
+  measurement: "Ferramenta de medição", pose: "Pose da medida", rest: "Original", current: "Apresentação",
+  distance: "Distância", delta: "Delta XYZ", point: "Coordenadas", inactive: "Sem medições nesta inspeção.",
+  first: "Toque ou clique no primeiro ponto.", second: "Confirme o segundo ponto.", pointPrompt: "Toque ou clique no ponto.",
+  cancel: "Cancelar medição", sensitivity: "Sensibilidade do snap", snap: "Encaixes de malha",
+  snapHelp: "Use Shift para medir diretamente na superfície. Esc cancela a medida em andamento.",
+  precision: "Malha tessellada. Tolerância de tesselação desconhecida.",
+  provenance: "Proveniência", mesh: "Malha", cad: "CAD", authored: "Autoral", derived: "Derivada",
+  method: "Método", element: "Componente", availability: "Referência indisponível", delete: "Excluir medição", visible: "Medição visível",
+  records: "Medições e referências", recordName: "Nome da medição", fitRecord: "Enquadrar referências",
+  basis: "Origem CAD", currentRecord: "Valor registrado na pose temporária. A cota na cena acompanha a pose atual.",
+  briefing: "Captura da vista ativa derivada do modelo tessellado.",
+  resolution: "Largura da captura", background: "Fundo da captura", color: "Cor de fundo",
+  measurements: "Incluir medições", identifiers: "Incluir identificadores", gizmos: "Incluir manipuladores", grid: "Incluir grade",
+  axes: "Incluir eixos", selected: "Incluir destaque da seleção", scale: "Incluir escala gráfica ortográfica",
+  lastCapture: "Baixar metadados da última captura",
+  png: "Baixar PNG técnico", exportJson: "Baixar JSON de inspeção", importJson: "Importar JSON de inspeção",
+  captureError: "Falha na captura técnica.", importError: "Falha ao importar a inspeção.",
+  lab: "Laboratório de inspeção", labTitle: "Laboratório sintético de inspeção",
+} as const;
+
+export const sectionModes = { open: "Aberta", outline: "Contorno", filled: "Preenchida", technical: "Técnica" } as const;
+export const snapLabels = { surface: "Superfície", vertex: "Vértice", edge: "Aresta", midpoint: "Ponto médio" } as const;

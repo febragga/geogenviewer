@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import type { TechnicalOptions } from "../../../lib/geogen/inspection/document.ts";
 import type { CameraPose, Projection, Vec3, ViewLayout, ViewPreset } from "../scene/camera-state.ts";
 
 export type DisplayMode = "shaded" | "material" | "clay" | "technical" | "wireframe" | "xray" | "layer" | "category" | "semanticMaterial";
@@ -34,11 +35,13 @@ export interface PngOptions {
   width: number;
   transparent: boolean;
   background: string;
+  technical?: TechnicalOptions;
 }
 
 export interface CameraAccess {
   pose: (slot: number) => CameraPose | null;
   apply: (pose: CameraPose) => void;
+  applySlot: (slot: number, pose: CameraPose) => void;
   preset: (preset: ViewPreset) => void;
   direction: (direction: Vec3) => void;
   projection: (projection: Projection) => void;

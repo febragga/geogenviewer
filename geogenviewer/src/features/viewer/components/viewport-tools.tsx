@@ -1,10 +1,12 @@
 "use client";
 
-import { Filter, Layers2, SlidersHorizontal } from "lucide-react";
+import { Filter, Layers2, ScanLine, SlidersHorizontal } from "lucide-react";
 import type { LoadedScenePackage } from "../../../lib/geogen/importers/package";
 import { viewRegions } from "../scene/camera-state";
 import { usePresentation } from "../state/presentation-store";
 import { v05 } from "../v05-copy";
+import { v06 } from "../v06-copy";
+import { InspectionHint, InspectionTools } from "./inspection-tools";
 import { DisplayOptions } from "./display-options";
 import { FilterOptions } from "./filter-options";
 import { NavigationCube } from "./navigation-cube";
@@ -38,9 +40,13 @@ export function ViewportTools({ loaded, loadTime, onFit, onReset }: {
         <ViewerPopover label={v05.display} title={v05.settings} icon={<SlidersHorizontal size={15} />}>
           <DisplayOptions count={loaded.sceneGraph.componentOrder.length} loadTime={loadTime} onReset={onReset} />
         </ViewerPopover>
+        <ViewerPopover label={v06.inspect} icon={<ScanLine size={15} />}>
+          <InspectionTools loaded={loaded} onFit={onFit} />
+        </ViewerPopover>
         <span className="gg-projection-indicator">{projection === "perspective" ? v05.perspective : v05.orthographic}</span>
       </div>
       <NavigationCube />
+      <InspectionHint />
     </>
   );
 }

@@ -15,6 +15,10 @@ import {
   Vector2,
   Vector3,
 } from "three";
+import { clippedBounds, firstVisibleHit, sectionAt } from "../../../lib/geogen/inspection/sections";
+import { snapOnHit } from "../../../lib/geogen/inspection/snapping";
+import { useInspection } from "../state/inspection-store";
+import { activeClipping, InspectionScene } from "./inspection-scene";
 import { AssemblyPose } from "../../../lib/geogen/assembly/pose";
 import { useAssembly } from "../state/assembly-store";
 import { usePresentation } from "../state/presentation-store";
@@ -110,9 +114,16 @@ function SceneController({
 }) {
   const { gl, scene: rootScene, invalidate } = useThree();
   const sphere = useMemo(() => controller.restSceneBounds.getBoundingSphere(new Sphere()), [controller]);
-  const beforeDraw = useRef<(slot: number) => void>(null);
-  const onDraw = useCallback((slot: number) => beforeDraw.current?.(slot), []);
-  const cameras = useViewportCameras(sphere, onContextLost, onDraw);
+  const beforeDraw = useRef<(slot: number, selection?: boolean) => void>(null);
+  const onDraw = useCallback((slot: number, selection?: boolean) => beforeDraw.current?.(slot, selection), []);
+  const inspector = useRef<InspectionScene | null>(null);
+  const motion = useCallback(() => {
+    const state = useAssembly.getState();
+    const workspace = useViewerStore.getState().workspace;
+    const moving = workspace === "assembly" ? state.playback.status === "playing" : useViewerStore.getState().explodeTransition !== null;
+    return { moving, pose: [controller.factor, state.playback.seconds, moving ? performance.now() : 0].join(":") };
+  }, [controller]);
+  const cameras = useViewportCameras(sphere, onContextLost, onDraw, inspector, motion);
   const assemblyPose = useMemo(() => new AssemblyPose(scenePackage.model.scene, scenePackage.objectByComponentId), [scenePackage]);
   const workspace = useViewerStore((state) => state.workspace);
   const display = usePresentation((state) => state.display);
@@ -229,7 +240,8 @@ function SceneController({
     if (appliedCommand.current === command) return;
     appliedCommand.current = command;
     const bounds = fitBounds(scenePackage, controller, visibilityRef.current.hiddenIds, visibilityRef.current.isolatedIds, command);
-    cameras.current?.command(command.kind, bounds.getBoundingSphere(new Sphere()));
+    const clipped = command.kind === "fit" ? clippedBounds(bounds, activeClipping(usePresentation.getState().active)) : bounds;
+    if (!clipped.isEmpty()) cameras.current?.command(command.kind, clipped.getBoundingSphere(new Sphere()));
   }, [cameras, command, controller, scenePackage]);
 
   const syncReferenceLines = useCallback(
@@ -264,33 +276,40 @@ function SceneController({
 
   useEffect(() => {
     const sceneDisplay = new SceneDisplay(scenePackage);
+    const runtime = new InspectionScene(gl, rootScene, scenePackage, invalidate);
+    inspector.current = runtime;
     let last: readonly unknown[] = [];
-    beforeDraw.current = (slot) => {
+    beforeDraw.current = (slot, selection = true) => {
       const view = usePresentation.getState();
       const scene = useViewerStore.getState();
       const assembly = useAssembly.getState();
       const scope = viewportScope(slot);
-      const hovered = slot === view.active || view.shareSelection ? scene.hoveredId : null;
+      const hovered = selection && (slot === view.active || view.shareSelection) ? scene.hoveredId : null;
+      const config = useInspection.getState().doc?.sections;
+      const technical = config && sectionAt(config, slot).mode === "technical" && activeClipping(slot).length > 0;
       const inputs = [
-        view.display, scene.workspace, scope.selectedIds, hovered, scope.filters, scope.hiddenIds,
+        view.display, technical, selection, scene.workspace, scope.selectedIds, hovered, scope.filters, scope.hiddenIds,
         scope.isolatedIds, assembly.timeline, assembly.stepIndex, assembly.ghost, assembly.solo,
       ];
       const changed = inputs.some((value, index) => value !== last[index]);
       if (changed) {
         last = inputs;
         const { denied, ghosts } = resolveVisibility(scenePackage.sceneGraph, scope, scene.workspace, assembly);
-        sceneDisplay.apply(view.display, new Set(scope.selectedIds), hovered, denied, scope.isolatedIds ? new Set(scope.isolatedIds) : null, ghosts);
+        const displaySettings = technical ? { ...view.display, mode: "technical" as const } : view.display;
+        sceneDisplay.apply(displaySettings, new Set(selection ? scope.selectedIds : []), hovered, denied, scope.isolatedIds ? new Set(scope.isolatedIds) : null, ghosts);
         if (!view.shareVisibility) syncReferenceLines(explodeRef.current.showReferenceLines, Array.from(denied), scope.isolatedIds);
       }
     };
     return () => {
       beforeDraw.current = null;
+      inspector.current = null;
+      runtime.dispose();
       sceneDisplay.dispose();
       assemblyPose.reset();
       animRef.current.active = false;
       controller.reset();
     };
-  }, [assemblyPose, controller, scenePackage, syncReferenceLines]);
+  }, [assemblyPose, controller, gl, invalidate, rootScene, scenePackage, syncReferenceLines]);
 
   useEffect(() => {
     onDraw(usePresentation.getState().active);
@@ -458,21 +477,37 @@ function SceneController({
     } | null = null;
     let multiTouch = false;
 
-    function pickComponent(clientX: number, clientY: number): string | null {
-      const hitRegion = cameras.current?.pick(clientX, clientY, pointerNdc);
+    function pick(event: PointerEvent, confirm: boolean): string | null {
+      const hitRegion = cameras.current?.pick(event.clientX, event.clientY, pointerNdc);
       if (!hitRegion) return null;
+      const measuring = useInspection.getState().tool === "measure";
+      const runtime = inspector.current;
       onDraw(hitRegion.slot);
+      scenePackage.model.scene.updateMatrixWorld();
       raycaster.setFromCamera(pointerNdc, hitRegion.camera);
       const hits = raycaster.intersectObject(scenePackage.model.scene, true);
       const { ghost, timeline, stepIndex, solo } = useAssembly.getState();
-      const ghostEnabled = useViewerStore.getState().workspace === "assembly" && ghost && solo === null;
-      const hitId = hits.find((hit) => {
-        if (!hit.object.visible) return false;
-        const id = scenePackage.resolveComponentId(hit.object);
-        return id && (!ghostEnabled || (timeline.byElement.get(id) ?? -1) <= stepIndex);
+      const workspace = useViewerStore.getState().workspace;
+      const ghostEnabled = workspace === "assembly" && ghost && solo === null;
+      const planes = activeClipping(hitRegion.slot);
+      const hit = firstVisibleHit(hits, planes, (candidate) => {
+        const id = scenePackage.resolveComponentId(candidate.object);
+        return Boolean(id && (!ghostEnabled || (timeline.byElement.get(id) ?? -1) <= stepIndex));
       });
+      const id = hit ? scenePackage.resolveComponentId(hit.object) : null;
+      if (measuring && runtime) {
+        const snap = useInspection.getState().doc?.snap;
+        const result = hit && id && snap ? snapOnHit(hit, hitRegion.camera, hitRegion.width, hitRegion.height,
+          (pointerNdc.x + 1) * hitRegion.width / 2, (1 - pointerNdc.y) * hitRegion.height / 2,
+          snap, planes, event.shiftKey) : null;
+        runtime.setCandidate(hitRegion.slot, result);
+        if (confirm && result && hit && id) {
+          const anchor = runtime.anchor(hit, id, result.point, result.mode);
+          if (anchor) useInspection.getState().confirm(anchor, workspace);
+        }
+      }
       onDraw(usePresentation.getState().active);
-      return hitId ? scenePackage.resolveComponentId(hitId.object) : null;
+      return id;
     }
 
     function onPointerDown(event: PointerEvent) {
@@ -494,13 +529,15 @@ function SceneController({
 
     function onPointerMove(event: PointerEvent) {
       if (event.pointerType !== "mouse" || activePointers.size > 0) return;
-      const hitId = pickComponent(event.clientX, event.clientY);
-      canvas.style.cursor = hitId ? "pointer" : "";
-      callbacksRef.current.onHover(hitId);
+      const hitId = pick(event, false);
+      const measuring = useInspection.getState().tool === "measure";
+      canvas.style.cursor = hitId ? (measuring ? "crosshair" : "pointer") : "";
+      callbacksRef.current.onHover(measuring ? null : hitId);
     }
 
     function onPointerLeave() {
       canvas.style.cursor = "";
+      inspector.current?.clearCandidate();
       callbacksRef.current.onHover(null);
     }
 
@@ -517,7 +554,8 @@ function SceneController({
       downState = null;
       if (distance >= dragThresholdPx) return;
 
-      const hitId = pickComponent(event.clientX, event.clientY);
+      const hitId = pick(event, true);
+      if (useInspection.getState().tool === "measure") return;
       const multi =
         callbacksRef.current.multiSelectMode ||
         event.shiftKey ||
@@ -641,11 +679,12 @@ export default function Viewport({
           target={lightTarget} shadow-normalBias={span * 0.0001} />
         <primitive object={lightTarget} />
         <primitive object={scenePackage.model.scene} />
-        {settings.axes && <axesHelper
+        <axesHelper visible={settings.axes} userData={{ ggInspectionHelper: "axes" }}
           args={[Math.max(sphere.radius * 0.35, 0.000001)]}
           position={[origin.x, origin.y, origin.z]}
-        />}
-        {settings.grid && <primitive object={grid} position={[sphere.center.x, origin.y - span * 0.0001, sphere.center.z]} />}
+        />
+        <primitive object={grid} visible={settings.grid} userData={{ ggInspectionHelper: "grid" }}
+          position={[sphere.center.x, origin.y - span * 0.0001, sphere.center.z]} />
         {settings.ground && <mesh rotation={[-Math.PI / 2, 0, 0]} position={[sphere.center.x, origin.y - span * 0.0002, sphere.center.z]} receiveShadow>
           <planeGeometry args={[span, span]} />
           <meshStandardMaterial color="#9ca7ac" roughness={1} />

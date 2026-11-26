@@ -44,7 +44,7 @@ export class SceneDisplay {
   private readonly variants = new Map<string, Material>();
   private readonly edges = new Map<BufferGeometry, EdgesGeometry>();
   private readonly edgeMaterial = new LineBasicMaterial({ color: "#354457", transparent: true, opacity: 0.72 });
-  private materialSettings = "";
+  private materialOpacity: number | null = null;
   private readonly loaded: LoadedScenePackage;
 
   constructor(loaded: LoadedScenePackage) {
@@ -62,14 +62,14 @@ export class SceneDisplay {
 
   apply(settings: DisplaySettings, selected: ReadonlySet<string>, hovered: string | null, hidden: ReadonlySet<string>, isolated: ReadonlySet<string> | null, ghosts: ReadonlySet<string>) {
     const settingsKey = [settings.mode, settings.opacity].join(":");
-    if (settingsKey !== this.materialSettings) {
+    if (settings.opacity !== this.materialOpacity) {
       for (const entry of this.objects) {
         entry.object.material = entry.original;
         entry.key = undefined;
       }
       for (const material of this.variants.values()) material.dispose();
       this.variants.clear();
-      this.materialSettings = settingsKey;
+      this.materialOpacity = settings.opacity;
     }
     for (const entry of this.objects) {
       const { id, object, original } = entry;
