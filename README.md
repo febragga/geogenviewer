@@ -4,7 +4,7 @@ Visualizador web independente (*local-first*) de modelos arquitetônicos e de ge
 
 - **Aplicação Next.js (Root Directory no Vercel):** [`geogenviewer/`](geogenviewer/) — rotas `/` e `/viewer`
 - **Contrato de interoperabilidade Rhino 8 (`v1.0.0`):** [`exporter-contract/`](exporter-contract/)
-- **Versão consolidada atual:** `0.7.0` (`main`, tag `v0.7.0`) — [Guia V0.7](V07_USER_GUIDE.md) · [Relatório](V07_IMPLEMENTATION_REPORT.md) · [Testes](V07_TEST_REPORT.md) · [Desempenho](V07_PERFORMANCE_REPORT.md) · [Exemplos CSV/JSON](docs/v07/examples)
+- **Versão consolidada atual:** `0.8.0` (`main`, tag `v0.8.0`) — [Guia V0.8](V08_USER_GUIDE.md) · [Relatório](V08_IMPLEMENTATION_REPORT.md) · [Testes](V08_TEST_REPORT.md) · [Desempenho](V08_PERFORMANCE_REPORT.md) · [Capturas](docs/v08/evidence/) · [Exemplos](docs/v08/examples/) · [Manual em PDF](docs/v08/examples/manual-imprimivel.pdf)
 
 ## Funcionalidades implementadas
 
@@ -16,7 +16,7 @@ Visualizador web independente (*local-first*) de modelos arquitetônicos e de ge
 
 - **V0.7:** Dois GLBs no workspace Comparar, alinhamento, correspondência por identidade e revisão manual, diff em pose de repouso, quantitativos por ocorrência e análise de fabricação com proveniência e cobertura. Exportações locais CSV, JSON e PNG. [Guia V0.7](V07_USER_GUIDE.md) · [Relatório](V07_IMPLEMENTATION_REPORT.md).
 
-- **V0.8 na branch de feature:** Knolling, catálogo, callouts, listas de peças e fichas técnicas com montagem imprimível. [Guia V0.8](V08_USER_GUIDE.md) · [Relatório](V08_IMPLEMENTATION_REPORT.md) · [Testes](V08_TEST_REPORT.md).
+- **V0.8:** Knolling (cinco modos, planos XY/XZ/YZ, fixações e retorno à pose), catálogo com miniaturas em cache e seleção sincronizada, callouts vinculados às ocorrências, listas de peças, fichas A4/A3 e manual imprimível baseado nas etapas autoradas, com exportação PNG/CSV/JSON. [Guia V0.8](V08_USER_GUIDE.md) · [Relatório](V08_IMPLEMENTATION_REPORT.md) · [Testes](V08_TEST_REPORT.md).
 
 ## Homologações pendentes
 

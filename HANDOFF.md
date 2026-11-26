@@ -1,37 +1,33 @@
 # GeoGenViewer — handoff
 
-- **Versão consolidada:** `0.7.0` (`v0.7.0`)
+- **Versão consolidada:** `0.8.0` (`v0.8.0`)
 - **Data:** 26/11/2026
-- **Branch principal:** `main` (consolidada a partir de `feat/v0.7-revision-fabrication-analytics`, commits `3cfb1c9`, `5666059`, `b2a06a2` e `fa4f9a1`, base `4008b9f` / `v0.6.0`)
+- **Branch principal:** `main` (consolidada a partir de `feat/v0.8-knolling-component-catalog`, commits `1d5a3b5`, `15918ce` e `3cda0db`, base `93f8f74` / `v0.7.0`)
 - **Responsável pelas decisões:** Fernando Braga
 
-## Estado consolidado (V0.1–V0.7)
+## Estado consolidado (V0.1–V0.8)
 
-- **V0.1:** Visualizador WebGL local em `/viewer` com importação GLB autocontida, cubo de referência 100 mm, órbita/pan/zoom/enquadramento/reset e UI responsiva claro/escuro.
-- **V0.2–V0.3:** Seleção semântica individual e múltipla, árvore virtualizada (`Componentes`, `Camadas`, `Grupos`), visibilidade/isolamento, validação estrita GLB + JSON manifesto `1.0.0` com SHA-256 e contrato externo `exporter-contract/`.
-- **V0.4:** Motor de vista explodida (`radial`, `axial` na convenção CAD, `directional`, `hierarchical`), escopos e granularidades distintos, linhas de referência em lote único e pavilhão sintético.
-- **V0.5:** Workspaces (`Explorar`, `Explodir`, `Montagem`), câmeras perspectiva/ortográfica, cubo de orientação, até 4 viewports em um único contexto WebGL, filtros combináveis, Named Views, apresentação, PNG e timeline/editor de montagem determinística.
-- **V0.6:** Workspace Inspecionar, 3 planos de corte CAD reversíveis por região e cap condicional, picking e snapping com recorte, medições ponto a ponto/delta/coordenadas, captura técnica PNG e persistência isolada em `inspection-v1.schema.json`.
-- **V0.7:** Workspaces **Comparar** e **Quantitativos** em contexto WebGL único (`geogenviewer/src/lib/geogen/revisions/`): carregamento simultâneo de duas revisões, alinhamento por origem CAD ou ajuste manual, correspondência por IDs persistentes com resolução manual de ambiguidades, inspeção lado a lado / sobreposição / alternância em pose de repouso (transformações, metadados e malha), contagem por ocorrência, biblioteca de materiais, massas separadas por método (teórica, medida, estimada e slicer), custos por moeda e método, exportações CSV/JSON/PNG com verificação de hash e laboratório sintético `geogenviewer/public/demos/revision-lab/`.
+- **V0.1–V0.4:** Visualizador GLB local, seleção semântica, árvore virtualizada, manifesto CAD `1.0.0` (SHA-256), vista explodida (`radial`, `axial` CAD, `directional`, `hierarchical`) e linhas de referência.
+- **V0.5–V0.6:** Câmeras perspectiva/ortográfica, cubo de orientação, até 4 viewports em contexto WebGL único, filtros, Named Views, apresentação, timeline determinística, clipping em 3 eixos, snapping, medições e schema `inspection-v1.schema.json`.
+- **V0.7:** Workspaces **Comparar** e **Quantitativos** (`geogenviewer/src/lib/geogen/revisions/`): alinhamento de duas revisões, correspondência persistente com resolução manual de ambiguidades, diff em repouso, análise de fabricação com proveniência/cobertura e exportações CSV/JSON/PNG.
+- **V0.8:** Domínios de **Knolling**, **Catálogo**, **Callouts** e **Documentação** (`geogenviewer/src/lib/geogen/documentation/`):
+  - Knolling com 5 modos, planos XY/XZ/YZ, posições fixáveis com detecção de conflitos e restauração integral da pose ao sair.
+  - Catálogo com busca, filtros, agrupamento por tipo e variante, miniaturas em cache no renderer existente e seleção sincronizada com visualizador, quantitativos e comparação.
+  - Callouts vinculados às ocorrências, listas de peças, fichas A4/A3 e manual imprimível baseado em etapas autoradas (ilustrando até 20 etapas; exporta sequência completa em JSON), além de exportações PNG, CSV e JSON com compatibilidade preservada ao manifesto CAD `1.0.0`.
+  - Laboratório sintético `geogenviewer/public/demos/catalog-lab/` com duas revisões sintéticas.
 
-## Documentação e referências V0.7
+## Documentação e referências V0.8
 
-- [Guia de uso](V07_USER_GUIDE.md) · [Relatório de implementação e especificações](V07_IMPLEMENTATION_REPORT.md) · [Testes e capturas](V07_TEST_REPORT.md) · [Benchmarks](V07_PERFORMANCE_REPORT.md) · [Exemplos CSV e JSON](docs/v07/examples)
+- [Relatório de implementação](V08_IMPLEMENTATION_REPORT.md) · [Guia de uso](V08_USER_GUIDE.md) · [Testes e evidências](V08_TEST_REPORT.md) · [Desempenho](V08_PERFORMANCE_REPORT.md) · [Capturas](docs/v08/evidence/) · [Exemplos exportados](docs/v08/examples/) · [Manual em PDF](docs/v08/examples/manual-imprimivel.pdf)
 
 ## Verificações
 
-- `npm run lint`, `npm run typecheck`, `npm test` (45 testes unitários), `npm run build` e quatro suítes Playwright (`test:ui`, `test:v05`, `test:v06`, `test:v07`) em `geogenviewer/`.
-- A auditoria da V0.7 verificou seis resoluções com zero violações `axe` nos oito estados avaliados. Com 10.000 peças por revisão, a correspondência levou 6,7 ms e o diff geométrico/semântico 124,6 ms em Node; no Chrome + SwiftShader, o fluxo completo levou 4,08 s e a vista lado a lado registrou 20.000 draw calls (`docs/v07/evidence/`).
+- `npm run lint`, `npm run typecheck`, `npm test` (55 testes unitários), `npm run build` e cinco suítes Playwright (`test:ui`, `test:v05`, `test:v06`, `test:v07`, `test:v08`) em `geogenviewer/`.
+- A auditoria V0.8 verificou 6 resoluções sem overflow, um contexto WebGL e 0 violações `axe` nos 6 estados avaliados; confirmou cache de miniaturas, dimensões PNG A4/A3 e geração de PDF pelo navegador.
+- Benchmark V0.8: com 10.000 ocorrências sintéticas, disposição levou `30,9 ms` em CPU; no navegador, carga e disposição levaram `1,27 s` com `10.001` draw calls.
 
-## Limitações e homologações pendentes
+## Limitações, adiamentos e próximo marco (V0.9)
 
-- A comparação geométrica é aproximada e utiliza malhas tesselladas do GLB.
+- A orientação automática usa heurística de malha; o manual ilustra até 20 etapas (JSON exporta tudo); motor próprio de PDF e checklist de produção ficaram adiados.
+- A atualização do cabeçalho da home e o refinamento de UI ficaram reservados para a V0.9, junto com a investigação do custo de draw calls (`10.001`), atualização de poses e projeção de rótulos.
 - Seguem pendentes: homologação em **tablet físico**, execução do `GeoGenExporter` no **Rhino 8** real e validação com **modelo autorizado da Casa Gerassi** (nenhum arquivo privado versionado).
-## V0.8 — branch local de feature · 26/11/2026
-
-- Base `93f8f74`, tag `v0.7.0`. Branch `feat/v0.8-knolling-component-catalog`.
-- Domínios de knolling, catálogo, callouts e documentação em `geogenviewer/src/lib/geogen/documentation/`. O laboratório `catalog-lab` tem duas revisões sintéticas.
-- Os exports guardam configurações e referências no schema auxiliar V0.8. O catálogo consome quantitativos e fabricação da V0.7 e distingue revisão de ocorrência.
-- [Implementação](V08_IMPLEMENTATION_REPORT.md) · [Testes e evidências](V08_TEST_REPORT.md) · [Desempenho](V08_PERFORMANCE_REPORT.md) · [Guia](V08_USER_GUIDE.md).
-- Verificação local concluída com 55 testes unitários, lint, TypeScript, build e cinco suítes Playwright. A auditoria V0.8 passou nas seis resoluções com um contexto WebGL e zero violações axe nos seis estados. Exemplos e dados brutos ficam em `docs/v08/`.
-- A V0.9 concentra desempenho, robustez, acessibilidade e refinamento da interface, incluindo cabeçalho da home e cubo de navegação.
