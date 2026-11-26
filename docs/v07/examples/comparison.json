@@ -1,0 +1,374 @@
+{
+  "schemaVersion": "1.0.0",
+  "generatedAt": "2026-11-26T12:00:00.000Z",
+  "base": {
+    "projectId": "revision-lab",
+    "revisionId": "proto-01",
+    "prototypeId": "proto-01",
+    "sha256": "c6f69657bb56468032fdc35044a3e70b415d860c0e5f42ff007875580caa066e",
+    "geometryKind": "physicalModel",
+    "scaleDenominator": 50,
+    "sourceOrigin": [
+      1200000,
+      580000,
+      27000
+    ],
+    "sourceUnit": "mm",
+    "sourceUpAxis": "Z",
+    "metersPerSourceUnit": 0.001
+  },
+  "comparison": {
+    "projectId": "revision-lab",
+    "revisionId": "proto-02",
+    "prototypeId": "proto-02",
+    "sha256": "42dbdd4e16d129ba6fa7ed9ff91c1d19d0ff2c4772715fa278563f475ecf7fe8",
+    "geometryKind": "physicalModel",
+    "scaleDenominator": 50,
+    "sourceOrigin": [
+      1200.5,
+      580.25,
+      27
+    ],
+    "sourceUnit": "m",
+    "sourceUpAxis": "Z",
+    "metersPerSourceUnit": 1
+  },
+  "associated": false,
+  "toleranceM": 0.0001,
+  "alignment": {
+    "source": true,
+    "translationM": [
+      0,
+      0,
+      0
+    ],
+    "rotationDeg": [
+      0,
+      0,
+      0
+    ]
+  },
+  "manual": [],
+  "filter": null,
+  "differences": [
+    {
+      "baseId": "same",
+      "comparisonId": "same",
+      "method": "persistent",
+      "candidates": [],
+      "candidateCount": 0,
+      "confirmed": true,
+      "status": "unchanged",
+      "changes": [],
+      "shape": "identical",
+      "transformInconclusive": false
+    },
+    {
+      "baseId": "size",
+      "comparisonId": "size",
+      "method": "persistent",
+      "candidates": [],
+      "candidateCount": 0,
+      "confirmed": true,
+      "status": "modified",
+      "changes": [
+        "geometry",
+        "metadata",
+        "fabrication"
+      ],
+      "shape": "above-tolerance",
+      "transformInconclusive": false
+    },
+    {
+      "baseId": "moved",
+      "comparisonId": "moved",
+      "method": "persistent",
+      "candidates": [],
+      "candidateCount": 0,
+      "confirmed": true,
+      "status": "modified",
+      "changes": [
+        "position"
+      ],
+      "shape": "identical",
+      "transformInconclusive": false
+    },
+    {
+      "baseId": "rotated",
+      "comparisonId": "rotated",
+      "method": "persistent",
+      "candidates": [],
+      "candidateCount": 0,
+      "confirmed": true,
+      "status": "modified",
+      "changes": [
+        "rotation"
+      ],
+      "shape": "identical",
+      "transformInconclusive": false
+    },
+    {
+      "baseId": "material",
+      "comparisonId": "material",
+      "method": "persistent",
+      "candidates": [],
+      "candidateCount": 0,
+      "confirmed": true,
+      "status": "modified",
+      "changes": [
+        "material",
+        "fabrication"
+      ],
+      "shape": "identical",
+      "transformInconclusive": false
+    },
+    {
+      "baseId": "tolerance",
+      "comparisonId": "tolerance",
+      "method": "persistent",
+      "candidates": [],
+      "candidateCount": 0,
+      "confirmed": true,
+      "status": "modified",
+      "changes": [
+        "fabrication"
+      ],
+      "shape": "identical",
+      "transformInconclusive": false
+    },
+    {
+      "baseId": "category",
+      "comparisonId": "category",
+      "method": "persistent",
+      "candidates": [],
+      "candidateCount": 0,
+      "confirmed": true,
+      "status": "modified",
+      "changes": [
+        "category"
+      ],
+      "shape": "identical",
+      "transformInconclusive": false
+    },
+    {
+      "baseId": "metadata",
+      "comparisonId": "metadata",
+      "method": "persistent",
+      "candidates": [],
+      "candidateCount": 0,
+      "confirmed": true,
+      "status": "modified",
+      "changes": [
+        "metadata"
+      ],
+      "shape": "identical",
+      "transformInconclusive": false
+    },
+    {
+      "baseId": "layer",
+      "comparisonId": "layer",
+      "method": "persistent",
+      "candidates": [],
+      "candidateCount": 0,
+      "confirmed": true,
+      "status": "modified",
+      "changes": [
+        "layer"
+      ],
+      "shape": "identical",
+      "transformInconclusive": false
+    },
+    {
+      "baseId": "block-a",
+      "comparisonId": "block-a",
+      "method": "persistent",
+      "candidates": [],
+      "candidateCount": 0,
+      "confirmed": true,
+      "status": "unchanged",
+      "changes": [],
+      "shape": "identical",
+      "transformInconclusive": false
+    },
+    {
+      "baseId": "block-b",
+      "comparisonId": "block-b",
+      "method": "persistent",
+      "candidates": [],
+      "candidateCount": 0,
+      "confirmed": true,
+      "status": "unchanged",
+      "changes": [],
+      "shape": "identical",
+      "transformInconclusive": false
+    },
+    {
+      "baseId": "compound",
+      "comparisonId": "compound",
+      "method": "persistent",
+      "candidates": [],
+      "candidateCount": 0,
+      "confirmed": true,
+      "status": "unchanged",
+      "changes": [],
+      "shape": "identical",
+      "transformInconclusive": false
+    },
+    {
+      "baseId": "tess",
+      "comparisonId": "tess",
+      "method": "persistent",
+      "candidates": [],
+      "candidateCount": 0,
+      "confirmed": true,
+      "status": "unchanged",
+      "changes": [],
+      "shape": "mesh-different",
+      "transformInconclusive": false
+    },
+    {
+      "baseId": "open",
+      "comparisonId": "open",
+      "method": "persistent",
+      "candidates": [],
+      "candidateCount": 0,
+      "confirmed": true,
+      "status": "unchanged",
+      "changes": [],
+      "shape": "identical",
+      "transformInconclusive": false
+    },
+    {
+      "baseId": "scaled",
+      "comparisonId": "scaled",
+      "method": "persistent",
+      "candidates": [],
+      "candidateCount": 0,
+      "confirmed": true,
+      "status": "modified",
+      "changes": [
+        "scale"
+      ],
+      "shape": "identical",
+      "transformInconclusive": false
+    },
+    {
+      "baseId": "mirror",
+      "comparisonId": "mirror",
+      "method": "persistent",
+      "candidates": [],
+      "candidateCount": 0,
+      "confirmed": true,
+      "status": "modified",
+      "changes": [
+        "scale"
+      ],
+      "shape": "identical",
+      "transformInconclusive": false
+    },
+    {
+      "baseId": "assembly",
+      "comparisonId": "assembly",
+      "method": "persistent",
+      "candidates": [],
+      "candidateCount": 0,
+      "confirmed": true,
+      "status": "modified",
+      "changes": [
+        "assembly"
+      ],
+      "shape": "identical",
+      "transformInconclusive": false
+    },
+    {
+      "baseId": "old-id",
+      "comparisonId": "new-id",
+      "method": "persistent",
+      "candidates": [],
+      "candidateCount": 0,
+      "confirmed": true,
+      "status": "unchanged",
+      "changes": [],
+      "shape": "identical",
+      "transformInconclusive": false
+    },
+    {
+      "baseId": "repeat-a1",
+      "comparisonId": null,
+      "method": "ambiguous",
+      "candidates": [
+        "repeat-b1",
+        "repeat-b2"
+      ],
+      "candidateCount": 2,
+      "confirmed": false,
+      "status": "unresolved",
+      "changes": [],
+      "shape": null,
+      "transformInconclusive": false
+    },
+    {
+      "baseId": "repeat-a2",
+      "comparisonId": null,
+      "method": "ambiguous",
+      "candidates": [
+        "repeat-b1",
+        "repeat-b2"
+      ],
+      "candidateCount": 2,
+      "confirmed": false,
+      "status": "unresolved",
+      "changes": [],
+      "shape": null,
+      "transformInconclusive": false
+    },
+    {
+      "baseId": "removed",
+      "comparisonId": null,
+      "method": "unmatched",
+      "candidates": [],
+      "candidateCount": 0,
+      "confirmed": true,
+      "status": "removed",
+      "changes": [],
+      "shape": null,
+      "transformInconclusive": false
+    },
+    {
+      "baseId": null,
+      "comparisonId": "repeat-b1",
+      "method": "ambiguous",
+      "candidates": [],
+      "candidateCount": 0,
+      "confirmed": false,
+      "status": "unresolved",
+      "changes": [],
+      "shape": null,
+      "transformInconclusive": false
+    },
+    {
+      "baseId": null,
+      "comparisonId": "repeat-b2",
+      "method": "ambiguous",
+      "candidates": [],
+      "candidateCount": 0,
+      "confirmed": false,
+      "status": "unresolved",
+      "changes": [],
+      "shape": null,
+      "transformInconclusive": false
+    },
+    {
+      "baseId": null,
+      "comparisonId": "added",
+      "method": "unmatched",
+      "candidates": [],
+      "candidateCount": 0,
+      "confirmed": true,
+      "status": "added",
+      "changes": [],
+      "shape": null,
+      "transformInconclusive": false
+    }
+  ]
+}

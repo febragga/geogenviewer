@@ -1,0 +1,219 @@
+{
+  "a11y": {
+    "compare-light": [],
+    "compare-overlay": [],
+    "quantities-analytics": [],
+    "quantities-table": [],
+    "compare-dark-768": [],
+    "quantities-dark-768": [],
+    "compare-dark-390": [],
+    "quantities-dark-390": []
+  },
+  "dimensions": [
+    {
+      "size": [
+        1920,
+        1080
+      ],
+      "canvas": [
+        1360,
+        1036
+      ],
+      "canvasCount": 1,
+      "contexts": 1,
+      "overflow": 0
+    },
+    {
+      "size": [
+        1440,
+        900
+      ],
+      "canvas": [
+        950,
+        856
+      ],
+      "canvasCount": 1,
+      "contexts": 1,
+      "overflow": 0
+    },
+    {
+      "size": [
+        1280,
+        800
+      ],
+      "canvas": [
+        844,
+        756
+      ],
+      "canvasCount": 1,
+      "contexts": 1,
+      "overflow": 0
+    },
+    {
+      "size": [
+        1024,
+        768
+      ],
+      "canvas": [
+        669,
+        715
+      ],
+      "canvasCount": 1,
+      "contexts": 1,
+      "overflow": 0
+    },
+    {
+      "size": [
+        768,
+        1024
+      ],
+      "canvas": [
+        768,
+        548
+      ],
+      "canvasCount": 1,
+      "contexts": 1,
+      "overflow": 0,
+      "quantitiesOverflow": 0
+    },
+    {
+      "size": [
+        390,
+        844
+      ],
+      "canvas": [
+        390,
+        446
+      ],
+      "canvasCount": 1,
+      "contexts": 1,
+      "overflow": 0,
+      "quantitiesOverflow": 0
+    }
+  ],
+  "graphics": {
+    "labSide": {
+      "FPS em atividade": "—",
+      "Draw calls": "44",
+      "Triângulos": "544",
+      "Geometrias": "10",
+      "Materiais": "6",
+      "Componentes": "21",
+      "Carga do modelo": "48 ms"
+    },
+    "labOverlay": {
+      "FPS em atividade": "—",
+      "Draw calls": "66",
+      "Triângulos": "834",
+      "Geometrias": "10",
+      "Materiais": "15",
+      "Componentes": "21",
+      "Carga do modelo": "48 ms"
+    }
+  },
+  "issues": [],
+  "exports": [
+    {
+      "file": "comparison.json",
+      "bytes": 8282
+    },
+    {
+      "file": "diferencas.csv",
+      "bytes": 7771
+    },
+    {
+      "file": "comparacao.png",
+      "bytes": 103042
+    },
+    {
+      "file": "comparacao-com-corte.png",
+      "bytes": 90579
+    },
+    {
+      "file": "fabrication-analysis.json",
+      "bytes": 29753
+    },
+    {
+      "file": "quantitativos.csv",
+      "bytes": 12051
+    }
+  ],
+  "graphicsScale": [
+    {
+      "count": 100,
+      "wallMs": 551,
+      "contexts": 1,
+      "before": {
+        "FPS em atividade": "—",
+        "Draw calls": "200",
+        "Triângulos": "2400",
+        "Geometrias": "2",
+        "Materiais": "2",
+        "Componentes": "100",
+        "Carga do modelo": "29 ms"
+      },
+      "after": {
+        "FPS em atividade": "—",
+        "Draw calls": "101",
+        "Triângulos": "1200",
+        "Geometrias": "2",
+        "Materiais": "2",
+        "Componentes": "100",
+        "Carga do modelo": "29 ms"
+      },
+      "tableFilterWallMs": 118
+    },
+    {
+      "count": 1000,
+      "wallMs": 725,
+      "contexts": 1,
+      "before": {
+        "FPS em atividade": "—",
+        "Draw calls": "2000",
+        "Triângulos": "24000",
+        "Geometrias": "2",
+        "Materiais": "2",
+        "Componentes": "1000",
+        "Carga do modelo": "42 ms"
+      },
+      "after": {
+        "FPS em atividade": "—",
+        "Draw calls": "1001",
+        "Triângulos": "12000",
+        "Geometrias": "2",
+        "Materiais": "2",
+        "Componentes": "1000",
+        "Carga do modelo": "42 ms"
+      },
+      "tableFilterWallMs": 159
+    },
+    {
+      "count": 10000,
+      "wallMs": 4082,
+      "contexts": 1,
+      "before": {
+        "FPS em atividade": "—",
+        "Draw calls": "20000",
+        "Triângulos": "240000",
+        "Geometrias": "2",
+        "Materiais": "2",
+        "Componentes": "10000",
+        "Carga do modelo": "214 ms"
+      },
+      "after": {
+        "FPS em atividade": "—",
+        "Draw calls": "10001",
+        "Triângulos": "120000",
+        "Geometrias": "2",
+        "Materiais": "2",
+        "Componentes": "10000",
+        "Carga do modelo": "214 ms"
+      },
+      "tableFilterWallMs": 170
+    }
+  ],
+  "clipping": {
+    "coloredPixels": 236145,
+    "clippedPixels": 133146
+  }
+}

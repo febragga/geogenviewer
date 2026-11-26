@@ -24,6 +24,11 @@
 - `npm run lint`, `npm run typecheck`, `npm test` (33 testes), `npm run build` e as suítes Playwright `test:ui`, `test:v05` e `test:v06` em `geogenviewer/`.
 - [Relatório de testes e capturas V0.6](V06_TEST_REPORT.md) · [Desempenho V0.6](V06_PERFORMANCE_REPORT.md) · [Guia V0.6](V06_USER_GUIDE.md)
 
-## Próximo marco (V0.7)
+## V0.7 — branch local de feature · 26/11/2026
 
-Comparação de revisões com correspondência de IDs e quantitativos com proveniência, além das homologações pendentes acima quando disponíveis.
+- Branch `feat/v0.7-revision-fabrication-analytics` criada a partir de `4008b9f`, tag `v0.6.0`. A branch principal continua na V0.6.
+- Implementação em `geogenviewer/src/lib/geogen/revisions/` e nos workspaces Comparar e Quantitativos. A importação segue local. Os documentos `comparison.json` e `fabrication-analysis.json` restauram configurações vinculadas aos hashes dos GLBs abertos.
+- Fixture `geogenviewer/public/demos/revision-lab/`, com fontes e dados sintéticos, referências esperadas e inspeções válidas/inválidas. O laboratório pode ser carregado na interface.
+- [Relatório de implementação](V07_IMPLEMENTATION_REPORT.md) · [Testes e evidências](V07_TEST_REPORT.md) · [Desempenho](V07_PERFORMANCE_REPORT.md) · [Guia](V07_USER_GUIDE.md).
+- Verificação local concluída com 45 testes unitários, ESLint, TypeScript, build e quatro suítes Playwright. A auditoria V0.7 registrou zero violações axe nos oito estados avaliados. Os dados e capturas em `docs/v07/evidence/` incluem benchmarks com 100, 1.000 e 10.000 peças por revisão.
+- Próxima ação de produto: revisar a branch e validar o fluxo com dados autorizados e tablet físico. O próximo marco planejado é V0.8, com knolling, catálogo e documentação técnica.
