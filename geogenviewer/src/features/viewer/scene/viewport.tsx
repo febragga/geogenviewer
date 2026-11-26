@@ -33,6 +33,7 @@ import {
 } from "../../../lib/geogen/explode/controller";
 import type { LoadedScenePackage } from "../../../lib/geogen/importers/package";
 import type { ExplodeTransitionRequest } from "../state/viewer-store";
+import { ComparisonScene, type CompareSceneProps } from "./comparison-scene";
 
 export type CameraCommand = {
   kind: "fit" | "reset" | "closer" | "farther";
@@ -93,6 +94,7 @@ function SceneController({
   onSelect,
   onHover,
   onContextLost,
+  acceptCommand,
 }: {
   scenePackage: LoadedScenePackage;
   controller: ExplodedViewController;
@@ -111,6 +113,7 @@ function SceneController({
   onSelect: (id: string | null, options: { multi: boolean }) => void;
   onHover: (id: string | null) => void;
   onContextLost: () => void;
+  acceptCommand: (command: CameraCommand) => boolean;
 }) {
   const { gl, scene: rootScene, invalidate } = useThree();
   const sphere = useMemo(() => controller.restSceneBounds.getBoundingSphere(new Sphere()), [controller]);
@@ -128,7 +131,7 @@ function SceneController({
   const workspace = useViewerStore((state) => state.workspace);
   const display = usePresentation((state) => state.display);
   const lastAppliedAssembly = useRef<{ time: number; timeline: ReturnType<typeof useAssembly.getState>["timeline"]; ghost: boolean; solo: number | null } | null>(null);
-  const appliedCommand = useRef<CameraCommand | null>(null);
+
 
   const callbacksRef = useRef({
     onSelect,
@@ -237,12 +240,11 @@ function SceneController({
   }, [cameras, mode]);
 
   useEffect(() => {
-    if (appliedCommand.current === command) return;
-    appliedCommand.current = command;
+    if (!acceptCommand(command)) return;
     const bounds = fitBounds(scenePackage, controller, visibilityRef.current.hiddenIds, visibilityRef.current.isolatedIds, command);
     const clipped = command.kind === "fit" ? clippedBounds(bounds, activeClipping(usePresentation.getState().active)) : bounds;
     if (!clipped.isEmpty()) cameras.current?.command(command.kind, clipped.getBoundingSphere(new Sphere()));
-  }, [cameras, command, controller, scenePackage]);
+  }, [acceptCommand, cameras, command, controller, scenePackage]);
 
   const syncReferenceLines = useCallback(
     (
@@ -622,6 +624,7 @@ export default function Viewport({
   onHover,
   onContextLost,
   fallback,
+  comparison,
 }: {
   scenePackage: LoadedScenePackage;
   command: CameraCommand;
@@ -640,11 +643,19 @@ export default function Viewport({
   onHover: (id: string | null) => void;
   onContextLost: () => void;
   fallback: ReactNode;
+  comparison?: CompareSceneProps;
 }) {
   const controller = useMemo(
     () => new ExplodedViewController(scenePackage),
     [scenePackage]
   );
+
+  const handledCommand = useRef<CameraCommand | null>(null);
+  const acceptCommand = useCallback((next: CameraCommand) => {
+    if (handledCommand.current === next) return false;
+    handledCommand.current = next;
+    return true;
+  }, []);
 
   const settings = usePresentation((state) => state.display);
   const { sphere, origin } = useMemo(() => {
@@ -670,6 +681,7 @@ export default function Viewport({
         role="region"
         aria-label="Modelo tridimensional"
       >
+        {comparison ? <ComparisonScene {...comparison} command={command} acceptCommand={acceptCommand} mode={mode} onContextLost={onContextLost} /> : <>
         <hemisphereLight intensity={2.2 * settings.light} groundColor="#788698" />
         <directionalLight position={[sphere.center.x + span, sphere.center.y + span, sphere.center.z + span]} intensity={2.6 * settings.light}
           castShadow={settings.shadows} shadow-mapSize={[1024, 1024]}
@@ -691,6 +703,7 @@ export default function Viewport({
         </mesh>}
         <SceneController
           scenePackage={scenePackage}
+          acceptCommand={acceptCommand}
           controller={controller}
           command={command}
           mode={mode}
@@ -708,6 +721,7 @@ export default function Viewport({
           onHover={onHover}
           onContextLost={onContextLost}
         />
+        </>}
       </Canvas>
     </RenderBoundary>
   );

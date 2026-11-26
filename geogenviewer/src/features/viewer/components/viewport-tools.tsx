@@ -13,8 +13,8 @@ import { NavigationCube } from "./navigation-cube";
 import { ViewOptions } from "./view-options";
 import { ViewerPopover } from "./viewer-popover";
 
-export function ViewportTools({ loaded, loadTime, onFit, onReset }: {
-  loaded: LoadedScenePackage; loadTime: number; onFit: (selected?: string[]) => void; onReset: () => void;
+export function ViewportTools({ loaded, loadTime, onFit, onReset, comparison = false }: {
+  loaded: LoadedScenePackage; loadTime: number; onFit: (selected?: string[]) => void; onReset: () => void; comparison?: boolean;
 }) {
   const layout = usePresentation((state) => state.layout);
   const active = usePresentation((state) => state.active);
@@ -23,7 +23,7 @@ export function ViewportTools({ loaded, loadTime, onFit, onReset }: {
   const regions = viewRegions(layout, maximized, 100, 100);
   return (
     <>
-      {layout !== "single" && <div className="gg-view-regions" aria-label="Viewports">
+      {!comparison && layout !== "single" && <div className="gg-view-regions" aria-label="Viewports">
         {regions.map(({ slot, x, y, width, height }) => (
           <div key={slot} className={`gg-view-region ${slot === active ? "gg-view-region--active" : ""}`}
             data-lower={y > 0} data-full-height={height === 100}
@@ -35,18 +35,18 @@ export function ViewportTools({ loaded, loadTime, onFit, onReset }: {
         ))}
       </div>}
       <div className="gg-v05-tools" role="group" aria-label="Ferramentas da viewport">
-        <ViewerPopover label={v05.views} icon={<Layers2 size={15} />}><ViewOptions loaded={loaded} /></ViewerPopover>
+        <ViewerPopover label={v05.views} icon={<Layers2 size={15} />}><ViewOptions loaded={loaded} comparison={comparison} /></ViewerPopover>
         <ViewerPopover label={v05.filters} icon={<Filter size={15} />}><FilterOptions loaded={loaded} onFit={onFit} /></ViewerPopover>
         <ViewerPopover label={v05.display} title={v05.settings} icon={<SlidersHorizontal size={15} />}>
-          <DisplayOptions count={loaded.sceneGraph.componentOrder.length} loadTime={loadTime} onReset={onReset} />
+          <DisplayOptions count={loaded.sceneGraph.componentOrder.length} loadTime={loadTime} onReset={onReset} comparison={comparison} />
         </ViewerPopover>
-        <ViewerPopover label={v06.inspect} icon={<ScanLine size={15} />}>
+        {!comparison && <ViewerPopover label={v06.inspect} icon={<ScanLine size={15} />}>
           <InspectionTools loaded={loaded} onFit={onFit} />
-        </ViewerPopover>
-        <span className="gg-projection-indicator">{projection === "perspective" ? v05.perspective : v05.orthographic}</span>
+        </ViewerPopover>}
+        {!comparison && <span className="gg-projection-indicator">{projection === "perspective" ? v05.perspective : v05.orthographic}</span>}
       </div>
       <NavigationCube />
-      <InspectionHint />
+      {!comparison && <InspectionHint />}
     </>
   );
 }
