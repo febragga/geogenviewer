@@ -16,6 +16,7 @@ import { importGlb, type ImportedModel } from "./glb.ts";
 
 export interface LoadedScenePackage {
   manifest?: ManifestV1;
+  binarySha256?: string | null;
   model: ImportedModel;
   sceneGraph: ViewerSceneGraph;
   objectByComponentId: Map<string, Object3D>;
@@ -110,6 +111,10 @@ export async function sha256Hex(bytes: ArrayBuffer): Promise<string> {
   return Array.from(view, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+async function optionalBinaryHash(bytes: ArrayBuffer) {
+  try { return await sha256Hex(bytes); } catch { return null; }
+}
+
 function buildHierarchyMaps(
   layers: ManifestV1["layers"],
   groups: ManifestV1["groups"]
@@ -199,6 +204,7 @@ export async function importGlbBasicPackage(
 ): Promise<LoadedScenePackage> {
   const model = await importGlb(glbBytes);
   try {
+    const binarySha256 = await optionalBinaryHash(glbBytes);
     const warnings: string[] = [];
     const components: Record<string, ComponentRecord> = {};
     const componentOrder: string[] = [];
@@ -434,6 +440,7 @@ export async function importGlbBasicPackage(
 
     return {
       model,
+      binarySha256,
       sceneGraph,
       objectByComponentId,
       resolveComponentId(object) {
@@ -462,6 +469,7 @@ export async function importGlbWithManifestPackage(
   const warnings: string[] = [];
 
   let sha256Verified: boolean | null = null;
+  let binarySha256: string | null = null;
   if (manifest.geometry.sha256) {
     const actual = await sha256Hex(glbBytes);
     if (actual.toLowerCase() !== manifest.geometry.sha256.toLowerCase()) {
@@ -471,7 +479,9 @@ export async function importGlbWithManifestPackage(
       );
     }
     sha256Verified = true;
+    binarySha256 = actual;
   } else {
+    binarySha256 = await optionalBinaryHash(glbBytes);
     warnings.push(
       "O manifesto não declara geometry.sha256; a integridade binária do GLB não foi verificada."
     );
@@ -712,6 +722,7 @@ export async function importGlbWithManifestPackage(
 
     return {
       manifest,
+      binarySha256,
       model,
       sceneGraph,
       objectByComponentId,

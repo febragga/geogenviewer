@@ -1,0 +1,13 @@
+{
+  "synthetic": true,
+  "coordinateSystem": "RH_Y_UP",
+  "unit": "m",
+  "cubeSizeM": 0.1,
+  "cubeFaceDiagonalM": 0.14142135623730953,
+  "cubeSpatialDiagonalM": 0.17320508075688773,
+  "maleWidthM": 0.02,
+  "openingWidthM": 0.02026,
+  "sideClearanceM": 0.00013,
+  "toleranceM": 0.000002,
+  "sha256": "34e9dac0c64228543fc771abdf71cba08d0cd60a1b6800de196bfb5b87f44154"
+}

@@ -1,0 +1,266 @@
+{
+  "schemaVersion": "1.0.0",
+  "model": {
+    "projectId": "inspection-lab",
+    "revisionId": "lab-r1",
+    "fileName": "inspection-lab.glb",
+    "bytes": 43600,
+    "sha256": "34e9dac0c64228543fc771abdf71cba08d0cd60a1b6800de196bfb5b87f44154"
+  },
+  "sections": {
+    "shared": true,
+    "views": [
+      {
+        "planes": [
+          {
+            "id": "X",
+            "axis": "X",
+            "name": "Plano X",
+            "enabled": false,
+            "positionM": 0.05,
+            "flipped": false,
+            "gizmo": true,
+            "gizmoOpacity": 0.65
+          },
+          {
+            "id": "Y",
+            "axis": "Y",
+            "name": "Plano Y",
+            "enabled": false,
+            "positionM": 0.05,
+            "flipped": false,
+            "gizmo": true,
+            "gizmoOpacity": 0.65
+          },
+          {
+            "id": "Z",
+            "axis": "Z",
+            "name": "Plano Z",
+            "enabled": false,
+            "positionM": 0.05,
+            "flipped": false,
+            "gizmo": true,
+            "gizmoOpacity": 0.65
+          }
+        ],
+        "mode": "outline",
+        "fill": true,
+        "fillColor": "#b6c9d5",
+        "outlineColor": "#466a82",
+        "opacity": 1,
+        "lineWidth": 1.5
+      },
+      {
+        "planes": [
+          {
+            "id": "X",
+            "axis": "X",
+            "name": "Plano X",
+            "enabled": false,
+            "positionM": 0.05,
+            "flipped": false,
+            "gizmo": true,
+            "gizmoOpacity": 0.65
+          },
+          {
+            "id": "Y",
+            "axis": "Y",
+            "name": "Plano Y",
+            "enabled": false,
+            "positionM": 0.05,
+            "flipped": false,
+            "gizmo": true,
+            "gizmoOpacity": 0.65
+          },
+          {
+            "id": "Z",
+            "axis": "Z",
+            "name": "Plano Z",
+            "enabled": false,
+            "positionM": 0.05,
+            "flipped": false,
+            "gizmo": true,
+            "gizmoOpacity": 0.65
+          }
+        ],
+        "mode": "outline",
+        "fill": true,
+        "fillColor": "#b6c9d5",
+        "outlineColor": "#466a82",
+        "opacity": 1,
+        "lineWidth": 1.5
+      },
+      {
+        "planes": [
+          {
+            "id": "X",
+            "axis": "X",
+            "name": "Plano X",
+            "enabled": false,
+            "positionM": 0.05,
+            "flipped": false,
+            "gizmo": true,
+            "gizmoOpacity": 0.65
+          },
+          {
+            "id": "Y",
+            "axis": "Y",
+            "name": "Plano Y",
+            "enabled": false,
+            "positionM": 0.05,
+            "flipped": false,
+            "gizmo": true,
+            "gizmoOpacity": 0.65
+          },
+          {
+            "id": "Z",
+            "axis": "Z",
+            "name": "Plano Z",
+            "enabled": false,
+            "positionM": 0.05,
+            "flipped": false,
+            "gizmo": true,
+            "gizmoOpacity": 0.65
+          }
+        ],
+        "mode": "outline",
+        "fill": true,
+        "fillColor": "#b6c9d5",
+        "outlineColor": "#466a82",
+        "opacity": 1,
+        "lineWidth": 1.5
+      },
+      {
+        "planes": [
+          {
+            "id": "X",
+            "axis": "X",
+            "name": "Plano X",
+            "enabled": false,
+            "positionM": 0.05,
+            "flipped": false,
+            "gizmo": true,
+            "gizmoOpacity": 0.65
+          },
+          {
+            "id": "Y",
+            "axis": "Y",
+            "name": "Plano Y",
+            "enabled": false,
+            "positionM": 0.05,
+            "flipped": false,
+            "gizmo": true,
+            "gizmoOpacity": 0.65
+          },
+          {
+            "id": "Z",
+            "axis": "Z",
+            "name": "Plano Z",
+            "enabled": false,
+            "positionM": 0.05,
+            "flipped": false,
+            "gizmo": true,
+            "gizmoOpacity": 0.65
+          }
+        ],
+        "mode": "outline",
+        "fill": true,
+        "fillColor": "#b6c9d5",
+        "outlineColor": "#466a82",
+        "opacity": 1,
+        "lineWidth": 1.5
+      }
+    ]
+  },
+  "snap": {
+    "modes": [
+      "surface",
+      "vertex",
+      "edge",
+      "midpoint"
+    ],
+    "pixels": 12
+  },
+  "capture": {
+    "width": 1920,
+    "background": "white",
+    "color": "#f1f5f9",
+    "measurements": true,
+    "identifiers": false,
+    "gizmos": false,
+    "grid": false,
+    "axes": false,
+    "selection": false,
+    "scale": true
+  },
+  "measurements": [
+    {
+      "id": "cubo-lado",
+      "name": "Lado nominal do cubo",
+      "kind": "distance",
+      "pose": "rest",
+      "valueM": 0.1,
+      "anchors": [
+        {
+          "elementId": "cubo-100",
+          "localM": [
+            -0.05,
+            0.05,
+            0.05
+          ],
+          "nodePath": [],
+          "instanceId": null,
+          "snap": "vertex"
+        },
+        {
+          "elementId": "cubo-100",
+          "localM": [
+            0.05,
+            0.05,
+            0.05
+          ],
+          "nodePath": [],
+          "instanceId": null,
+          "snap": "vertex"
+        }
+      ],
+      "visible": true,
+      "provenance": "mesh",
+      "capturedIn": "inspect"
+    },
+    {
+      "id": "folga-x",
+      "name": "Folga nominal de referência",
+      "kind": "distance",
+      "pose": "rest",
+      "valueM": 0.00013,
+      "anchors": [
+        {
+          "elementId": "encaixe-macho",
+          "localM": [
+            0.01,
+            0.01,
+            0.024
+          ],
+          "nodePath": [],
+          "instanceId": null,
+          "snap": "surface"
+        },
+        {
+          "elementId": "encaixe-femea",
+          "localM": [
+            0.01013,
+            0.01,
+            0.054
+          ],
+          "nodePath": [],
+          "instanceId": null,
+          "snap": "surface"
+        }
+      ],
+      "visible": true,
+      "provenance": "mesh",
+      "capturedIn": "inspect"
+    }
+  ]
+}

@@ -1,0 +1,377 @@
+{
+  "schemaVersion": "1.0.0",
+  "project": {
+    "id": "inspection-lab",
+    "title": "Laboratório sintético de inspeção",
+    "revisionId": "lab-r1",
+    "geometryKind": "physicalModel",
+    "scaleDenominator": 50,
+    "displayUnit": "mm",
+    "description": "Fixture sintética de inspeção. Folga lateral nominal de 0,13 mm entre encaixes."
+  },
+  "source": {
+    "application": "GeoGenViewer Synthetic Generator",
+    "sourceUnit": "mm",
+    "sourceUpAxis": "Z",
+    "sourceOrigin": [
+      1200000,
+      580000,
+      27000
+    ],
+    "metersPerSourceUnit": 0.001
+  },
+  "geometry": {
+    "file": "inspection-lab.glb",
+    "format": "glb",
+    "coordinateSystem": "RH_Y_UP",
+    "unit": "m",
+    "nodeMatchStrategy": "extras",
+    "sha256": "34e9dac0c64228543fc771abdf71cba08d0cd60a1b6800de196bfb5b87f44154"
+  },
+  "layers": [
+    {
+      "id": "calibracao",
+      "name": "Calibração",
+      "parentId": null,
+      "fullPath": "Calibração",
+      "visible": true,
+      "colorHex": "#58809c"
+    },
+    {
+      "id": "referencias",
+      "name": "Referências",
+      "parentId": "calibracao",
+      "fullPath": "Calibração::Referências",
+      "visible": true,
+      "colorHex": "#6dabc0"
+    },
+    {
+      "id": "estrutura",
+      "name": "Estrutura",
+      "parentId": null,
+      "fullPath": "Estrutura",
+      "visible": true,
+      "colorHex": "#b38c67"
+    },
+    {
+      "id": "conexoes",
+      "name": "Conexões",
+      "parentId": "estrutura",
+      "fullPath": "Estrutura::Conexões",
+      "visible": true,
+      "colorHex": "#557287"
+    }
+  ],
+  "groups": [
+    {
+      "id": "medicao",
+      "name": "Medição",
+      "parentId": null
+    },
+    {
+      "id": "montagem",
+      "name": "Montagem sintética",
+      "parentId": null
+    }
+  ],
+  "materials": [
+    {
+      "id": "mat-0",
+      "name": "Azul de referência"
+    },
+    {
+      "id": "mat-1",
+      "name": "Madeira sintética"
+    },
+    {
+      "id": "mat-2",
+      "name": "Metal sintético"
+    },
+    {
+      "id": "mat-3",
+      "name": "Peça de teste"
+    }
+  ],
+  "elements": [
+    {
+      "id": "cubo-100",
+      "name": "Cubo de 100 mm",
+      "category": "other",
+      "layerId": "referencias",
+      "groupIds": [
+        "medicao"
+      ],
+      "materialId": "mat-0",
+      "geometryType": "mesh",
+      "isClosed": true,
+      "isValid": true,
+      "boundingBoxM": {
+        "min": [
+          -0.37,
+          0,
+          0.13
+        ],
+        "max": [
+          -0.27,
+          0.1,
+          0.22999999999999998
+        ],
+        "source": "authored"
+      }
+    },
+    {
+      "id": "prisma",
+      "name": "Prisma assimétrico",
+      "category": "other",
+      "layerId": "referencias",
+      "groupIds": [
+        "medicao"
+      ],
+      "materialId": "mat-3",
+      "geometryType": "mesh",
+      "isClosed": true,
+      "isValid": true
+    },
+    {
+      "id": "viga",
+      "name": "Viga",
+      "category": "beam",
+      "layerId": "estrutura",
+      "groupIds": [
+        "montagem"
+      ],
+      "materialId": "mat-1",
+      "geometryType": "mesh",
+      "isClosed": true,
+      "isValid": true
+    },
+    {
+      "id": "pilar",
+      "name": "Pilar",
+      "category": "column",
+      "layerId": "estrutura",
+      "groupIds": [
+        "montagem"
+      ],
+      "materialId": "mat-1",
+      "geometryType": "mesh",
+      "isClosed": true,
+      "isValid": true
+    },
+    {
+      "id": "laje",
+      "name": "Laje",
+      "category": "slab",
+      "layerId": "estrutura",
+      "groupIds": [
+        "montagem"
+      ],
+      "materialId": "mat-1",
+      "geometryType": "mesh",
+      "isClosed": true,
+      "isValid": true
+    },
+    {
+      "id": "cilindro",
+      "name": "Cilindro",
+      "category": "other",
+      "layerId": "referencias",
+      "groupIds": [
+        "medicao"
+      ],
+      "materialId": "mat-2",
+      "geometryType": "mesh",
+      "isClosed": true,
+      "isValid": true
+    },
+    {
+      "id": "furo",
+      "name": "Furo passante",
+      "category": "other",
+      "layerId": "referencias",
+      "groupIds": [
+        "medicao"
+      ],
+      "materialId": "mat-2",
+      "geometryType": "mesh",
+      "isClosed": true,
+      "isValid": true
+    },
+    {
+      "id": "cavidade",
+      "name": "Peça com cavidade interna",
+      "category": "other",
+      "layerId": "referencias",
+      "groupIds": [
+        "medicao"
+      ],
+      "materialId": "mat-3",
+      "geometryType": "mesh",
+      "isClosed": true,
+      "isValid": true
+    },
+    {
+      "id": "encaixe-femea",
+      "name": "Conector fêmea",
+      "category": "connector",
+      "layerId": "conexoes",
+      "groupIds": [
+        "medicao",
+        "montagem"
+      ],
+      "materialId": "mat-2",
+      "geometryType": "mesh",
+      "isClosed": true,
+      "isValid": true
+    },
+    {
+      "id": "encaixe-macho",
+      "name": "Conector macho",
+      "category": "connector",
+      "layerId": "conexoes",
+      "groupIds": [
+        "medicao",
+        "montagem"
+      ],
+      "materialId": "mat-3",
+      "geometryType": "mesh",
+      "isClosed": true,
+      "isValid": true
+    },
+    {
+      "id": "pino",
+      "name": "Pino cilíndrico",
+      "category": "connector",
+      "layerId": "conexoes",
+      "groupIds": [
+        "montagem"
+      ],
+      "materialId": "mat-2",
+      "geometryType": "mesh",
+      "isClosed": true,
+      "isValid": true
+    },
+    {
+      "id": "rebaixo",
+      "name": "Prisma com rebaixo lateral",
+      "category": "other",
+      "layerId": "referencias",
+      "groupIds": [
+        "medicao"
+      ],
+      "materialId": "mat-3",
+      "geometryType": "mesh",
+      "isClosed": true,
+      "isValid": true
+    },
+    {
+      "id": "composto",
+      "name": "Conjunto composto",
+      "category": "other",
+      "layerId": "referencias",
+      "groupIds": [
+        "medicao"
+      ],
+      "materialId": "mat-1",
+      "geometryType": "composite",
+      "isClosed": true,
+      "isValid": true
+    },
+    {
+      "id": "aberta",
+      "name": "Malha aberta",
+      "category": "other",
+      "layerId": "referencias",
+      "groupIds": [
+        "medicao"
+      ],
+      "materialId": "mat-0",
+      "geometryType": "mesh",
+      "isClosed": false,
+      "isValid": true
+    },
+    {
+      "id": "bloco-1",
+      "name": "Bloco instanciado",
+      "category": "other",
+      "layerId": "referencias",
+      "groupIds": [
+        "medicao"
+      ],
+      "materialId": "mat-0",
+      "geometryType": "blockInstance",
+      "isClosed": true,
+      "isValid": true,
+      "blockDefinitionId": "bloco-ref"
+    },
+    {
+      "id": "bloco-2",
+      "name": "Bloco rotacionado",
+      "category": "other",
+      "layerId": "referencias",
+      "groupIds": [
+        "medicao"
+      ],
+      "materialId": "mat-0",
+      "geometryType": "blockInstance",
+      "isClosed": true,
+      "isValid": true,
+      "blockDefinitionId": "bloco-ref"
+    },
+    {
+      "id": "bloco-3",
+      "name": "Bloco em escala não uniforme",
+      "category": "other",
+      "layerId": "referencias",
+      "groupIds": [
+        "medicao"
+      ],
+      "materialId": "mat-0",
+      "geometryType": "blockInstance",
+      "isClosed": true,
+      "isValid": true,
+      "blockDefinitionId": "bloco-ref"
+    }
+  ],
+  "blocks": [
+    {
+      "id": "bloco-ref",
+      "name": "Bloco de referência"
+    }
+  ],
+  "assembly": {
+    "steps": [
+      {
+        "id": "pilares",
+        "title": "Inserir o pilar",
+        "elementIds": [
+          "pilar"
+        ],
+        "dependsOn": [],
+        "durationSeconds": 1,
+        "insertionOffsetM": [
+          0,
+          0.08,
+          0
+        ]
+      },
+      {
+        "id": "superior",
+        "title": "Inserir viga e laje",
+        "elementIds": [
+          "viga",
+          "laje"
+        ],
+        "dependsOn": [
+          "pilares"
+        ],
+        "durationSeconds": 2,
+        "insertionOffsetM": [
+          0,
+          0.12,
+          0
+        ]
+      }
+    ]
+  }
+}
