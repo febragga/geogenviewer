@@ -1,3 +1,4 @@
+import { componentLabel } from "../../../lib/geogen/domain/component-identity";
 import {
   Box3, BufferGeometry, DoubleSide, Float32BufferAttribute, Group, Matrix4, Mesh, MeshBasicMaterial,
   OrthographicCamera, Vector3, type Camera, type InstancedMesh, type Intersection, type Plane, type Scene, type WebGLRenderer,
@@ -285,7 +286,7 @@ export class InspectionScene {
         const world = retained.getCenter(new Vector3());
         if (!pointSurvives(world, planes)) continue;
         const point = projectPoint(world, camera, width, height);
-        if (point) marks.push({ start: point, label: id, kind: "id" });
+        if (point) marks.push({ start: point, label: componentLabel(this.model.sceneGraph.components[id], id), kind: "id" });
       }
     }
     return marks;

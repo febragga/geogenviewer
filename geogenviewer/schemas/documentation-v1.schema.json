@@ -64,6 +64,8 @@
             },
             "orientation": {
               "enum": [
+                "largestFace",
+                "principalAxis",
                 "preserve",
                 "world",
                 "quarter",
@@ -101,6 +103,11 @@
             "spacingM": {
               "type": "number",
               "minimum": 0
+            },
+            "stepTitles": {
+              "type": "object",
+              "maxProperties": 10000,
+              "additionalProperties": { "type": "string", "maxLength": 160 }
             },
             "groupSpacingM": {
               "type": "number",

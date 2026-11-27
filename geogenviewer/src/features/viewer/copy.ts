@@ -115,6 +115,9 @@ export const copy = {
     "As posições na cena estão deslocadas pela vista explodida; IDs, dimensões e propriedades CAD continuam representando a peça original.",
   propBoundsNote:
     "Caixa envolvente aproximada da malha em metros; não substitui dimensões CAD.",
+  propManifestName: "Nome no manifesto",
+  propCadName: "Nome original CAD",
+  propGlbName: "Nome no GLB",
   propName: "Nome",
   propId: "ID do elemento",
   propSourceId: "ID origem (Rhino)",

@@ -1,16 +1,18 @@
 import { Box3, Matrix4, Quaternion, Vector3 } from "three";
+import { orientForKnolling } from "./knolling-orientation.ts";
 import { catalogGroup, compareCatalog, type CatalogGroup, type CatalogItem, type CatalogSort } from "./catalog.ts";
 import type { Occurrence, Triple } from "../revisions/revision.ts";
 
 export type PlaneName = "XY" | "XZ" | "YZ";
 export type LayoutMode = "grid" | "grouped" | "shelf" | "types" | "assembly";
-export type Orientation = "preserve" | "world" | "quarter" | "longest" | "manual";
+export type Orientation = "preserve" | "world" | "quarter" | "longest" | "manual" | "largestFace" | "principalAxis";
 export type PlacementOverride = { rotation: number; fixed: [number, number] | null };
 export interface KnollingSettings {
   plane: PlaneName; mode: LayoutMode; orientation: Orientation; group: CatalogGroup; sort: CatalogSort;
   spacingM: number; groupSpacingM: number; widthM: number; marginM: number; columns: number;
   alignment: "start" | "center" | "end"; direction: "forward" | "reverse";
   overrides: Record<string, PlacementOverride>;
+  stepTitles?: Record<string, string>;
 }
 
 export function defaultLayout(span: number): KnollingSettings {
@@ -72,6 +74,9 @@ function prepared(item: CatalogItem, config: KnollingSettings, u: Vector3, v: Ve
     const vectors = [worldX.clone().multiplyScalar(size.x), new Vector3(0, size.y, 0), worldZ.clone().multiplyScalar(size.z)]
       .map((axis) => axis.applyMatrix4(linear)).sort((a, b) => b.lengthSq() - a.lengthSq());
     if (vectors[0].lengthSq() > 0) rotation.setFromUnitVectors(vectors[0].normalize(), u);
+  }
+  if (config.orientation === "largestFace" || config.orientation === "principalAxis") {
+    rotation.copy(orientForKnolling(occurrence, config.orientation, u, v, n));
   }
   if (override?.rotation) rotation.premultiply(new Quaternion().setFromAxisAngle(n, override.rotation * Math.PI / 180));
   const presentation = rotationMatrix.makeRotationFromQuaternion(rotation).clone().multiply(linear);
@@ -173,9 +178,10 @@ export function layoutKnolling(items: readonly CatalogItem[], config: KnollingSe
   const rows = entries.filter((entry) => !entry.fixed).sort((a, b) =>
     compareCatalog(a.item.representative, b.item.representative, order, space));
   if (config.direction === "reverse" && config.mode !== "assembly") rows.reverse();
+  const groupByStage = config.mode === "assembly" || (config.mode === "grouped" && config.group === "assembly");
   const grouped = new Map<string | null, Prepared[]>();
   for (const row of rows) {
-    const group = config.mode === "assembly" ? row.item.representative.stepLabel :
+    const group = groupByStage ? row.item.representative.stepKey :
       config.mode === "grouped" ? catalogGroup(row.item.representative, config.group) : null;
     let entries = grouped.get(group);
     if (!entries) grouped.set(group, entries = []);
@@ -195,13 +201,14 @@ export function layoutKnolling(items: readonly CatalogItem[], config: KnollingSe
       let x = config.marginM;
       for (const [index, row] of line.items.entries()) {
         const cell = line.widths[index];
-        place(row, x + (cell - row.size.x) * offsetFactor, y + (line.height - row.size.y) * offsetFactor, group);
+        place(row, x + (cell - row.size.x) * offsetFactor, y + (line.height - row.size.y) * offsetFactor,
+          groupByStage ? row.item.representative.stepLabel : group);
         x += cell + config.spacingM;
       }
       groupWidth = Math.max(groupWidth, x - config.marginM - config.spacingM);
       y += line.height + config.spacingM;
     }
-    const label = config.mode === "assembly" && group === null ? "Sem etapa autorada" :
+    const label = groupByStage ? rows[0].item.representative.stepLabel ?? "Sem etapa autorada" :
       config.mode === "grouped" && group === null ? "Sem classificação" : group;
     groups.push({ label, count: rows.reduce((sum, row) => sum + row.item.quantity, 0),
       rect: { x: config.marginM, y: start, w: groupWidth, h: y - start - config.spacingM } });

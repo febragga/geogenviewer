@@ -10,7 +10,8 @@ import {
   viewRegions, viewSlots, type CameraPose, type Vec3, type ViewRegion,
 } from "./camera-state";
 import { usePresentation, type PngOptions, type RenderStats } from "../state/presentation-store";
-import type { InspectionScene } from "./inspection-scene";
+import { createDisplayPipeline } from "./display-pipeline";
+import { activeClipping, type InspectionScene } from "./inspection-scene";
 
 type ViewCamera = PerspectiveCamera | OrthographicCamera;
 type Rig = ReturnType<typeof createRig>;
@@ -105,6 +106,7 @@ export async function capturePng(renderer: WebGLRenderer, source: ViewCamera, op
   const pixels = new Uint8Array(width * height * 4);
   try {
     renderer.setRenderTarget(target);
+    renderer.setViewport(0, 0, width, height);
     renderer.setScissorTest(false);
     renderer.setClearAlpha(0);
     renderer.clear();
@@ -147,6 +149,7 @@ function createRig(
   viewStore: CameraRigStore = usePresentation,
 ) {
   const canvas = gl.domElement;
+  const displayPipeline = viewStore === usePresentation ? createDisplayPipeline(gl, scene) : null;
   const radius = Math.max(sphere.radius, 0.000001);
   const center = sphere.center.toArray();
   let regions: ViewRegion[] = [];
@@ -372,7 +375,15 @@ function createRig(
       beforeDraw(index, options.technical?.selection);
       const runtime = inspector.current;
       const settings = options.technical;
-      const render = () => gl.render(scene, camera);
+      const render = () => {
+        beforeDraw(index, options.technical?.selection);
+        if (!displayPipeline) return gl.render(scene, camera);
+        const target = gl.getRenderTarget();
+        displayPipeline.draw(camera, usePresentation.getState().display, {
+          width: target?.width ?? region.width, height: target?.height ?? region.height, regions: regions.length, compact: width < 640,
+          capture: true, transparent: options.transparent, technical: Boolean(settings), clipping: activeClipping(index).length > 0,
+        });
+      };
       const { moving, pose } = motion();
       const result = capturePng(gl, camera, options,
         () => {
@@ -453,7 +464,13 @@ function createRig(
           gl.setScissor(region.x, y, region.width, region.height);
           beforeDraw(region.slot);
           const camera = slots[region.slot].controls.object;
-          const render = () => gl.render(scene, camera);
+          const render = () => {
+            if (!displayPipeline) return gl.render(scene, camera);
+            displayPipeline.draw(camera, usePresentation.getState().display, {
+              width: region.width, height: region.height, regions: regions.length, compact: width < 640,
+              clipping: activeClipping(region.slot).length > 0,
+            });
+          };
           if (runtime) runtime.draw({ slot: region.slot, camera, region, render }, moving, pose);
           else render();
         }
@@ -475,6 +492,7 @@ function createRig(
       }
     },
     dispose() {
+      displayPipeline?.dispose();
       unsubscribe();
       if (usePresentation.getState().access === access) {
         const poses = slots.map((slot) => slot.pose);

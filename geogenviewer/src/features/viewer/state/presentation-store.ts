@@ -2,8 +2,8 @@ import { create } from "zustand";
 import type { TechnicalOptions } from "../../../lib/geogen/inspection/document.ts";
 import type { CameraPose, Projection, Vec3, ViewLayout, ViewPreset } from "../scene/camera-state.ts";
 
-export type DisplayMode = "shaded" | "material" | "clay" | "technical" | "wireframe" | "xray" | "layer" | "category" | "semanticMaterial";
-export type GraphicsQuality = "performance" | "balanced" | "high";
+import type { DisplayMode, GraphicsQuality, ModeOptions } from "../scene/display-profiles.ts";
+export type { DisplayMode, GraphicsQuality } from "../scene/display-profiles.ts";
 
 export interface DisplaySettings {
   mode: DisplayMode;
@@ -16,6 +16,7 @@ export interface DisplaySettings {
   light: number;
   opacity: number;
   quality: GraphicsQuality;
+  modeOptions?: ModeOptions;
 }
 
 export const defaultDisplay: DisplaySettings = {

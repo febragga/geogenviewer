@@ -1,5 +1,6 @@
 "use client";
 
+import { componentIdentifiers, componentLabel } from "../../../lib/geogen/domain/component-identity.ts";
 import { useMemo, useState, type FormEvent, type RefObject } from "react";
 import { ArrowLeftRight, Download, Layers2 } from "lucide-react";
 import { statuses, stableValue, type Diff, type DiffStatus } from "../../../lib/geogen/revisions/diff";
@@ -200,7 +201,7 @@ function ManualEditor({ base, comparison, state, diff, fail }: {
     {diff?.baseId && diff.candidates.length > 0 && <div className="gg-v07-stack">
       <p>{diff.candidateCount} · {matchLabels[diff.method]}{diff.candidateCount > diff.candidates.length ? " · informe outro ID abaixo, se necessário" : ""}</p>
       <ul className="gg-v07-candidates">{diff.candidates.map((id) => <li key={id}>
-        <span>{comparison.occurrences.get(id)?.record.name ?? id} · <code>{id}</code></span>
+        <span>{componentLabel(comparison.occurrences.get(id)?.record, id)} · <code>{id}</code></span>
         <button type="button" className={actionClass} onClick={() => submit({ baseId: diff.baseId, comparisonId: id })}>{v07.useSuggestion}</button>
       </li>)}</ul>
     </div>}
@@ -280,8 +281,8 @@ export function ComparisonPanel({ base, comparison, state, compact, busy, baseOn
   }, [diffs]);
   const rows = useMemo(() => diffs.filter((diff) => {
     if (inputs.filter && diff.status !== inputs.filter) return false;
-    const name = [diff.baseId, diff.comparisonId, diff.baseId && base?.occurrences.get(diff.baseId)?.record.name,
-      diff.comparisonId && comparison?.occurrences.get(diff.comparisonId)?.record.name].join(" ").toLocaleLowerCase("pt-BR");
+    const name = [diff.baseId, diff.comparisonId, ...componentIdentifiers(diff.baseId ? base?.occurrences.get(diff.baseId)?.record : undefined),
+      ...componentIdentifiers(diff.comparisonId ? comparison?.occurrences.get(diff.comparisonId)?.record : undefined)].join(" ").toLocaleLowerCase("pt-BR");
     return !query || name.includes(query.trim().toLocaleLowerCase("pt-BR"));
   }), [base, comparison, diffs, inputs.filter, query]);
   const selected = selection && diffs.find((row) => selection.side === "base" ? row.baseId === selection.id : row.comparisonId === selection.id);
@@ -385,7 +386,7 @@ export function ComparisonPanel({ base, comparison, state, compact, busy, baseOn
               return <button key={JSON.stringify([diff.baseId, diff.comparisonId])} type="button" className="gg-v07-diff-row"
                 aria-pressed={selected === diff} onClick={() => choose(diff)}>
                 <span className="gg-v07-diff-symbol" aria-hidden="true">{diffSymbols[diff.status]}</span>
-                <span title={record?.record.name ?? ""}>{record?.record.name ?? diff.baseId ?? diff.comparisonId}</span>
+                <span title={componentLabel(record?.record)}>{componentLabel(record?.record, diff.baseId ?? diff.comparisonId ?? undefined)}</span>
                 <small>{diffLabels[diff.status]}</small>
               </button>;
             }} /> : <p>{v07.noResults}</p>}

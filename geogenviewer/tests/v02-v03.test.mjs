@@ -2,6 +2,11 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { Vector3 } from "three";
+import { componentIdentity, componentLabel } from "../src/lib/geogen/domain/component-identity.ts";
+import { collectModelSummary, summarizeModel } from "../src/lib/geogen/revisions/model-summary.ts";
+import { captureRevision } from "../src/lib/geogen/revisions/revision.ts";
+import { defaultFabrication } from "../src/lib/geogen/revisions/fabrication.ts";
+import { matchesComponent, normalizeSearch } from "../src/lib/geogen/domain/visibility.ts";
 import {
   buildTreeRows,
 } from "../src/features/viewer/tree/build-rows.ts";
@@ -95,6 +100,59 @@ function buildSyntheticGlb(gltfPatch) {
 
   return toArrayBuffer(Buffer.concat([header, jsonHdr, jsonChunk, binHdr, binChunk]));
 }
+
+test("Sprint A: PartIDs duplicados são rótulos e nomes GLB preservam a origem", async () => {
+  const glb = buildSyntheticGlb({
+    nodes: [
+      { name: "CAD bruto A", mesh: 0, extras: { geogenElementId: "id-a", "geogen.v02.partId": " V-03 " } },
+      { name: "CAD bruto B", mesh: 0, extras: { geogenElementId: "id-b", "geogen.v02.partId": "V-03" } },
+      { mesh: 0, extras: { geogenElementId: "id-c", "geogen.v02.partId": " " } },
+      { mesh: 0, extras: { geogenElementId: "id-d", "geogen.v02.partId": 93, objectName: "Viga especial" } },
+    ],
+    scenes: [{ nodes: [0, 1, 2, 3] }],
+    scene: 0,
+  });
+  const pkg = await importGlbBasicPackage(glb, "sintetico.glb");
+  try {
+    const graph = pkg.sceneGraph;
+    const rows = buildTreeRows(graph, "hierarchy", "V-03", []);
+    assert.deepEqual(rows.map(({ id, label }) => [id, label]), [["id-a", "V-03"], ["id-b", "V-03"]]);
+    assert.equal(componentLabel(graph.components["id-c"]), "id-c");
+    assert.equal(componentLabel(graph.components["id-d"]), "Viga especial");
+    assert.deepEqual(componentIdentity(graph.components["id-a"]).glbNames, ["CAD bruto A"]);
+    for (const query of ["CAD bruto A", "id-a", "v-03"]) assert.ok(matchesComponent(graph, "id-a", normalizeSearch(query)));
+  } finally { pkg.dispose(); }
+});
+
+test("Sprint A: manifesto atual e legado mantêm identidade e precedência de nomes", async () => {
+  const manifest = JSON.parse(contractManifestBytes);
+  const [first, second, third] = manifest.elements;
+  first.userText = { ...first.userText, "geogen.v02.partId": " V-03 ", "GeoGen:ObjectName": "Cubo CAD nominal",
+    "GeoGen:Fabrication:VolumeM3": "0.0002" };
+  first.fabrication = { ...first.fabrication, material: null };
+  second.properties = { ...second.properties, "GeoGen:PartId": "V-03" };
+  third.name = " ";
+  third.userText = { ...third.userText, "GeoGen:ObjectName": "Nome Rhino do terceiro" };
+  const data = toArrayBuffer(Buffer.from(JSON.stringify(manifest)));
+  const pkg = await importGlbWithManifestPackage(toArrayBuffer(contractGlbBytes), data, manifest.geometry.file);
+  try {
+    const graph = pkg.sceneGraph;
+    assert.equal(componentLabel(graph.components[first.id]), "V-03");
+    assert.equal(componentLabel(graph.components[second.id]), "V-03");
+    assert.equal(componentLabel(graph.components[third.id]), "Nome Rhino do terceiro");
+    assert.deepEqual(componentIdentity(graph.components[first.id]).cadNames, ["Cubo CAD nominal"]);
+    const { rows, fabrication } = collectModelSummary(captureRevision(pkg), new Set([first.id]), defaultFabrication);
+    const summary = summarizeModel(rows, fabrication);
+    assert.equal(summary.area["area-cad"].subtotal, first.areaM2.value);
+    assert.equal(summary.volume["volume-cad"].subtotal, first.volumeM3.value);
+    assert.equal(summary.fabricationVolume.subtotal, 0.0002);
+    assert.equal(summary.length.subtotal, first.dimensions.lengthM);
+    assert.ok(summary.mass.solid.subtotal > 0);
+    for (const query of [first.name, first.sourceObjectId, "Cubo CAD nominal"]) {
+      assert.ok(matchesComponent(graph, first.id, normalizeSearch(query)));
+    }
+  } finally { pkg.dispose(); }
+});
 
 test("V0.2: modo GLB básico preserva IDs estáveis, cubo 100mm, seleção e visibilidade", async () => {
   const pkg = await importGlbBasicPackage(toArrayBuffer(basicGlbBytes), "estrutura.glb");

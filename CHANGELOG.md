@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.9.12] · 27/11/2026 — Candidata à homologação
+
+- **Sprint C:** corrige o descarte de materiais do GTAO, evita invalidar seu programa a cada quadro e mantém o raio e a espessura de oclusão proporcionais ao modelo.
+- O PNG de Clay respeita a exposição em Desempenho nos renderers com suporte a buffers de cor em ponto flutuante. O passe de sombras roda no desenho de cor, e o GTAO é dispensado quando sua intensidade é zero.
+- Mono conserva as cores da paleta entre viewport e PNG e aplica o ajuste de espessura abaixo de 1 px. Blueprint ativa o esquema escuro dos controles nativos e restaura a preferência anterior na saída. Bayer 8×8 usa a ordenação recursiva correta.
+- Auditoria de GLB, manifesto, ferramentas, persistência e PNG, com medições do renderer e checklist manual. [Auditoria e matriz](SPRINT_C_RELEASE_AUDIT.md) · [Desempenho](SPRINT_C_PERFORMANCE_REPORT.md)
+
+### Sprint A e Sprint B · 26/11/2026
+
+- **Sprint B (Modos gráficos e identidade):**
+  - **Mono 2.0:** superfícies unlit (`#151515`), arestas construtivas ocluídas (`#F5F5F5`) com espessura configurável via `LineSegments2`, fundo `#FAFAF8`, inversão B/W e cores personalizáveis.
+  - **Blueprint + Tema UI:** cena técnica (`#102E50` / `#234B70` / `#BCDFFF`), seleção ciano `#54E6FF`, grade dedicada e tema completo da interface (`#0B1D30`) com sincronização opcional e restauração do tema prévio.
+  - **Dither:** shader Bayer `4×4` e `8×8` isolado da UI (`#F3F1EB` / `#202020`), controles de intensidade/contraste/escala/inversão/arestas e preservação de transparência em PNG.
+  - **Clay:** estúdio de maquete (`#D9D4CB` / `#EEECE7` / `#E5E2DC`), rig com rim light, `GTAOPass` sensível à escala em `displayEffectFactories.studio`, exposição/AO ajustáveis e fallback por orçamento.
+  - Refinamento do menu **Exibição** (cards de preset + ajustes contextuais), **Resumo** tabular agrupado e **Knolling** com cabeçalhos acima dos grupos e paleta adaptativa.
+  - [Relatório Sprint B](SPRINT_B_DISPLAY_MODES_REPORT.md)
+- **Sprint A:** PartID preferencial, Knolling com orientação/títulos, Resumo na viewport e infraestrutura de modos gráficos.
+- [Handoff dos modos gráficos](DISPLAY_MODES_HANDOFF.md) · [Regressões e limitações](V0912_REGRESSION_REPORT.md)
+
+## [0.9.11] · 26/11/2026 — Apresentação pública
+
+- Remoção dos links públicos para o GitHub na Home e em Configurações → Sobre.
+
 ## [0.9.1] · 26/11/2026 — Auditoria e estabilização
 
 - Pré-validação GLB e vínculo único de malhas a ocorrências do manifesto CAD.

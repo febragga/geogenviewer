@@ -1,5 +1,6 @@
 "use client";
 
+import { componentIdentifiers, componentLabel } from "../../../lib/geogen/domain/component-identity.ts";
 import { useDeferredValue, useMemo, useState } from "react";
 import { ListTree } from "lucide-react";
 import { parseFabrication, documentMaxBytes, type FabricationDocument } from "../../../lib/geogen/revisions/documents";
@@ -250,10 +251,10 @@ function QuantityTable({ grouped, analysis, selected, onSelect }: {
           const data = byId.get(row.occurrence.id)!;
           return <div role="row" aria-rowindex={index + 2} key={entry.key} className="gg-v07-table-row" style={grid}
             data-selected={selectedSet.has(row.occurrence.id)}>
-            <div role="cell"><button type="button" className="gg-v07-table-select" title={row.occurrence.record.name + " · " + row.occurrence.id}
+            <div role="cell"><button type="button" className="gg-v07-table-select" title={componentLabel(row.occurrence.record) + " · " + row.occurrence.id}
               aria-pressed={selectedSet.has(row.occurrence.id)} onClick={(event) => onSelect([row.occurrence.id], event.ctrlKey || event.metaKey || event.shiftKey)}>
-              {row.occurrence.record.name}</button>
-              <input type="checkbox" checked={selectedSet.has(row.occurrence.id)} aria-label={v07.component + " " + row.occurrence.record.name}
+              {componentLabel(row.occurrence.record)}</button>
+              <input type="checkbox" checked={selectedSet.has(row.occurrence.id)} aria-label={v07.component + " " + componentLabel(row.occurrence.record)}
                 onChange={() => onSelect([row.occurrence.id], true)} />
             </div>
             {shown.map((column) => { const value = valueFor(row, data, column); return <span title={value} role="cell" key={column}>{value}</span>; })}
@@ -296,10 +297,10 @@ export function QuantitiesPanel({ configs, onConfig, base, comparison, analysis,
       if (scope === "category" || scope === "material") return row[scope] === scopeValue;
       return allowed.has(row.occurrence.id);
     });
-    const result = search ? scoped.filter((row) => [row.occurrence.record.name, row.occurrence.id, row.material, row.category, row.layer, row.part, row.block]
+    const result = search ? scoped.filter((row) => [...componentIdentifiers(row.occurrence.record), row.material, row.category, row.layer, row.part, row.type, row.block]
       .join(" ").toLocaleLowerCase("pt-BR").includes(search)) : scoped;
     const value = (row: QuantityRow) => order === "area" || order === "volume" ? row[order]?.value ?? null :
-      order === "component" ? row.occurrence.record.name : row[order];
+      order === "component" ? componentLabel(row.occurrence.record) : row[order];
     return [...result].sort((a, b) => {
       const first = value(a), second = value(b);
       if (first === null || second === null) return Number(first === null) - Number(second === null);

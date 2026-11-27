@@ -1,9 +1,11 @@
+import { uniformSurface } from "./display-profiles.ts";
 import {
   Color,
   DynamicDrawUsage,
   Group,
   InstancedMesh,
   Matrix4,
+  MeshBasicMaterial,
   MeshStandardMaterial,
   type BufferGeometry,
   type Intersection,
@@ -207,6 +209,7 @@ export class InstancedBatchManager {
     opacity: number;
     shadows: boolean;
     edges?: boolean;
+    unlit?: boolean;
     selected: ReadonlySet<string>;
     hovered: string | null;
     hidden: ReadonlySet<string>;
@@ -215,6 +218,7 @@ export class InstancedBatchManager {
     colorForComponent: (componentId: string | null) => Color | null;
     overrideColors?: ReadonlyMap<string, Color>;
     clayColor: Color;
+    roughness?: number;
     selectionColor: Color;
     hoverColor: Color;
   }): boolean {
@@ -223,6 +227,7 @@ export class InstancedBatchManager {
       mode,
       opacity,
       shadows,
+      unlit = false,
       selected,
       hovered,
       hidden,
@@ -231,6 +236,7 @@ export class InstancedBatchManager {
       colorForComponent,
       overrideColors,
       clayColor,
+      roughness = 0.85,
       selectionColor,
       hoverColor,
     } = params;
@@ -249,7 +255,7 @@ export class InstancedBatchManager {
     let overlayActiveCount = 0;
 
     for (const batch of this.batches) {
-      const materialKey = `${mode}:${opacity.toFixed(2)}:${usePerInstanceColor ? "inst" : "flat"}`;
+      const materialKey = `${mode}:${unlit ? "u" : "l"}:${clayColor.getHexString()}:${roughness.toFixed(2)}:${opacity.toFixed(2)}:${usePerInstanceColor ? "inst" : "flat"}`;
       let mat = batch.customMaterials.get(materialKey);
       if (!mat) {
         if (mode === "material" && opacity >= 1) {
@@ -259,19 +265,30 @@ export class InstancedBatchManager {
           const baseColor =
             usePerInstanceColor
               ? WHITE
-              : mode === "clay" || mode === "technical" || mode === "layer" || mode === "category" || mode === "semanticMaterial"
+              : uniformSurface(mode)
                 ? clayColor
                 : base.color ?? clayColor;
-          mat = new MeshStandardMaterial({
-            color: baseColor,
-            roughness: 0.85,
-            side: base.side,
-            opacity: base.opacity * opacity * (mode === "xray" ? 0.28 : 1),
-            transparent: base.transparent || mode === "xray" || opacity < 1,
-            depthWrite: base.depthWrite && mode !== "xray" && opacity >= 1,
-            alphaTest: base.alphaTest,
-            wireframe: mode === "wireframe",
-          });
+          mat = unlit
+            ? new MeshBasicMaterial({
+                toneMapped: false,
+                color: baseColor,
+                side: base.side,
+                opacity: base.opacity * opacity,
+                transparent: base.transparent || opacity < 1,
+                depthWrite: base.depthWrite && opacity >= 1,
+                alphaTest: base.alphaTest,
+              })
+            : new MeshStandardMaterial({
+                color: baseColor,
+                roughness,
+                metalness: 0,
+                side: base.side,
+                opacity: base.opacity * opacity * (mode === "xray" ? 0.28 : 1),
+                transparent: base.transparent || mode === "xray" || opacity < 1,
+                depthWrite: base.depthWrite && mode !== "xray" && opacity >= 1,
+                alphaTest: base.alphaTest,
+                wireframe: mode === "wireframe",
+              });
           batch.customMaterials.set(materialKey, mat);
         }
       }
@@ -343,7 +360,16 @@ export class InstancedBatchManager {
     }
   }
 
+  resetDisplayMaterials(): void {
+    for (const batch of this.batches) {
+      batch.instancedMesh.material = batch.baseMaterial;
+      for (const material of batch.customMaterials.values()) material.dispose();
+      batch.customMaterials.clear();
+    }
+  }
+
   dispose(): void {
+    this.resetDisplayMaterials();
     if (this.disposed) return;
     this.disposed = true;
     for (const batch of this.batches) {
@@ -354,10 +380,6 @@ export class InstancedBatchManager {
         delete slot.mesh.userData.ggInstancedManaged;
         delete slot.mesh.userData.ggInstancedVisible;
       }
-      for (const mat of batch.customMaterials.values()) {
-        if (mat !== batch.baseMaterial) mat.dispose();
-      }
-      batch.customMaterials.clear();
       batch.instancedMesh.dispose();
     }
     this.group.removeFromParent();

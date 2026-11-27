@@ -8,6 +8,8 @@
 | Correção recomendada | Memória de GPU residente e perfil em tablet | Telemetria local durante reposição repetida de modelos no hardware de demonstração |
 | Correção recomendada | Truncamento em linhas de organização com ações densas | Verificar legibilidade em painéis estreitos, preservando acesso aos nomes completos |
 | Correção recomendada | Seleção de grupos/camadas homônimos em escopos de relatórios e documentos antigos | O Model Browser, máscaras e filtros usam IDs. Alguns agrupamentos e escopos de relatórios usam o rótulo exibido |
+| Limite na candidata | Arestas forçadas de Mono e Blueprint preservam contornos por peça e têm custo linear no número de ocorrências | Rodar a cena real nos dispositivos da homologação. A matriz inclui 1.000 peças repetidas. [Medições](SPRINT_C_PERFORMANCE_REPORT.md) |
+| Limite na candidata | Oclusão em Clay depende do orçamento e do alvo. A captura técnica e o clipping usam desenho convencional | Validar sombras PCF, plano receptor e PNG com o modelo de homologação. [Matriz](SPRINT_C_RELEASE_AUDIT.md) |
 | Melhoria futura | Índice espacial geral e batching de geometrias diferentes | Profiling comparável com identificação por ocorrência preservada |
 | Melhoria futura | Section Box, planos oblíquos, hachuras, ângulos e polilinhas | Desenho e fixtures conforme demanda de homologação |
 | Melhoria futura | SVG, PDF multipágina próprio, geração paginada e checklist de produção | Os formatos existentes cobrem PNG, CSV, JSON e impressão pelo navegador. O manual ilustra até 20 etapas |

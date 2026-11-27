@@ -1,3 +1,4 @@
+import { componentLabel } from "../domain/component-identity.ts";
 import { Matrix4, Vector3, type Camera, type Plane } from "three";
 import type { CatalogEntry } from "./catalog.ts";
 import type { Rect } from "./knolling.ts";
@@ -44,7 +45,7 @@ export function makeCallout(row: CatalogEntry, id: string, kind: CalloutKind = "
 }
 
 export function calloutText(entry: CatalogEntry, label: Callout, index: number, quantity?: number) {
-  const name = entry.part || entry.occurrence.record.name || entry.occurrence.id;
+  const name = componentLabel(entry.occurrence.record);
   if (label.kind === "custom") return label.text || name;
   if (label.kind === "number") return String(index + 1).padStart(2, "0");
   if (label.kind === "assembly") return entry.stepLabel ? name + " · " + entry.stepLabel : name;
@@ -137,33 +138,68 @@ export function projectCallouts(entries: readonly Annotation[], camera: Camera, 
   return result;
 }
 
-export function drawCallouts(ctx: CanvasRenderingContext2D, labels: readonly ProjectedCallout[], dark: boolean, leaderLines = true) {
+export interface CalloutPalette {
+  stroke: string;
+  fill: string;
+  text: string;
+  accent?: string;
+}
+
+export function resolveCalloutPalette(dark: boolean, mode?: "blueprint" | "mono"): CalloutPalette {
+  if (mode === "blueprint") {
+    return { stroke: "#7ec8ff", fill: "rgba(11, 29, 48, 0.94)", text: "#eaf4ff", accent: "#54e6ff" };
+  }
+  if (mode === "mono") {
+    return { stroke: "#151515", fill: "rgba(250, 250, 248, 0.96)", text: "#151515", accent: "#151515" };
+  }
+  return dark
+    ? { stroke: "#8ab8d8", fill: "rgba(23, 25, 26, 0.94)", text: "#edf5fb", accent: "#89c8fa" }
+    : { stroke: "#3a576f", fill: "rgba(255, 255, 255, 0.95)", text: "#152636", accent: "#1d5f82" };
+}
+
+export function drawCallouts(
+  ctx: CanvasRenderingContext2D,
+  labels: readonly ProjectedCallout[],
+  dark: boolean,
+  leaderLines = true,
+  paletteOverride?: CalloutPalette,
+) {
+  const palette = paletteOverride ?? resolveCalloutPalette(dark);
   ctx.save();
-  ctx.font = "12px system-ui, sans-serif";
+  ctx.font = "500 11.5px system-ui, sans-serif";
   ctx.textBaseline = "middle";
   for (const label of labels) {
     const { x, y, w, h, from, leader } = label;
-    ctx.strokeStyle = dark ? "#bbd8ec" : "#405e76";
-    ctx.fillStyle = ctx.strokeStyle;
+    ctx.strokeStyle = palette.stroke;
+    ctx.fillStyle = palette.stroke;
     ctx.lineWidth = 1;
     const end = [Math.max(x, Math.min(x + w, from[0])), y + h / 2];
     if (leader !== "none" && leaderLines) {
       ctx.setLineDash(leader === "dash" ? [4, 3] : []);
       ctx.beginPath(); ctx.moveTo(...from); ctx.lineTo(end[0], end[1]); ctx.stroke();
       ctx.setLineDash([]);
-      if (leader === "dot") { ctx.beginPath(); ctx.arc(...from, 2.5, 0, Math.PI * 2); ctx.fill(); }
+      if (leader === "dot") {
+        ctx.fillStyle = palette.accent ?? palette.stroke;
+        ctx.beginPath(); ctx.arc(...from, 2.5, 0, Math.PI * 2); ctx.fill();
+      }
       if (leader === "arrow") {
         const angle = Math.atan2(end[1] - from[1], end[0] - from[0]);
         ctx.beginPath(); ctx.moveTo(from[0] + 7 * Math.cos(angle - 0.4), from[1] + 7 * Math.sin(angle - 0.4));
         ctx.lineTo(...from); ctx.lineTo(from[0] + 7 * Math.cos(angle + 0.4), from[1] + 7 * Math.sin(angle + 0.4)); ctx.stroke();
       }
     }
-    ctx.fillStyle = dark ? "#20282f" : "#ffffff";
-    ctx.fillRect(x, y, w, h); ctx.strokeRect(x, y, w, h);
-    ctx.fillStyle = dark ? "#edf5fb" : "#172b3d";
+    ctx.fillStyle = palette.fill;
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = palette.stroke;
+    ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+    if (palette.accent) {
+      ctx.fillStyle = palette.accent;
+      ctx.fillRect(x + 1, y + 1, 2.5, h - 2);
+    }
+    ctx.fillStyle = palette.text;
     ctx.save();
-    ctx.beginPath(); ctx.rect(x + 7, y, w - 14, h); ctx.clip();
-    ctx.fillText(label.text, x + 7, y + h / 2);
+    ctx.beginPath(); ctx.rect(x + 8, y, w - 14, h); ctx.clip();
+    ctx.fillText(label.text, x + 8, y + h / 2);
     ctx.restore();
   }
   ctx.restore();

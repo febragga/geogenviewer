@@ -6,6 +6,7 @@ import type { CalloutKind, Leader } from "../../lib/geogen/documentation/callout
 export const v08 = {
   knolling: "Knolling", catalog: "Catálogo", lab: "Laboratório de catálogo", labTitle: "Laboratório sintético de catálogo",
   layout: "Configurar disposição", mode: "Modo de disposição", plane: "Plano CAD", group: "Agrupar por", sort: "Ordenar por",
+  renameSteps: "Renomear etapas ou categorias",
   scope: "Escopo de componentes", value: "Valor do filtro", orientation: "Orientação das peças",
   spacing: "Espaçamento entre peças", groupSpacing: "Espaçamento entre grupos", width: "Largura máxima", margin: "Margem externa",
   columns: "Colunas", alignment: "Alinhamento", direction: "Ordem de disposição", generate: "Gerar disposição",
@@ -65,7 +66,7 @@ export const layoutModes: Record<LayoutMode, string> = {
   grid: "Grade", grouped: "Grade por grupos", shelf: "Prateleiras", types: "Representantes por tipo", assembly: "Ordem de montagem",
 };
 export const orientations: Record<Orientation, string> = {
-  preserve: "Preservar repouso", world: "Alinhar aos eixos", quarter: "Girar 90°", longest: "Alinhar eixo mais longo", manual: "Manual",
+  preserve: "Original", largestFace: "Maior face", principalAxis: "Eixo principal", world: "Alinhar aos eixos", quarter: "Girar 90°", longest: "Alinhar eixo mais longo", manual: "Manual",
 };
 export const densityLabels: Record<Density, string> = { compact: "Compacta", comfortable: "Confortável", detailed: "Detalhada" };
 export const thumbnailStyles: Record<ThumbnailStyle, string> = {

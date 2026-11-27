@@ -137,7 +137,7 @@ try {
   await comparePanel.getByLabel("Exibição", { exact: true }).selectOption("differences");
   await comparePanel.getByLabel("Mostrar inalterados em transparência").check();
   await comparePanel.getByRole("combobox", { name: "Estado da diferença", exact: true }).selectOption("unresolved");
-  await comparePanel.getByRole("button", { name: /Peça repetida 1/ }).first().click();
+  await comparePanel.getByRole("button", { name: /^REP\b/ }).first().click();
   await reveal(comparePanel, "Correspondência manual");
   await comparePanel.getByRole("button", { name: "Confirmar sugestão", exact: true }).first().click();
   await comparePanel.getByRole("combobox", { name: "Estado da diferença", exact: true }).selectOption("all");

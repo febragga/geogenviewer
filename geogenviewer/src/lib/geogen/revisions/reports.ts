@@ -1,3 +1,4 @@
+import { componentLabel } from "../domain/component-identity.ts";
 import type { Diff } from "./diff.ts";
 import type { FabricationRow } from "./fabrication.ts";
 import type { QuantityRow } from "./quantities.ts";
@@ -25,15 +26,15 @@ export function quantitiesCsv(revision: Revision, rows: QuantityRow[], analysis:
   return csv([
     [...identityColumns, "generatedAt", "scope", "scopeComponentCount", "areaKnown", "volumeKnown", "volumeCoveragePct", "elementId", "name", "occurrences", "category", "layer", "material",
       "block", "partId", "type", "areaM2", "areaMethod", "volumeM3", "volumeMethod", "volumeExclusion",
-      "lengthM", "widthM", "thicknessM", "dimensionsSource", "solidKg", "slicerKg", "measuredKg", "estimateKg", "costs"],
+      "lengthM", "widthM", "thicknessM", "dimensionsSource", "solidKg", "slicerKg", "measuredKg", "estimateKg", "costs", "originalName", "sourceObjectId"],
     ...rows.map((row, index) => {
       const dimensions = row.occurrence.record.cad?.dimensions;
       const { mass, costs } = analysis[index];
-      return [...identityRow(revision), generatedAt, scope, rows.length, areaKnown, volumeKnown, 100 * volumeKnown / rows.length, row.occurrence.id, row.occurrence.record.name, row.occurrence.count,
+      return [...identityRow(revision), generatedAt, scope, rows.length, areaKnown, volumeKnown, 100 * volumeKnown / rows.length, row.occurrence.id, componentLabel(row.occurrence.record), row.occurrence.count,
         row.category, row.layer, row.material, row.block, row.part, row.type,
         row.area?.value, row.area?.method, row.volume?.value, row.volume?.method, row.volumeExclusion,
         dimensions?.lengthM, dimensions?.widthM, dimensions?.thicknessM, dimensions?.source,
-        mass.solid?.value, mass.slicer?.value, mass.measured?.value, mass.estimate?.value, JSON.stringify(costs)];
+        mass.solid?.value, mass.slicer?.value, mass.measured?.value, mass.estimate?.value, JSON.stringify(costs), row.occurrence.record.name, row.occurrence.record.sourceObjectId];
     }),
   ]);
 }
@@ -41,9 +42,11 @@ export function quantitiesCsv(revision: Revision, rows: QuantityRow[], analysis:
 export function differencesCsv(base: Revision, comparison: Revision, rows: readonly Diff[], toleranceM: number, generatedAt: string) {
   return csv([
     [...identityColumns.map((key) => "base." + key), ...identityColumns.map((key) => "comparison." + key),
-      "generatedAt", "toleranceM", "baseId", "comparisonId", "status", "method", "changes", "meshResult", "candidateCount", "candidates"],
+      "generatedAt", "toleranceM", "baseId", "comparisonId", "status", "method", "changes", "meshResult", "candidateCount", "candidates", "baseName", "comparisonName"],
     ...rows.map((row) => [...identityRow(base), ...identityRow(comparison), generatedAt, toleranceM, row.baseId, row.comparisonId,
-      row.status, row.method, row.changes.join(" / "), row.shape, row.candidateCount, row.candidates.join(" / ")]),
+      row.status, row.method, row.changes.join(" / "), row.shape, row.candidateCount, row.candidates.join(" / "),
+      componentLabel(row.baseId ? base.occurrences.get(row.baseId)?.record : undefined),
+      componentLabel(row.comparisonId ? comparison.occurrences.get(row.comparisonId)?.record : undefined)]),
   ]);
 }
 

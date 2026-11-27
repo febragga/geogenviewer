@@ -177,7 +177,7 @@ export async function importGlb(bytes: ArrayBuffer) {
     if (!finished && /^(blob:|data:)/.test(url)) return url;
     throw new Error("O GLB contém um recurso externo ou foi interrompido.");
   });
-  const { scene, scenes } = await new GLTFLoader(manager).parseAsync(bytes, "").finally(() => {
+  const { scene, scenes, parser } = await new GLTFLoader(manager).parseAsync(bytes, "").finally(() => {
     finished = true;
     for (const url of urls) URL.revokeObjectURL(url);
   });
@@ -186,8 +186,16 @@ export async function importGlb(bytes: ArrayBuffer) {
     if (bounds.isEmpty() || !Number.isFinite(bounds.getBoundingSphere(new Sphere()).radius)) {
       throw new Error("A cena não contém geometria com dimensões válidas.");
     }
+    const sourceNames = new WeakMap<Object3D, string[]>();
+    scene.traverse((object) => {
+      const association = parser.associations.get(object);
+      const nodeName: unknown = association?.nodes === undefined ? null : parser.json.nodes?.[association.nodes]?.name;
+      const meshIndex = association?.meshes ?? (association?.nodes === undefined ? undefined : parser.json.nodes?.[association.nodes]?.mesh);
+      const meshName: unknown = meshIndex === undefined ? null : parser.json.meshes?.[meshIndex]?.name;
+      sourceNames.set(object, [nodeName, meshName].filter((value): value is string => typeof value === "string"));
+    });
     let disposed = false;
-    return { scene, bounds, dispose() {
+    return { scene, bounds, sourceNames, dispose() {
       if (disposed) return;
       disposed = true;
       disposeScenes(scenes);

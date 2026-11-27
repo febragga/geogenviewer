@@ -1,6 +1,7 @@
 "use client";
 
 import { create } from "zustand";
+import { migrateDisplayMode, sanitizeModeOptions, type DisplayMode, type GraphicsQuality, type ModeOptions } from "../scene/display-profiles";
 import { usePresentation } from "./presentation-store";
 
 export type ThemePreference = "system" | "light" | "dark";
@@ -10,6 +11,9 @@ export type DisplayUnitSystem = "mm" | "cm" | "m";
 export interface AppPreferences {
   theme: ThemePreference;
   viewportBackground: ViewportBackground;
+  displayMode: DisplayMode;
+  graphicsQuality: GraphicsQuality;
+  modeOptions: ModeOptions;
   showNavCube: boolean;
   unitSystem: DisplayUnitSystem;
   largeModelAutoMode: boolean;
@@ -23,6 +27,7 @@ export const THEME_KEY = "geogen-color-scheme";
 export const defaultAppPreferences: AppPreferences = {
   theme: "system",
   viewportBackground: "theme",
+  displayMode: "shaded", graphicsQuality: "balanced", modeOptions: {},
   showNavCube: true,
   unitSystem: "mm",
   largeModelAutoMode: true,
@@ -72,6 +77,10 @@ export function loadPersistedPreferences(): AppPreferences {
         parsed.viewportBackground === "theme"
           ? parsed.viewportBackground
           : defaultAppPreferences.viewportBackground,
+      displayMode: migrateDisplayMode(parsed.displayMode),
+      graphicsQuality: parsed.graphicsQuality === "performance" || parsed.graphicsQuality === "high"
+        ? parsed.graphicsQuality : defaultAppPreferences.graphicsQuality,
+      modeOptions: sanitizeModeOptions(parsed.modeOptions),
       showNavCube:
         typeof parsed.showNavCube === "boolean"
           ? parsed.showNavCube
@@ -134,7 +143,8 @@ export const useAppSettings = create<SettingsState>((set, get) => ({
     applyThemePreference(loaded.theme);
     const presentation = usePresentation.getState();
     presentation.setShowNavCube(loaded.showNavCube);
-    presentation.patchDisplay({ background: loaded.viewportBackground });
+    presentation.patchDisplay({ background: loaded.viewportBackground, mode: loaded.displayMode,
+      modeOptions: loaded.modeOptions, quality: loaded.graphicsQuality });
     set({ ...loaded, hydrated: true });
   },
 
@@ -143,6 +153,9 @@ export const useAppSettings = create<SettingsState>((set, get) => ({
     const next: AppPreferences = {
       theme: patch.theme ?? current.theme,
       viewportBackground: patch.viewportBackground ?? current.viewportBackground,
+      displayMode: patch.displayMode ?? current.displayMode,
+      graphicsQuality: patch.graphicsQuality ?? current.graphicsQuality,
+      modeOptions: patch.modeOptions ?? current.modeOptions,
       showNavCube: patch.showNavCube ?? current.showNavCube,
       unitSystem: patch.unitSystem ?? current.unitSystem,
       largeModelAutoMode: patch.largeModelAutoMode ?? current.largeModelAutoMode,
@@ -158,6 +171,9 @@ export const useAppSettings = create<SettingsState>((set, get) => ({
     if (patch.viewportBackground) {
       usePresentation.getState().patchDisplay({ background: next.viewportBackground });
     }
+    if (patch.displayMode) usePresentation.getState().patchDisplay({ mode: next.displayMode });
+    if (patch.graphicsQuality) usePresentation.getState().patchDisplay({ quality: next.graphicsQuality });
+    if (patch.modeOptions) usePresentation.getState().patchDisplay({ modeOptions: next.modeOptions });
     savePreferences(next);
     set(next);
   },
@@ -195,6 +211,8 @@ export const useAppSettings = create<SettingsState>((set, get) => ({
     usePresentation.getState().setShowNavCube(defaultAppPreferences.showNavCube);
     usePresentation.getState().patchDisplay({
       background: defaultAppPreferences.viewportBackground,
+      mode: defaultAppPreferences.displayMode, modeOptions: defaultAppPreferences.modeOptions,
+      quality: defaultAppPreferences.graphicsQuality,
     });
     savePreferences(defaultAppPreferences);
     set({ ...defaultAppPreferences });

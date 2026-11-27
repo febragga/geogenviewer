@@ -1,5 +1,6 @@
 "use client";
 
+import { componentIdentity, componentLabel } from "../../../lib/geogen/domain/component-identity.ts";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Drawer } from "vaul";
 import {
@@ -1064,8 +1065,18 @@ function SingleComponentDetails({
         <dl className="gg-kv-list">
           <div className="gg-kv-row gg-kv-row--stacked">
             <dt>{copy.propName}</dt>
-            <dd className="gg-kv-value-wrap">{comp.name}</dd>
+            <dd className="gg-kv-value-wrap">{componentLabel(comp)}</dd>
           </div>
+          {([
+            [copy.propManifestName, componentIdentity(comp).manifestName],
+            [copy.propCadName, componentIdentity(comp).cadNames.join(" · ")],
+            [copy.propGlbName, componentIdentity(comp).glbNames.join(" · ")],
+          ] as const).map(([label, value]) => value && value !== componentLabel(comp) && (
+            <div className="gg-kv-row gg-kv-row--stacked" key={label}>
+              <dt>{label}</dt>
+              <dd className="gg-kv-value-wrap">{value}</dd>
+            </div>
+          ))}
           <div className="gg-kv-row gg-kv-row--stacked">
             <dt>{copy.propId}</dt>
             <dd className="gg-mono gg-kv-value-wrap">{comp.id}</dd>

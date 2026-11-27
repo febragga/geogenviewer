@@ -2,6 +2,7 @@
 
 import { Dialog } from "@base-ui/react/dialog";
 import { useState } from "react";
+import { componentLabel } from "../../../lib/geogen/domain/component-identity";
 import type { ManifestAssemblyStep } from "../../../lib/geogen/domain/model";
 import type { Vec3 } from "../scene/camera-state";
 import { useAssembly } from "../state/assembly-store";
@@ -11,6 +12,7 @@ import { downloadFile } from "./download-file";
 
 export function AssemblyEditor({ onClose }: { onClose: () => void }) {
   const source = useAssembly((state) => state.source)!;
+  const graph = useViewerStore((state) => state.sceneGraph);
   const selected = useViewerStore((state) => state.selectedIds);
   const [steps, setSteps] = useState(() => {
     const state = useAssembly.getState();
@@ -20,7 +22,7 @@ export function AssemblyEditor({ onClose }: { onClose: () => void }) {
   const [candidate, setCandidate] = useState("");
   const [status, setStatus] = useState<{ message: string; error: boolean } | null>(null);
   const step = steps[current];
-  const names = new Map(source.elements.map((item) => [item.id, item.name]));
+  const names = new Map(source.elements.map((item) => [item.id, componentLabel(graph?.components[item.id], item.name)]));
   const previous = steps.slice(0, current);
   const assigned = new Set(steps.flatMap((item) => item.elementIds));
   const available = step ? source.elements.filter((item) => !assigned.has(item.id)) : [];
@@ -146,7 +148,7 @@ export function AssemblyEditor({ onClose }: { onClose: () => void }) {
                 <label>Componente disponível
                   <select value={candidate} onChange={(event) => setCandidate(event.currentTarget.value)}>
                     <option value="">Escolher componente</option>
-                    {available.map((item) => <option key={item.id} value={item.id}>{item.name} · {item.id}</option>)}
+                    {available.map((item) => <option key={item.id} value={item.id}>{names.get(item.id)} · {item.id}</option>)}
                   </select>
                 </label>
                 <button type="button" className="gg-btn gg-btn--secondary" disabled={!candidate || assigned.has(candidate)} onClick={() => {

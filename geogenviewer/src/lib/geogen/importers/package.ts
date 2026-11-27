@@ -1,4 +1,5 @@
 import { Box3, Vector3, type BufferGeometry, type Material, type Mesh, type Object3D } from "three";
+import { importedComponentIdentity } from "../domain/component-identity.ts";
 import {
   type ComponentRecord,
   type GroupRecord,
@@ -271,6 +272,7 @@ export async function importGlbBasicPackage(
         components[id] = {
           id,
           name: obj.name?.trim() || id,
+          identity: importedComponentIdentity({ glbNames: model.sourceNames.get(obj) ?? [], extras: obj.userData }),
           category: "other",
           sourceObjectId: null,
           layerId: null,
@@ -650,6 +652,10 @@ export async function importGlbWithManifestPackage(
       components[el.id] = {
         id: el.id,
         name: el.name,
+        identity: importedComponentIdentity({
+          manifestName: el.name, glbNames: [...(model.sourceNames.get(obj) ?? []), el.glbNodeName],
+          extras: obj.userData, properties: el.properties, userText: el.userText,
+        }),
         category: el.category,
         sourceObjectId: el.sourceObjectId ?? null,
         layerId: el.layerId,
