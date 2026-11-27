@@ -103,7 +103,8 @@ A sprint amplia o marco de montagem anterior com gestão de vistas, filtros e mo
 - [x] Resumo do modelo com escopos, agrupamentos, cobertura e dados de fabricação.
 - [x] Knolling com rótulos persistentes, mais orientações e restauração da pose.
 - [x] Perfis e integração de Mono, Blueprint, Dither e Clay. [Handoff da Sprint B](DISPLAY_MODES_HANDOFF.md)
-- [ ] Concluir a direção artística dos modos e homologar em dispositivo físico com modelo autorizado.
+- [x] Concluir os quatro perfis e auditar a candidata em ambiente sintético. [Matriz da Sprint C](SPRINT_C_RELEASE_AUDIT.md)
+- [ ] Homologar em dispositivo físico com o exportador e o modelo autorizados.
 
 ### v0.9–v1.0 — Estabilização e deploy
 - [x] Product Design V0.9: marca `#3B82F6`, Home Launchpad, Cubo de Navegação 3D sólido, famílias de workspace, Organização do Usuário (`organization-v1.schema.json`), Menu de Contexto, Configurações e otimização `InstancedMesh` ([Relatório V0.9](V09_IMPLEMENTATION_REPORT.md), [Desempenho V0.9](V09_PERFORMANCE_REPORT.md)).

@@ -17,6 +17,7 @@
         "test:v09": "node scripts/verify-v09.mjs",
         "test:v091": "node scripts/verify-v091.mjs",
         "test:v0912": "node scripts/verify-v0912.mjs",
+        "test:sprint-c": "node scripts/verify-sprint-c.mjs",
         "benchmark:v091": "node --expose-gc --experimental-strip-types scripts/benchmark-v091.mjs",
         "benchmark:v08": "node --expose-gc --experimental-strip-types scripts/benchmark-v08.mjs",
         "fixture:catalog": "node scripts/generate-catalog-lab.mjs",

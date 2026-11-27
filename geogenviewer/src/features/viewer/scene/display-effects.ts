@@ -85,9 +85,9 @@ const DITHER_SHADER = {
 
     float bayer8(vec2 p) {
       vec2 q = mod(p, 8.0);
-      float outer = bayer4(floor(q * 0.5)) * 16.0 - 0.5;
-      float inner = bayer2(q);
-      return (outer * 4.0 + inner + 0.5) / 64.0;
+      float fine = bayer4(q) * 16.0 - 0.5;
+      float coarse = bayer2(floor(q * 0.25));
+      return (fine * 4.0 + coarse + 0.5) / 64.0;
     }
 
     vec3 acesApprox(vec3 x) {
@@ -194,8 +194,11 @@ const CLAY_COMPOSITE_SHADER = {
         gl_FragColor = vec4(0.0);
         return;
       }
-      float aoSample = texture2D(tAo, vUv).r;
-      float occlusion = mix(1.0, clamp(aoSample, 0.0, 1.0), clamp(uAoIntensity, 0.0, 1.5));
+      float occlusion = 1.0;
+      if (uAoIntensity > 0.0) {
+        float aoSample = texture2D(tAo, vUv).r;
+        occlusion = mix(1.0, clamp(aoSample, 0.0, 1.0), clamp(uAoIntensity, 0.0, 1.5));
+      }
       vec3 color = clayApplyToneMapping((texel.rgb / max(texel.a, 0.0001)) * occlusion);
       gl_FragColor = vec4(color * texel.a, texel.a);
       #include <colorspace_fragment>
@@ -276,7 +279,7 @@ function createDitherEffect(): DisplayEffect {
       const scaleFactor = frame.capture ? Math.max(1, frame.width / 1280) : dpr;
 
       material.uniforms.tDiffuse.value = target.texture;
-      material.uniforms.uOrigin.value.set(savedViewport.x * dpr, savedViewport.y * dpr);
+      material.uniforms.uOrigin.value.set(Math.round(savedViewport.x * dpr), Math.round(savedViewport.y * dpr));
       material.uniforms.uPixelScale.value = Math.max(1, dither.pixelScale * scaleFactor);
       material.uniforms.uMatrixSize.value = dither.matrixSize;
       material.uniforms.uIntensity.value = dither.intensity;
@@ -314,19 +317,16 @@ export function setSceneScaleRadius(scene: Scene, radius: number): void {
 
 function calibrateAoRadius(scene: Scene, camera: Camera): number {
   const sceneRadius = sceneRadiusMap.get(scene) ?? 2.0;
+  const minRadius = Math.max(Number.EPSILON, sceneRadius * 1e-4);
   if ((camera as OrthographicCamera).isOrthographicCamera) {
     const ortho = camera as OrthographicCamera;
     const span = Math.abs((ortho.top - ortho.bottom) / Math.max(ortho.zoom, 0.01));
-    return Math.max(0.025, Math.min(sceneRadius * 0.24, span * 0.09));
+    return Math.max(minRadius, Math.min(sceneRadius * 0.24, span * 0.09));
   }
-  const persp = camera as PerspectiveCamera;
-  const dist = Math.max(0.05, persp.position.length() > 0 ? Math.min(sceneRadius * 3, persp.far * 0.08) : sceneRadius);
-  return Math.max(0.025, Math.min(sceneRadius * 0.22, dist * 0.14));
+  return sceneRadius * 0.22;
 }
 
-function createClayStudioEffect(renderer: WebGLRenderer): DisplayEffect | null {
-  if (!renderer.capabilities?.isWebGL2) return null;
-
+function createClayStudioEffect(): DisplayEffect {
   let sceneTarget: WebGLRenderTarget | null = null;
   let gtaoPass: GTAOPass | null = null;
   let physW = 0;
@@ -347,6 +347,15 @@ function createClayStudioEffect(renderer: WebGLRenderer): DisplayEffect | null {
   });
   const quad = new FullScreenQuad(material);
 
+  function releaseAo() {
+    if (!gtaoPass) return;
+    // Three.js 0.187.0 leaves these two materials outside GTAOPass.dispose().
+    gtaoPass.gtaoMaterial.dispose();
+    gtaoPass.blendMaterial.dispose();
+    gtaoPass.dispose();
+    gtaoPass = null;
+  }
+
   return {
     render(frame: EffectFrame) {
       const { renderer: gl, scene, camera, profile } = frame;
@@ -354,7 +363,8 @@ function createClayStudioEffect(renderer: WebGLRenderer): DisplayEffect | null {
       const dpr = destination ? 1 : gl.getPixelRatio();
       const targetW = Math.max(1, Math.round(frame.width * dpr));
       const targetH = Math.max(1, Math.round(frame.height * dpr));
-      const scale = Math.max(0.25, Math.min(1, frame.scale || 0.5));
+      const scale = frame.scale;
+      const aoIntensity = scale > 0 ? profile.aoIntensity ?? 0.85 : 0;
       const nextAoW = Math.max(1, Math.round(targetW * scale));
       const nextAoH = Math.max(1, Math.round(targetH * scale));
       const maxTex = gl.capabilities?.maxTextureSize ?? 4096;
@@ -367,35 +377,32 @@ function createClayStudioEffect(renderer: WebGLRenderer): DisplayEffect | null {
         physH = targetH;
       }
 
-      if (!gtaoPass) {
-        gtaoPass = new GTAOPass(scene, camera, nextAoW, nextAoH);
-        gtaoPass.output = GTAOPass.OUTPUT.Off;
-        gtaoPass.updatePdMaterial({ lumaPhi: 8, depthPhi: 8, normalPhi: 6, radius: 3.5, rings: 2, samples: 12 });
-        aoW = nextAoW;
-        aoH = nextAoH;
-      } else {
-        gtaoPass.scene = scene;
-        gtaoPass.camera = camera;
-        if (aoW !== nextAoW || aoH !== nextAoH) {
-          gtaoPass.setSize(nextAoW, nextAoH);
+      if (aoIntensity > 0) {
+        if (!gtaoPass) {
+          gtaoPass = new GTAOPass(scene, camera, nextAoW, nextAoH);
+          gtaoPass.output = GTAOPass.OUTPUT.Off;
+          gtaoPass.updatePdMaterial({ lumaPhi: 8, depthPhi: 8, normalPhi: 6, radius: 3.5, rings: 2, samples: 12 });
+          gtaoPass.updateGtaoMaterial({ distanceExponent: 1.35, distanceFallOff: 0.9, scale: 1, samples: scale >= 0.7 ? 16 : 12 });
           aoW = nextAoW;
           aoH = nextAoH;
+        } else {
+          gtaoPass.camera = camera;
+          if (aoW !== nextAoW || aoH !== nextAoH) {
+            gtaoPass.setSize(nextAoW, nextAoH);
+            aoW = nextAoW;
+            aoH = nextAoH;
+          }
         }
+        const isPersp = (camera as PerspectiveCamera).isPerspectiveCamera ? 1 : 0;
+        if (gtaoPass.gtaoMaterial.defines.PERSPECTIVE_CAMERA !== isPersp) {
+          gtaoPass.gtaoMaterial.defines.PERSPECTIVE_CAMERA = isPersp;
+          gtaoPass.gtaoMaterial.needsUpdate = true;
+        }
+        const radius = calibrateAoRadius(scene, camera);
+        gtaoPass.updateGtaoMaterial({ radius, thickness: radius * 2 });
+      } else {
+        releaseAo();
       }
-
-      const isPersp = (camera as PerspectiveCamera).isPerspectiveCamera ? 1 : 0;
-      if (gtaoPass.gtaoMaterial.defines.PERSPECTIVE_CAMERA !== isPersp) {
-        gtaoPass.gtaoMaterial.defines.PERSPECTIVE_CAMERA = isPersp;
-        gtaoPass.gtaoMaterial.needsUpdate = true;
-      }
-      gtaoPass.updateGtaoMaterial({
-        radius: calibrateAoRadius(scene, camera),
-        distanceExponent: 1.35,
-        thickness: 1.0,
-        distanceFallOff: 0.9,
-        scale: 1.0,
-        samples: scale >= 0.7 ? 16 : 12,
-      });
 
       gl.getViewport(savedViewport);
       gl.getScissor(savedScissor);
@@ -403,13 +410,19 @@ function createClayStudioEffect(renderer: WebGLRenderer): DisplayEffect | null {
 
       renderSceneToTarget(gl, sceneTarget, targetW, targetH, frame.render);
 
-      gl.setScissorTest(false);
-      gl.setViewport(0, 0, aoW, aoH);
-      gtaoPass.render(gl, sceneTarget, sceneTarget, 0, false);
+      if (gtaoPass) {
+        const shadows = gl.shadowMap.enabled;
+        try {
+          gl.shadowMap.enabled = false;
+          gtaoPass.render(gl, sceneTarget, sceneTarget, 0, false);
+        } finally {
+          gl.shadowMap.enabled = shadows;
+        }
+      }
 
       material.uniforms.tDiffuse.value = sceneTarget.texture;
-      material.uniforms.tAo.value = gtaoPass.gtaoMap;
-      material.uniforms.uAoIntensity.value = profile.aoIntensity ?? 0.85;
+      material.uniforms.tAo.value = gtaoPass?.gtaoMap ?? null;
+      material.uniforms.uAoIntensity.value = aoIntensity;
       material.uniforms.uToneExposure.value = gl.toneMappingExposure;
       material.uniforms.uToneMode.value = gl.toneMapping;
 
@@ -428,8 +441,7 @@ function createClayStudioEffect(renderer: WebGLRenderer): DisplayEffect | null {
     dispose() {
       sceneTarget?.dispose();
       sceneTarget = null;
-      gtaoPass?.dispose();
-      gtaoPass = null;
+      releaseAo();
       material.dispose();
       quad.dispose();
     },
@@ -441,6 +453,6 @@ let registered = false;
 export function registerDisplayEffects() {
   if (registered) return;
   registered = true;
-  displayEffectFactories.dither = () => createDitherEffect();
-  displayEffectFactories.studio = (renderer) => createClayStudioEffect(renderer);
+  displayEffectFactories.dither = (renderer) => renderer.extensions.has("EXT_color_buffer_float") ? createDitherEffect() : null;
+  displayEffectFactories.studio = (renderer) => renderer.extensions.has("EXT_color_buffer_float") ? createClayStudioEffect() : null;
 }

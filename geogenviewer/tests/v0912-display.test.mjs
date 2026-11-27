@@ -147,6 +147,23 @@ test("Sprint A/B: efeitos têm ciclo próprio, Dither mantém passe em Desempenh
     pipeline.draw(camera, defaultDisplay, frame);
     assert.equal(disposals, 2);
     assert.equal(conventional, 3);
+
+    let captureScale;
+    displayEffectFactories.studio = () => ({
+      render(frame) {
+        assert.equal(frame.capture, true);
+        assert.equal(frame.renderer.toneMappingExposure, 1.25);
+        captureScale = frame.scale;
+        return true;
+      },
+      dispose() {},
+    });
+    const performanceMode = { ...setup, quality: "performance" };
+    pipeline.draw(camera, performanceMode, frame);
+    assert.equal(conventional, 4);
+    pipeline.draw(camera, performanceMode, { ...frame, capture: true });
+    assert.equal(captureScale, 0);
+    assert.equal(renderer.toneMappingExposure, 1);
   } finally {
     pipeline.dispose();
     delete displayEffectFactories.studio;

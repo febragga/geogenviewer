@@ -270,6 +270,7 @@ export class InstancedBatchManager {
                 : base.color ?? clayColor;
           mat = unlit
             ? new MeshBasicMaterial({
+                toneMapped: false,
                 color: baseColor,
                 side: base.side,
                 opacity: base.opacity * opacity,

@@ -4,7 +4,7 @@ Visualizador web independente (*local-first*) de modelos arquitetônicos e de ge
 
 - **Aplicação Next.js (Root Directory no Vercel):** [`geogenviewer/`](geogenviewer/) — rotas `/` e `/viewer`
 - **Contrato de interoperabilidade Rhino 8 (`v1.0.0`):** [`exporter-contract/`](exporter-contract/)
-- **Versão atual:** `0.9.1` — [Guia V0.9](V09_USER_GUIDE.md) · [Auditoria](V091_ENGINEERING_AUDIT.md) · [Validação](V091_REGRESSION_REPORT.md) · [Desempenho](V091_PERFORMANCE_REPORT.md) · [Checklist V1.0](V1_RELEASE_CANDIDATE_CHECKLIST.md)
+- **Versão atual** `0.9.12`, candidata à homologação. [Auditoria](SPRINT_C_RELEASE_AUDIT.md) · [Desempenho](SPRINT_C_PERFORMANCE_REPORT.md) · [Checklist V1.0](V1_RELEASE_CANDIDATE_CHECKLIST.md)
 
 ## Funcionalidades implementadas
 
@@ -19,6 +19,8 @@ Visualizador web independente (*local-first*) de modelos arquitetônicos e de ge
 
 - **V0.9.1:** Validação de identidade, organização por revisão, máscaras independentes de grupos, picking de instâncias e recuperação de carregamento/WebGL. O manual explicita a cobertura das ilustrações. [Implementação](V091_IMPLEMENTATION_REPORT.md)
 
+- **V0.9.12:** rótulos por PartID, Resumo, orientação e nomenclatura de Knolling, modos Mono, Blueprint, Dither e Clay. [Changelog](CHANGELOG.md)
+
 ## Homologações pendentes
 
 - Execução e homologação do `GeoGenExporter` em ambiente real do Rhino 8.
@@ -27,4 +29,4 @@ Visualizador web independente (*local-first*) de modelos arquitetônicos e de ge
 
 ## Executar e verificar localmente
 
-Consulte [`geogenviewer/README.md`](geogenviewer/README.md) para os scripts `lint`, `typecheck`, `test`, `build` e suítes Playwright (`test:ui`, `test:v05` a `test:v09` e `test:v091`).
+Consulte [`geogenviewer/README.md`](geogenviewer/README.md) para os scripts `lint`, `typecheck`, `test`, `build` e suítes Playwright, incluindo `test:sprint-c` para a candidata.

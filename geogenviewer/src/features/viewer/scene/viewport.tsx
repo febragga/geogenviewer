@@ -54,8 +54,8 @@ function ViewportLighting({ target, sphere, span }: { target: Object3D; sphere: 
   const maximized = usePresentation((state) => state.maximized);
   const lightRef = useRef<DirectionalLight>(null);
   const budget = graphicBudget(settings.quality, layout !== "single" && maximized === null ? 2 : 1, width < 640);
-  const shadows = settings.shadows;
   const profile = resolveDisplayProfile(settings);
+  const shadows = settings.shadows && !profile.unlit;
   const lighting = profile.lighting ?? defaultLighting;
   const radius = profile.shadows?.radius ?? 1;
   const shadowSize = budget.shadowSize;
@@ -861,7 +861,7 @@ export default function Viewport({
         fallback={fallback}
         frameloop="demand"
         dpr={budget.dpr === 1 ? 1 : [1, budget.dpr]}
-        shadows={settings.shadows ? { type: PCFShadowMap } : false}
+        shadows={settings.shadows && (!profile.unlit || comparison) ? { type: PCFShadowMap } : false}
         role="region"
         aria-label="Modelo tridimensional"
       >

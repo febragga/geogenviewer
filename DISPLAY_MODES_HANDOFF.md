@@ -1,5 +1,7 @@
 # GeoGenViewer Sprint B · modos gráficos
 
+Este documento registra o ponto de partida da Sprint A. Para os passes implementados e a candidata auditada, consulte o [relatório da Sprint B](SPRINT_B_DISPLAY_MODES_REPORT.md) e a [auditoria da Sprint C](SPRINT_C_RELEASE_AUDIT.md).
+
 Base local `feat/v0.9.12-sprint-a`, aplicação `0.9.12`. O App Router carrega o viewer no cliente. O pipeline usa React Three Fiber 9.8.2, Three.js 0.187.0, WebGL e Zustand. As dependências instaladas incluem os utilitários Three.js para composição e oclusão.
 
 ## Renderização e integração

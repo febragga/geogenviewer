@@ -1,4 +1,4 @@
-# GeoGenViewer (`v0.9.1`)
+# GeoGenViewer (`v0.9.12`)
 
 Visualizador local de modelos arquitetônicos GLB, com inspeção de componentes, gestão de vistas, corte, medição, apresentação, vista explodida, sequência de montagem, comparação de revisões, quantitativos, análise de fabricação, knolling e documentação.
 
@@ -33,6 +33,8 @@ npm run test:v07
 npm run test:v08
 npm run test:v09
 npm run test:v091
+npm run test:v0912
+npm run test:sprint-c
 npm run benchmark:v091
 npm run benchmark:v05
 npm run benchmark:v06
@@ -44,6 +46,7 @@ A auditoria de navegador usa o build de produção e grava capturas em `test-res
 
 Regere a fixture de knolling com `npm run fixture:catalog`. Use `GEOGEN_V08_GPU=1` para incluir as escalas de 100, 1.000 e 10.000 peças na auditoria V0.8.
 
+- [Auditoria da candidata V0.9.12](../SPRINT_C_RELEASE_AUDIT.md) · [Desempenho](../SPRINT_C_PERFORMANCE_REPORT.md)
 - [Regressão V0.9.1](../V091_REGRESSION_REPORT.md) · [Benchmarks V0.9.1](../V091_PERFORMANCE_REPORT.md)
 - [Guia V0.8](../V08_USER_GUIDE.md) · [Testes](../V08_TEST_REPORT.md) · [Desempenho](../V08_PERFORMANCE_REPORT.md)
 - [Guia V0.7](../V07_USER_GUIDE.md) · [Testes](../V07_TEST_REPORT.md) · [Desempenho](../V07_PERFORMANCE_REPORT.md)

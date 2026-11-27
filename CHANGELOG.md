@@ -1,6 +1,13 @@
 # Changelog
 
-## [0.9.12] · 26/11/2026 — Sprint A + Sprint B
+## [0.9.12] · 27/11/2026 — Candidata à homologação
+
+- **Sprint C:** corrige o descarte de materiais do GTAO, evita invalidar seu programa a cada quadro e mantém o raio e a espessura de oclusão proporcionais ao modelo.
+- O PNG de Clay respeita a exposição em Desempenho nos renderers com suporte a buffers de cor em ponto flutuante. O passe de sombras roda no desenho de cor, e o GTAO é dispensado quando sua intensidade é zero.
+- Mono conserva as cores da paleta entre viewport e PNG e aplica o ajuste de espessura abaixo de 1 px. Blueprint ativa o esquema escuro dos controles nativos e restaura a preferência anterior na saída. Bayer 8×8 usa a ordenação recursiva correta.
+- Auditoria de GLB, manifesto, ferramentas, persistência e PNG, com medições do renderer e checklist manual. [Auditoria e matriz](SPRINT_C_RELEASE_AUDIT.md) · [Desempenho](SPRINT_C_PERFORMANCE_REPORT.md)
+
+### Sprint A e Sprint B · 26/11/2026
 
 - **Sprint B (Modos gráficos e identidade):**
   - **Mono 2.0:** superfícies unlit (`#151515`), arestas construtivas ocluídas (`#F5F5F5`) com espessura configurável via `LineSegments2`, fundo `#FAFAF8`, inversão B/W e cores personalizáveis.

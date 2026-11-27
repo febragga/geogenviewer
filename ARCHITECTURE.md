@@ -122,6 +122,12 @@ Maior face usa áreas aproximadas de triângulos coplanares. Eixo principal usa 
 
 Os perfis gráficos são aplicados como configuração derivada. Um Canvas adicional ou um compositor permanente aumentaria o custo de memória e competiria com o controle de scissor e as capturas. O rig fornece um adaptador descartável para efeitos e mantém o desenho convencional quando indisponível. [Handoff técnico](DISPLAY_MODES_HANDOFF.md)
 
+## 7.3 Auditoria gráfica V0.9.12
+
+O mesmo Canvas executa o Bayer de Dither e a composição de Clay. GTAO roda apenas nos orçamentos elegíveis, responde à escala do modelo e libera explicitamente os dois materiais omitidos por `GTAOPass.dispose()` no Three.js 0.187.0. O passe de normais dispensa uma segunda atualização de sombras.
+
+A captura de Clay em Desempenho usa a composição para aplicar exposição ao destino offscreen, com escala zero para o GTAO. A captura técnica, o corte ativo e a ausência de suporte a buffers HalfFloat mantêm o caminho convencional. Reservar o compositor a um passe já existente evita introduzir um renderer ou um pipeline de exportação paralelo. [Auditoria](SPRINT_C_RELEASE_AUDIT.md)
+
 ## 8. Deploy e DNS
 
 - Repositório GitHub independente, privado inicialmente; Vercel project separado. Preview para branches e produção somente após autorização.

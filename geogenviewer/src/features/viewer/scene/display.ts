@@ -134,7 +134,7 @@ export class SceneDisplay {
     const showProfileEdges = Boolean(settings.edges || edges.force || profile.surface === "technical");
     const edgeWidth = edges.width ?? 1;
     const edgeThreshold = edges.threshold ?? defaultEdges.threshold;
-    const useFatEdges = showProfileEdges && edgeWidth > 1.05 && settings.mode !== "technical";
+    const useFatEdges = showProfileEdges && profile.edges?.width !== undefined && settings.mode !== "technical";
     const selectionPalette = profile.selection ?? defaultSelectionColors;
     const materialKey = [
       profile.surface, unlit ? "u" : "l", material.color, material.roughness,
@@ -167,6 +167,11 @@ export class SceneDisplay {
     this.edgeModeKey = nextEdgeKey;
     this.baseEdgeWidth = edgeWidth;
     if (showProfileEdges) {
+      for (const edgeMaterial of [this.edgeMaterial, this.fatEdgeMaterial]) {
+        if (edgeMaterial.toneMapped === !unlit) continue;
+        edgeMaterial.toneMapped = !unlit;
+        edgeMaterial.needsUpdate = true;
+      }
       this.edgeMaterial.color.set(edges.color);
       this.edgeMaterial.opacity = edges.opacity;
       this.fatEdgeMaterial.color.set(edges.color);
@@ -315,6 +320,7 @@ export class SceneDisplay {
         const finalColor = tint ? baseColor.clone().lerp(tint, highlight === "selected" ? 0.65 : 0.4) : baseColor;
         variant = new MeshBasicMaterial({
           color: finalColor,
+          toneMapped: false,
           side: base.side,
           opacity: base.opacity * opacity,
           transparent: base.transparent || translucent,

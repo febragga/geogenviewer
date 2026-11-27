@@ -44,9 +44,9 @@ export function createDisplayPipeline(renderer: WebGLRenderer, scene: Scene) {
   }) {
     const profile = resolveDisplayProfile(settings);
     const budget = graphicBudget(settings.quality, frame.regions, frame.compact);
-    const effectId = !frame.technical && !frame.clipping
-      ? (profile.effect === "dither" ? "dither" : budget.secondary ? profile.effect : undefined)
-      : undefined;
+    const allowEffect = !frame.technical && !frame.clipping &&
+      (profile.effect === "dither" || budget.secondary || frame.capture);
+    const effectId = allowEffect ? profile.effect : undefined;
     const nextKey = effectId ? [settings.mode, effectId, settings.quality].join(":") : "";
     const render = () => renderer.render(scene, camera);
     const exposure = renderer.toneMappingExposure;
