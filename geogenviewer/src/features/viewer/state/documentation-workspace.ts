@@ -11,6 +11,8 @@ import type { DiffStatus } from "../../../lib/geogen/revisions/diff";
 import { resolveOrganizationView } from "../../../lib/geogen/organization/operations";
 import type { RevisionComparison } from "./revision-workspace";
 import type { Filters } from "../../../lib/geogen/domain/visibility";
+import { preferenceKey, readLocalList, writeLocalList } from "./local-preferences";
+import { identityText } from "../../../lib/geogen/domain/component-identity";
 import { useAssembly } from "./assembly-store";
 import { useOrganizationStore } from "./organization-store";
 
@@ -42,7 +44,15 @@ export function useDocumentationWorkspace(primary: Revision | null, peer: Revisi
   const [revisionSide, setRevisionSide] = useState<"primary" | "peer">("primary");
   const revision = workflow === "catalog" && revisionSide === "peer" && peer ? peer : primary;
   const isPrimary = revision?.key === primary?.key;
-  const defaults = useMemo(() => revision ? defaultDocumentation(revision) : null, [revision]);
+  const stepKey = revision ? preferenceKey("knolling-steps", revision.scene.manifest, revision.scene.sceneGraph.fileName,
+    revision.scene.sceneGraph.fileSizeBytes, revision.scene.binarySha256) : null;
+  const defaults = useMemo(() => {
+    if (!revision) return null;
+    const initial = defaultDocumentation(revision);
+    initial.layout.stepTitles = Object.fromEntries(readLocalList<{ id: string; name: string }>(stepKey)
+      .filter(({ name }) => identityText(name) && name.length <= 160).map(({ id, name }) => [id, name]));
+    return initial;
+  }, [revision, stepKey]);
   const settings = revision ? settingsByKey[revision.key] ?? defaults : null;
   const change = useCallback((update: (prior: DocumentationSettings) => DocumentationSettings) => {
     if (!revision || !defaults) return;
@@ -51,6 +61,16 @@ export function useDocumentationWorkspace(primary: Revision | null, peer: Revisi
       return { ...kept, [revision.key]: update(old[revision.key] ?? defaults) };
     });
   }, [revision, defaults, primary?.key, peer?.key]);
+
+  const renameStep = useCallback((key: string, value: string) => {
+    if (!settings) return;
+    const titles = { ...settings.layout.stepTitles };
+    const title = identityText(value);
+    if (title) titles[key] = title.slice(0, 160);
+    else delete titles[key];
+    change((old) => ({ ...old, layout: { ...old.layout, stepTitles: titles } }));
+    writeLocalList(stepKey, Object.entries(titles).map(([id, name]) => ({ id, name })));
+  }, [settings, change, stepKey]);
 
   const authoredTimeline = useAssembly((state) => state.timeline);
   const timeline = useMemo(() => isPrimary ? authoredTimeline : catalogTimeline(revision), [revision, isPrimary, authoredTimeline]);
@@ -75,8 +95,9 @@ export function useDocumentationWorkspace(primary: Revision | null, peer: Revisi
     [revision, isPrimary, orgDoc]
   );
   const fabrication = revision ? fabricationConfigs[revision.key]?.settings : undefined;
-  const entries = useMemo(() => active && revision ? catalogEntries(revision, timeline, statuses, fabrication, undefined, userOrg) : noEntries,
-    [active, revision, timeline, statuses, fabrication, userOrg]);
+  const stepTitles = settings?.layout.stepTitles;
+  const entries = useMemo(() => active && revision ? catalogEntries(revision, timeline, statuses, fabrication, undefined, userOrg, stepTitles, workflow === "knolling") : noEntries,
+    [active, revision, timeline, statuses, fabrication, userOrg, stepTitles, workflow]);
   const rows = useMemo(() => new Map(entries.map((entry) => [entry.occurrence.id, entry])), [entries]);
 
   const scopes = useMemo((): ScopeContext => {
@@ -139,7 +160,7 @@ export function useDocumentationWorkspace(primary: Revision | null, peer: Revisi
 
   return {
     revision, isPrimary, revisionSide: isPrimary ? "primary" as const : "peer" as const, setRevisionSide, peerSelect,
-    timeline, settings, change, entries, rows, scoped, items, layout, byPlacement, scene, scopes, groups,
+    timeline, settings, change, renameStep, entries, rows, scoped, items, layout, byPlacement, scene, scopes, groups,
     annotations, mask, selected: visibleSelected,
   };
 }

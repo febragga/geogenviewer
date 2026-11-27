@@ -1,3 +1,5 @@
+import type { ComponentIdentity } from "./component-identity.ts";
+
 export type Provenance = "cad" | "mesh" | "authored";
 export type DisplayUnit = "mm" | "cm" | "m";
 export type GeometryKind = "physicalModel" | "fullScale" | "unknown";
@@ -207,6 +209,7 @@ export interface CadMetadataRecord {
 export interface ComponentRecord {
   id: string;
   name: string;
+  identity?: ComponentIdentity;
   category: ElementCategory;
   sourceObjectId: string | null;
   layerId: string | null;

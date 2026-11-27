@@ -1,7 +1,9 @@
+import { componentLabel, componentIdentifiers } from "../domain/component-identity.ts";
 import { stableValue, type DiffStatus } from "../revisions/diff.ts";
 import { analyzeFabrication, defaultFabrication, type FabricationSettings } from "../revisions/fabrication.ts";
 import { collectQuantities, type QuantityRow } from "../revisions/quantities.ts";
-import { authored, type Revision } from "../revisions/revision.ts";
+import type { Revision } from "../revisions/revision.ts";
+import { describeAssembly } from "../assembly/step-labels.ts";
 import type { AssemblyTimeline } from "../assembly/timeline.ts";
 import { normalizeSearch } from "../domain/visibility.ts";
 
@@ -17,18 +19,17 @@ export const defaultTypes: TypeSettings = { overrides: {}, confirmed: [], blocks
 
 import type { ResolvedOrganizationView } from "../organization/model.ts";
 
-export function catalogEntries(revision: Revision, timeline: AssemblyTimeline, status: ReadonlyMap<string, DiffStatus>, fabrication: FabricationSettings = defaultFabrication, ids?: ReadonlySet<string>, organization?: ResolvedOrganizationView | null) {
+export function catalogEntries(revision: Revision, timeline: AssemblyTimeline, status: ReadonlyMap<string, DiffStatus>, fabrication: FabricationSettings = defaultFabrication, ids?: ReadonlySet<string>, organization?: ResolvedOrganizationView | null, stepTitles?: Readonly<Record<string, string>>, categoryFallback = false) {
   const quantities = collectQuantities(revision, ids, "", organization);
   const analysis = analyzeFabrication(revision, quantities, fabrication);
+  const describe = describeAssembly(timeline, Object.values(revision.scene.sceneGraph.components), stepTitles, categoryFallback);
   return quantities.map((row, index) => {
     const { occurrence } = row;
-    const typeId = authored(occurrence.record, "GeoGen:TypeId");
-    const step = timeline.byElement.get(occurrence.id);
-    const assembly = step === undefined ? null : timeline.schedule[step];
+    const step = describe(occurrence.record);
     return {
       ...row,
-      type: typeof typeId === "string" && typeId.trim() ? typeId.trim() : row.type,
-      step: step ?? null, stepLabel: assembly ? (step! + 1) + " · " + assembly.step.title : null,
+      type: row.typeId ?? row.type,
+      step: step.index, stepLabel: step.label, stepKey: step.key, stepTitle: step.title, stepLegacyLabel: step.legacy,
       status: status.get(occurrence.id) ?? null, fabrication: analysis[index],
     };
   });
@@ -108,9 +109,9 @@ export function projectSearch(row: CatalogEntry, query: string) {
   if (!query) return true;
   let haystack = searchTextCache.get(row);
   if (haystack === undefined) {
-    const { record, id } = row.occurrence;
+    const { record } = row.occurrence;
     const properties = [...Object.entries(record.cad?.properties ?? {}), ...Object.entries(record.cad?.userText ?? {})];
-    haystack = normalizeSearch([id, record.name, row.part, row.type, row.layer, row.userLayer, ...row.groups, ...row.userGroups, row.category,
+    haystack = normalizeSearch([...componentIdentifiers(record), row.type, row.layer, row.userLayer, ...row.groups, ...row.userGroups, row.category,
       row.material, ...record.materialNames, row.prototype, row.stepLabel, row.status, ...properties.flat()].join(" "));
     searchTextCache.set(row, haystack);
   }
@@ -128,13 +129,14 @@ export function scopeCatalog(rows: readonly CatalogEntry[], scope: CatalogScope,
     if (scope === "modified") return row.status === "modified";
     if (scope === "group") return row.groups.includes(value);
     if (scope === "userGroup") return row.userGroups.includes(value);
+    if (scope === "assembly") return row.stepKey === (value || null) || row.stepLabel === value || row.stepLegacyLabel === value;
     return catalogGroup(row, scope) === (value || null);
   });
 }
 
 export function compareCatalog(a: CatalogEntry, b: CatalogEntry, sort: CatalogSort, projected = new Map<string, number>()) {
   function read(row: CatalogEntry) {
-    if (sort === "name") return row.occurrence.record.name;
+    if (sort === "name") return componentLabel(row.occurrence.record);
     if (sort === "length") return row.occurrence.record.cad?.dimensions?.lengthM ?? null;
     if (sort === "area" || sort === "volume") return row[sort]?.value ?? null;
     if (sort === "mass") return row.fabrication.mass.measured?.value ?? row.fabrication.mass.slicer?.value

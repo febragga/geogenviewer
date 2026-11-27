@@ -1,3 +1,4 @@
+import { componentLabel } from "../domain/component-identity.ts";
 import type { AssemblyTimeline } from "../assembly/timeline.ts";
 import type { Measurement } from "../inspection/measurements.ts";
 import { formatMeasurement } from "../inspection/measurements.ts";
@@ -72,7 +73,7 @@ export function partsList(items: readonly CatalogItem[], callouts: readonly Call
   return items.map((item) => {
     const row = item.representative, record = row.occurrence.record;
     const callout = numbers.get(row.occurrence.id);
-    return { id: row.occurrence.id, name: record.name, part: row.part, type: item.label ?? row.type, quantity: item.quantity,
+    return { id: row.occurrence.id, name: componentLabel(record), part: row.part, type: item.label ?? row.type, quantity: item.quantity,
       category: row.category, layer: row.layer, material: row.material, visual: record.materialNames,
       dimensions: record.cad?.dimensions ?? null, area: row.area, volume: row.volume, status: row.status,
       fabrication: row.fabrication, prototype: row.prototype, note: record.cad?.fabrication?.connectorNote ?? null,
@@ -98,7 +99,7 @@ export function sheetPage(revision: Revision, settings: SheetSettings, items: re
   const page: SheetPage = {
     title: settings.title || (settings.template === "assembly" ? moment?.entry.step.title ?? "Montagem" :
       settings.template === "knolling" ? "Disposição de componentes" :
-        (settings.template === "type" ? items[0]?.label : null) ?? items[0]?.representative.occurrence.record.name ?? "Ficha técnica"),
+        (settings.template === "type" ? items[0]?.label : null) ?? componentLabel(items[0]?.representative.occurrence.record, "Ficha técnica")),
     subtitle: settings.subtitle, project: revision.scene.sceneGraph.projectTitle, revision: revision.identity.revisionId,
     prototype: revision.identity.prototypeId, date, groups: [], partIds: [...new Set(items.flatMap((row) => row.members.map(({ occurrence }) => occurrence.id)))],
   };
@@ -135,7 +136,7 @@ export function sheetPage(revision: Revision, settings: SheetSettings, items: re
   if (selected.has("callouts") && settings.labels) add("Legendas", callouts.flatMap((entry, index) => {
     if (!entry.visible || !partIds.has(entry.elementId)) return [];
     const row = items.find((item) => item.representative.occurrence.id === entry.elementId)?.representative;
-    return row ? [{ label: calloutText(row, entry, index), value: row.occurrence.record.name }] : [];
+    return row ? [{ label: calloutText(row, entry, index), value: componentLabel(row.occurrence.record) }] : [];
   }));
   if (settings.template === "comparison" && row && comparison) {
     const source = row.occurrence.record.cad, other = comparison.occurrence.record.cad;

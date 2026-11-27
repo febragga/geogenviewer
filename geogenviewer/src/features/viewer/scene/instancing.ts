@@ -1,3 +1,4 @@
+import { uniformSurface } from "./display-profiles.ts";
 import {
   Color,
   DynamicDrawUsage,
@@ -215,6 +216,7 @@ export class InstancedBatchManager {
     colorForComponent: (componentId: string | null) => Color | null;
     overrideColors?: ReadonlyMap<string, Color>;
     clayColor: Color;
+    roughness?: number;
     selectionColor: Color;
     hoverColor: Color;
   }): boolean {
@@ -231,6 +233,7 @@ export class InstancedBatchManager {
       colorForComponent,
       overrideColors,
       clayColor,
+      roughness = 0.85,
       selectionColor,
       hoverColor,
     } = params;
@@ -259,12 +262,12 @@ export class InstancedBatchManager {
           const baseColor =
             usePerInstanceColor
               ? WHITE
-              : mode === "clay" || mode === "technical" || mode === "layer" || mode === "category" || mode === "semanticMaterial"
+              : uniformSurface(mode)
                 ? clayColor
                 : base.color ?? clayColor;
           mat = new MeshStandardMaterial({
             color: baseColor,
-            roughness: 0.85,
+            roughness,
             side: base.side,
             opacity: base.opacity * opacity * (mode === "xray" ? 0.28 : 1),
             transparent: base.transparent || mode === "xray" || opacity < 1,
@@ -343,7 +346,16 @@ export class InstancedBatchManager {
     }
   }
 
+  resetDisplayMaterials(): void {
+    for (const batch of this.batches) {
+      batch.instancedMesh.material = batch.baseMaterial;
+      for (const material of batch.customMaterials.values()) material.dispose();
+      batch.customMaterials.clear();
+    }
+  }
+
   dispose(): void {
+    this.resetDisplayMaterials();
     if (this.disposed) return;
     this.disposed = true;
     for (const batch of this.batches) {
@@ -354,10 +366,6 @@ export class InstancedBatchManager {
         delete slot.mesh.userData.ggInstancedManaged;
         delete slot.mesh.userData.ggInstancedVisible;
       }
-      for (const mat of batch.customMaterials.values()) {
-        if (mat !== batch.baseMaterial) mat.dispose();
-      }
-      batch.customMaterials.clear();
       batch.instancedMesh.dispose();
     }
     this.group.removeFromParent();

@@ -1,3 +1,4 @@
+import { componentIdentity, identityText } from "../domain/component-identity.ts";
 import type { MeasuredScalar } from "../domain/model.ts";
 import type { ResolvedOrganizationView } from "../organization/model.ts";
 import { meshMetrics } from "./geometry.ts";
@@ -17,8 +18,11 @@ export interface QuantityRow {
   block: string | null;
   part: string | null;
   type: string | null;
+  typeId: string | null;
   area: QuantityValue | null;
   volume: QuantityValue | null;
+  geometricVolume: QuantityValue | null;
+  fabricationVolume: number | null;
   volumeExclusion: string | null;
   groups: string[];
   userGroups: string[];
@@ -62,8 +66,11 @@ export function collectQuantities(
     const metrics = !area || (!volume && cad?.isClosed !== false) ? meshMetrics(occurrence) : null;
     const authoredVolume = numeric(authored(record, "GeoGen:Fabrication:VolumeM3"));
     const material = cad?.fabrication?.material?.trim() || null;
-    const part = authored(record, "GeoGen:PartId");
-    const type = authored(record, "GeoGen:TypeCode");
+    const part = componentIdentity(record).partIds[0] ?? null;
+    const typeId = identityText(authored(record, "GeoGen:TypeId"));
+    const type = identityText(authored(record, "GeoGen:TypeCode")) ?? typeId;
+    const meshVolume: QuantityValue | null = metrics?.volumeM3 != null
+      ? { value: metrics.volumeM3, source: "mesh", method: "volume-closed-mesh" } : null;
     const propertyValue = property ? authored(record, property) : null;
     const userLayerId = organization?.componentLayerId[occurrence.id] ?? null;
     const userGroupIds = organization?.componentGroupIds[occurrence.id] ?? [];
@@ -71,10 +78,12 @@ export function collectQuantities(
       occurrence, category: record.category, layer: record.layerId ? graph.layers[record.layerId]?.fullPath ?? record.layerId : null,
       userLayer: resolveUserLayerPath(organization, userLayerId),
       material, prototype: cad?.fabrication?.prototypeId ?? revision.identity.prototypeId, block: record.blockDefinitionId,
-      part: typeof part === "string" && part.trim() ? part : null, type: typeof type === "string" && type.trim() ? type : null,
+      part, type, typeId,
       area: area ?? (metrics?.areaM2 != null ? { value: metrics.areaM2, source: "mesh", method: "area-triangles" } : null),
       volume: volume ?? (authoredVolume !== null ? { value: authoredVolume, source: "authored", method: "volume-authored" } :
-        metrics?.volumeM3 != null ? { value: metrics.volumeM3, source: "mesh", method: "volume-closed-mesh" } : null),
+        meshVolume),
+      geometricVolume: volume ?? meshVolume,
+      fabricationVolume: authoredVolume,
       volumeExclusion: volume || authoredVolume !== null || metrics?.volumeM3 != null ? null :
         cad?.isClosed === false ? "open-mesh" : metrics?.volumeExclusion ?? "missing-geometry",
       groups: record.groupIds.map((id) => graph.groups[id]?.name ?? id),
@@ -102,14 +111,14 @@ export function coverage<T>(rows: readonly T[], read: (row: T) => number | null,
     percent: rows.length ? 100 * included / rows.length : null, reasons: Object.fromEntries(reasons) };
 }
 
-function byMethod(rows: readonly QuantityRow[], field: "area" | "volume") {
+function quantityByMethod(rows: readonly QuantityRow[], field: "area" | "volume" | "geometricVolume") {
   const methods = new Set(rows.flatMap((row) => row[field]?.method ?? []));
   return Object.fromEntries([...methods].map((method) => [method,
     coverage(rows, (row) => row[field]?.method === method ? row[field].value : null,
       (row) => row[field] ? "different-method" : row.volumeExclusion ?? "missing")]));
 }
 
-export function summarizeQuantities(input: readonly QuantityRow[]) {
+export function summarizeQuantities(input: readonly QuantityRow[], volumeField: "volume" | "geometricVolume" = "volume") {
   const rows = [...new Map(input.map((row) => [row.occurrence.key, row])).values()];
   const types = new Set<string>(), blocks = new Set<string>(), geometries = new Set<string>();
   let occurrences = 0;
@@ -120,9 +129,9 @@ export function summarizeQuantities(input: readonly QuantityRow[]) {
     for (const mesh of row.occurrence.parts) geometries.add(mesh.geometry.uuid);
   }
   return { components: rows.length, occurrences, types: types.size, blocks: blocks.size, uniqueGeometries: geometries.size,
-    area: byMethod(rows, "area"), volume: byMethod(rows, "volume"),
+    area: quantityByMethod(rows, "area"), volume: quantityByMethod(rows, volumeField),
     areaCoverage: coverage(rows, (row) => row.area ? 1 : null, () => "missing-geometry"),
-    volumeCoverage: coverage(rows, (row) => row.volume ? 1 : null, (row) => row.volumeExclusion ?? "missing") };
+    volumeCoverage: coverage(rows, (row) => row[volumeField] ? 1 : null, (row) => row.volumeExclusion ?? "missing") };
 }
 
 export function groupQuantities(rows: readonly QuantityRow[], field: Grouping) {

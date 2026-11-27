@@ -1,3 +1,4 @@
+import { componentIdentifiers, componentLabel } from "./component-identity.ts";
 import type { ResolvedOrganizationView } from "../organization/model.ts";
 import type { ComponentRecord, ViewerSceneGraph } from "./model.ts";
 
@@ -122,7 +123,7 @@ export function catalogFor(
           : field === "userGroup" && organization?.groups[value] ? organization.groups[value].name
             : field === "material" ? graph.materials[value]?.name ?? value
               : field === "block" ? blocks.get(value) ?? value
-                : field === "instance" ? graph.components[value].name + " · " + value
+                : field === "instance" ? componentLabel(graph.components[value]) + " · " + value
                   : value,
   })).sort((a, b) => a.label.localeCompare(b.label, "pt-BR"));
 }
@@ -172,7 +173,7 @@ export function matchesComponent(graph: ViewerSceneGraph, id: string, query: str
     const comp = graph.components[id];
     if (!comp) return false;
     haystack = normalizeSearch([
-      comp.name, comp.id, comp.sourceObjectId, comp.category,
+      ...componentIdentifiers(comp), comp.category,
       comp.layerId ? graph.layers[comp.layerId]?.fullPath : "",
       ...comp.groupIds.map((group) => graph.groups[group]?.name),
       ...comp.materialNames, ...Object.entries(comp.cad?.userText ?? {}).flat(),

@@ -2,6 +2,7 @@ import type { ManifestV1 } from "../../../lib/geogen/domain/model.ts";
 import type { Filters } from "../../../lib/geogen/domain/visibility.ts";
 import type { InspectionPreset } from "./inspection-store";
 import type { CameraPose, ViewLayout } from "../scene/camera-state.ts";
+import { isDisplayMode, migrateDisplayMode, sanitizeModeOptions } from "../scene/display-profiles.ts";
 import type { DisplaySettings } from "./presentation-store.ts";
 
 export interface VisibilitySnapshot {
@@ -28,7 +29,7 @@ export interface FilterPreset {
   filters: Filters;
 }
 
-export function preferenceKey(kind: "views" | "filters", manifest: ManifestV1 | undefined, file: string, size: number,
+export function preferenceKey(kind: "views" | "filters" | "knolling-steps", manifest: ManifestV1 | undefined, file: string, size: number,
   binarySha256?: string | null) {
   if (!manifest && binarySha256 !== undefined) {
     return binarySha256 ? "geogen:v091:" + kind + ":glb:" + binarySha256.toLowerCase() : null;
@@ -66,7 +67,7 @@ export function validNamedView(view: NamedView): boolean {
   if (!display || !visibility || !validFilters(visibility.filters) || !strings(visibility.hiddenIds) ||
       (visibility.hiddenGroupKeys !== undefined && !strings(visibility.hiddenGroupKeys)) ||
       (visibility.isolatedIds !== null && !strings(visibility.isolatedIds))) return false;
-  if (!["shaded", "material", "clay", "technical", "wireframe", "xray", "layer", "category", "semanticMaterial"].includes(String(display.mode)) ||
+  if ((!isDisplayMode(display.mode) && display.mode !== "clay") ||
       !["performance", "balanced", "high"].includes(String(display.quality)) ||
       !Number.isFinite(display.light) || !Number.isFinite(display.opacity)) return false;
   const regions = record(view.regions);
@@ -76,6 +77,10 @@ export function validNamedView(view: NamedView): boolean {
     slot(regions.active) && (regions.maximized === null || slot(regions.maximized)) &&
     Array.isArray(regions.poses) && regions.poses.length <= 4 &&
     regions.poses.every((pose) => pose === null || validPose(pose)));
+}
+
+export function restoreDisplay(display: DisplaySettings): DisplaySettings {
+  return { ...display, mode: migrateDisplayMode(display.mode), modeOptions: sanitizeModeOptions(display.modeOptions) };
 }
 
 export function readLocalList<T>(key: string | null, storage?: Pick<Storage, "getItem">, validate?: (item: T) => boolean): T[] {

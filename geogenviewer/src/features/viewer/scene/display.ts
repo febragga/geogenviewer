@@ -5,9 +5,10 @@ import {
 import type { LoadedScenePackage } from "../../../lib/geogen/importers/package";
 import type { ResolvedOrganizationView } from "../../../lib/geogen/organization/model";
 import type { DisplaySettings } from "../state/presentation-store";
+import { defaultEdges, displayProfile, legacySurface, uniformSurface } from "./display-profiles.ts";
 import { InstancedBatchManager, DEFAULT_MIN_BATCH_SIZE } from "./instancing.ts";
 
-const clay = new Color("#c9c5ba");
+const defaultSurface = new Color(legacySurface.color);
 const selection = new Color("#5cb3e8");
 const hover = new Color("#89c9ee");
 
@@ -37,6 +38,7 @@ interface Renderable {
   id: string | null;
   original: Material | Material[];
   visible: boolean;
+  shadows: [boolean, boolean];
   edges?: LineSegments;
   key?: string;
 }
@@ -46,8 +48,11 @@ export class SceneDisplay {
   private readonly pickables: Object3D[] = [];
   private readonly variants = new Map<string, Material>();
   private readonly edges = new Map<BufferGeometry, EdgesGeometry>();
-  private readonly edgeMaterial = new LineBasicMaterial({ color: "#354457", transparent: true, opacity: 0.72 });
-  private materialOpacity: number | null = null;
+  private edgesActive = false;
+  private readonly edgeMaterial = new LineBasicMaterial({ ...defaultEdges, transparent: true });
+  private materialKey: string | null = null;
+  private surface = defaultSurface;
+  private roughness = legacySurface.roughness;
   private readonly loaded: LoadedScenePackage;
   private readonly batches: InstancedBatchManager | null = null;
 
@@ -59,7 +64,7 @@ export class SceneDisplay {
       const obj = object as Mesh;
       if (!obj.material) return;
       this.objects.push({
-        object: obj, original: obj.material, visible: obj.visible,
+        object: obj, original: obj.material, visible: obj.visible, shadows: [obj.castShadow, obj.receiveShadow],
         id: loaded.resolveComponentId(obj),
       });
     });
@@ -100,21 +105,37 @@ export class SceneDisplay {
   }
 
   apply(settings: DisplaySettings, selected: ReadonlySet<string>, hovered: string | null, hidden: ReadonlySet<string>, isolated: ReadonlySet<string> | null, ghosts: ReadonlySet<string>, overrides?: ReadonlyMap<string, Color>, organization?: ResolvedOrganizationView | null) {
-    const settingsKey = [settings.mode, settings.opacity, organization?.source ?? "cad"].join(":");
-    if (settings.opacity !== this.materialOpacity) {
+    const profile = displayProfile(settings.mode);
+    const material = profile.material ?? legacySurface;
+    const materialKey = [profile.surface, material.color, material.roughness, settings.opacity].join(":");
+    const settingsKey = [materialKey, organization?.source ?? "cad"].join(":");
+    const mode = profile.surface;
+    if (materialKey !== this.materialKey) {
       for (const entry of this.objects) {
         entry.object.material = entry.original;
         entry.key = undefined;
       }
       for (const material of this.variants.values()) material.dispose();
       this.variants.clear();
-      this.materialOpacity = settings.opacity;
+      this.batches?.resetDisplayMaterials();
+      this.materialKey = materialKey;
+      this.surface = material === legacySurface ? defaultSurface : new Color(material.color);
+      this.roughness = material.roughness;
+    }
+
+    const edges = profile.edges ?? defaultEdges;
+    const showProfileEdges = settings.edges || mode === "technical";
+    if (!showProfileEdges && this.edgesActive) this.clearEdges();
+    this.edgesActive = showProfileEdges;
+    if (showProfileEdges) {
+      this.edgeMaterial.color.set(edges.color);
+      this.edgeMaterial.opacity = edges.opacity;
     }
 
     const batchActive = Boolean(this.batches?.active);
     if (this.batches?.active) {
       this.batches.applyDisplayAndVisibility({
-        mode: settings.mode,
+        mode,
         opacity: settings.opacity,
         shadows: settings.shadows,
         edges: settings.edges,
@@ -123,9 +144,10 @@ export class SceneDisplay {
         hidden,
         isolated,
         ghosts,
-        colorForComponent: (id) => this.semanticColor(id, settings.mode, organization),
+        colorForComponent: (id) => this.semanticColor(id, mode, organization),
         overrideColors: overrides,
-        clayColor: clay,
+        clayColor: this.surface,
+        roughness: this.roughness,
         selectionColor: selection,
         hoverColor: hover,
       });
@@ -143,15 +165,15 @@ export class SceneDisplay {
         object.visible = entry.visible && (id === null || (!hidden.has(id) && (!isolated || isolated.has(id))));
       }
       const highlight: Highlight = id && selected.has(id) ? "selected" : id && id === hovered ? "hovered" : "";
-      const color = (id ? overrides?.get(id) : undefined) ?? this.semanticColor(id, settings.mode, organization);
+      const color = (id ? overrides?.get(id) : undefined) ?? this.semanticColor(id, mode, organization);
       const key = [settingsKey, highlight, future, color?.getHexString()].join(":");
       if (key !== entry.key && object.visible) {
-        const map = (material: Material) => this.variant(material, object.isMesh, settings, color, highlight, future, key);
+        const map = (material: Material) => this.variant(material, object.isMesh, mode, settings.opacity, color, highlight, future, key);
         object.material = Array.isArray(original) ? original.map(map) : map(original);
         entry.key = key;
       }
 
-      const showEdges = object.visible && !future && (settings.edges || settings.mode === "technical");
+      const showEdges = object.visible && !future && showProfileEdges;
       if (showEdges && object.isMesh && !entry.edges) {
         const geometry = object.geometry;
         let edge = this.edges.get(geometry);
@@ -214,22 +236,26 @@ export class SceneDisplay {
     return null;
   }
 
-  private variant(base: Material, mesh: boolean, settings: DisplaySettings, color: Color | null, highlight: Highlight, ghost: boolean, styleKey: string) {
-    const { mode } = settings;
+  private variant(base: Material, mesh: boolean, mode: DisplaySettings["mode"], baseOpacity: number, color: Color | null, highlight: Highlight, ghost: boolean, styleKey: string) {
     const tint = highlight === "selected" ? selection : highlight === "hovered" ? hover : null;
-    const opacity = settings.opacity * (ghost ? 0.17 : mode === "xray" ? 0.28 : 1);
-    const translucent = ghost || mode === "xray" || settings.opacity < 1;
+    const opacity = baseOpacity * (ghost ? 0.17 : mode === "xray" ? 0.28 : 1);
+    const translucent = ghost || mode === "xray" || baseOpacity < 1;
     if ((!mesh || mode === "material") && !tint && !translucent) return base;
-    const key = base.uuid + ":" + mesh + ":" + styleKey;
+    const useBase = !mesh || mode === "material";
+    const baseKey = useBase ? base.uuid : [
+      base.side, base.opacity, base.transparent, base.depthWrite, base.alphaTest,
+      !color && !uniformSurface(mode) ? (base as Material & { color?: Color }).color?.getHexString() : "",
+    ].join(":");
+    const key = baseKey + ":" + mesh + ":" + styleKey;
     const existing = this.variants.get(key);
     if (existing) return existing;
     let variant: Material;
-    if (!mesh || mode === "material") variant = tinted(base, tint, opacity, translucent);
+    if (useBase) variant = tinted(base, tint, opacity, translucent);
     else {
       const source = base as Material & { color?: Color };
       variant = new MeshStandardMaterial({
-        color: color ?? (["clay", "technical", "layer", "category", "semanticMaterial"].includes(mode) ? clay : source.color ?? clay),
-        roughness: 0.85, side: base.side, opacity: base.opacity * opacity,
+        color: color ?? (uniformSurface(mode) ? this.surface : source.color ?? this.surface),
+        roughness: this.roughness, side: base.side, opacity: base.opacity * opacity,
         transparent: base.transparent || translucent, depthWrite: base.depthWrite && !translucent,
         alphaTest: base.alphaTest, wireframe: mode === "wireframe",
         emissive: tint ?? 0x000000, emissiveIntensity: tint === selection ? 0.5 : 0.24,
@@ -239,15 +265,24 @@ export class SceneDisplay {
     return variant;
   }
 
-  dispose() {
-    this.batches?.dispose();
-    for (const { object, original, visible, edges } of this.objects) {
-      object.material = original;
-      object.visible = visible;
-      if (edges) object.remove(edges);
+  private clearEdges() {
+    for (const entry of this.objects) {
+      if (entry.edges) entry.object.remove(entry.edges);
+      entry.edges = undefined;
     }
     for (const geometry of this.edges.values()) geometry.dispose();
-    for (const material of this.variants.values()) material.dispose();
+    this.edges.clear();
     this.edgeMaterial.dispose();
+  }
+
+  dispose() {
+    this.batches?.dispose();
+    this.clearEdges();
+    for (const { object, original, visible, shadows } of this.objects) {
+      object.material = original;
+      object.visible = visible;
+      [object.castShadow, object.receiveShadow] = shadows;
+    }
+    for (const material of this.variants.values()) material.dispose();
   }
 }

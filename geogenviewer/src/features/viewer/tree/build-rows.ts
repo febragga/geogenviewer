@@ -1,3 +1,4 @@
+import { componentLabel } from "../../../lib/geogen/domain/component-identity.ts";
 import { catalogFor, matchesComponent, normalizeSearch } from "../../../lib/geogen/domain/visibility.ts";
 import type { ViewerSceneGraph } from "../../../lib/geogen/domain/model";
 import type { ResolvedOrganizationView } from "../../../lib/geogen/organization/model";
@@ -96,7 +97,7 @@ export function buildTreeRows(
         key: `comp:${id}`,
         kind: "component",
         id,
-        label: comp.name,
+        label: componentLabel(comp),
         secondaryLabel: comp.id,
         depth,
         hasChildren,
@@ -189,7 +190,7 @@ export function buildTreeRows(
               key: `ulayer:${layerId}:comp:${elId}`,
               kind: "component",
               id: elId,
-              label: comp.name,
+              label: componentLabel(comp),
               secondaryLabel: comp.id,
               depth: depth + 1,
               hasChildren: false,
@@ -237,7 +238,7 @@ export function buildTreeRows(
               key: `ulayer:__unassigned__:comp:${elId}`,
               kind: "component",
               id: elId,
-              label: comp.name,
+              label: componentLabel(comp),
               secondaryLabel: comp.id,
               depth: 1,
               hasChildren: false,
@@ -322,7 +323,7 @@ export function buildTreeRows(
             key: `layer:${layerId}:comp:${elId}`,
             kind: "component",
             id: elId,
-            label: comp.name,
+            label: componentLabel(comp),
             secondaryLabel: comp.id,
             depth: depth + 1,
             hasChildren: false,
@@ -358,7 +359,7 @@ export function buildTreeRows(
         for (const id of matches) {
           const comp = graph.components[id];
           rows.push({
-            key: key + ":" + id, kind: "component", id, label: comp.name,
+            key: key + ":" + id, kind: "component", id, label: componentLabel(comp),
             secondaryLabel: id, depth: 1, hasChildren: false, isExpanded: false, targetComponentIds: [id],
             isComposite: comp.isComposite, isInstance: comp.isInstance, colorHex: comp.cad?.colorHex,
           });
@@ -412,7 +413,7 @@ export function buildTreeRows(
           key: `ugroup:${id}:comp:${element}`,
           kind: "component",
           id: element,
-          label: comp.name,
+          label: componentLabel(comp),
           secondaryLabel: element,
           depth: depth + 1,
           hasChildren: false,
@@ -465,7 +466,7 @@ export function buildTreeRows(
       if (!comp) continue;
       rows.push({
         key: "group:" + id + ":comp:" + element, kind: "component", id: element,
-        label: comp.name, secondaryLabel: element, depth: depth + 1, hasChildren: false, isExpanded: false,
+        label: componentLabel(comp), secondaryLabel: element, depth: depth + 1, hasChildren: false, isExpanded: false,
         targetComponentIds: [element], isComposite: comp.isComposite, isInstance: comp.isInstance, colorHex: comp.cad?.colorHex,
       });
     }

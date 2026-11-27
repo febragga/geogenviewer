@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.9.12] · 26/11/2026 — Sprint A
+
+- PartID preferencial na apresentação, na pesquisa e nos relatórios, com IDs internos e nomes de origem preservados.
+- Knolling com etapas e categorias renomeáveis, orientação pela maior face ou pelo eixo principal e cálculo de espaços após a orientação.
+- Resumo no viewport com escopo, agrupamentos, cobertura, medidas e estimativas de fabricação.
+- Infraestrutura de Mono, Blueprint, Dither e Clay com migração de vistas legadas, orçamento de qualidade e integração com PNG.
+- [Handoff dos modos gráficos](DISPLAY_MODES_HANDOFF.md) · [Regressões e limitações](V0912_REGRESSION_REPORT.md)
+
+## [0.9.11] · 26/11/2026 — Apresentação pública
+
+- Remoção dos links públicos para o GitHub na Home e em Configurações → Sobre.
+
 ## [0.9.1] · 26/11/2026 — Auditoria e estabilização
 
 - Pré-validação GLB e vínculo único de malhas a ocorrências do manifesto CAD.

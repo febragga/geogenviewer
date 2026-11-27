@@ -2344,6 +2344,12 @@ a {
 }
 .gg-viewport[data-background="white"] { background: #f8fafc; }
 .gg-viewport[data-background="dark"] { background: #181c21; }
+.gg-viewport[data-mode-background="neutral"] { background: light-dark(#e4e2de, #333230); }
+.gg-viewport[data-mode-background="blueprint"] { background: light-dark(#dce8f1, #23384c); }
+body:has(.gg-app[data-graphics-theme="blueprint"]) {
+  --gg-accent: light-dark(#17476d, #b7dcfa);
+  --gg-accent-hover: light-dark(#113a5a, #d1e9fc);
+}
 .gg-topbar__revision {
   white-space: nowrap;
   color: var(--gg-text-muted);
@@ -2389,6 +2395,12 @@ a {
 .gg-v05-trigger {
   min-height: var(--gg-view-control);
 }
+.gg-v05-stats.gg-model-summary {
+  grid-template-columns: minmax(0, 1fr) auto;
+  margin: 0;
+}
+.gg-model-summary dd { text-align: end; overflow-wrap: anywhere; }
+.gg-model-summary dt { overflow-wrap: anywhere; }
 .gg-projection-indicator {
   border: 1px solid var(--gg-border-subtle);
   border-radius: 4px;
@@ -2859,8 +2871,8 @@ a {
   .gg-inspection-gizmo { min-width: 44px; min-height: 44px; }
 }
 @container (max-width: 540px) {
-  .gg-v05-tools [aria-label="Inspeção espacial"] span { display: none; }
-  .gg-v05-tools [aria-label="Inspeção espacial"] { min-inline-size: var(--gg-view-control); justify-content: center; }
+  .gg-v05-tools :is([aria-label="Inspeção espacial"], [aria-label="Resumo"]) span { display: none; }
+  .gg-v05-tools :is([aria-label="Inspeção espacial"], [aria-label="Resumo"]) { min-inline-size: var(--gg-view-control); justify-content: center; }
 }
 @container (max-width: 420px) {
   .gg-inspection-hint span { max-inline-size: 154px; }

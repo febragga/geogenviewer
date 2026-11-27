@@ -158,7 +158,7 @@ try {
 
   await choice(k, "Escopo de componentes").selectOption("category");
   await choice(k, "Valor do filtro").selectOption("beam");
-  await itemButton(k, "Viga principal A").click();
+  await itemButton(k, "V-01").click();
   await expand(k, "Posição e orientação da peça");
   await button(k, "Fixar nesta posição").click();
   await expand(k, "Callouts e lista de peças");
@@ -181,7 +181,7 @@ try {
   const c = catalog(page);
   const search = c.getByRole("searchbox", { name: "Pesquisar peças", exact: true });
   await search.fill("Viga principal A");
-  await itemButton(c, "Viga principal A").click();
+  await itemButton(c, "V-01").click();
   await c.locator(".gg-v08-thumb img").first().waitFor();
   assert.equal(await page.locator("html").getAttribute("data-gl-count"), "1");
   await page.screenshot({ path: join(out, "catalogo-cards.png") });
@@ -202,7 +202,7 @@ try {
   await button(c, "Abrir ficha técnica").click();
   await button(c, "Gerar ficha").click();
   const article = c.locator(".gg-v08-page");
-  await article.getByRole("heading", { name: "Viga principal A", exact: true }).waitFor();
+  await article.getByRole("heading", { name: "V-01", exact: true }).waitFor();
   await article.locator("img").first().waitFor();
   await article.scrollIntoViewIfNeeded();
   await audit(page, "component-sheet");

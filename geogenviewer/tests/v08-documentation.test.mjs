@@ -6,6 +6,8 @@ import { importGlbBasicPackage, importGlbWithManifestPackage } from "../src/lib/
 import { captureRevision, alignmentFor, defaultAlignment } from "../src/lib/geogen/revisions/revision.ts";
 import { diffRevisions } from "../src/lib/geogen/revisions/diff.ts";
 import { matchRevisions } from "../src/lib/geogen/revisions/matching.ts";
+import { collectModelSummary, groupModelSummary, summarizeModel } from "../src/lib/geogen/revisions/model-summary.ts";
+import { defaultFabrication } from "../src/lib/geogen/revisions/fabrication.ts";
 import { compileAssembly } from "../src/lib/geogen/assembly/timeline.ts";
 import { parseInspection, inspectionIdentity } from "../src/lib/geogen/inspection/document.ts";
 import { meshReferences } from "../src/lib/geogen/inspection/measurements.ts";
@@ -59,7 +61,7 @@ test("V0.8: os cinco layouts são determinísticos, preservam dimensões e respe
 
 test("V0.8: rotações, escalas não uniformes, compósitos e peças pequenas definem caixas conservadoras", () => {
   assert.equal(byId.get(expected.composite).occurrence.parts.length, 5);
-  for (const orientation of ["preserve", "world", "quarter", "longest", "manual"]) {
+  for (const orientation of ["preserve", "world", "quarter", "longest", "manual", "largestFace", "principalAxis"]) {
     const layout = layoutKnolling(items, { ...baseSettings, orientation, overrides: { "pilar-4": { rotation: 35, fixed: null } } });
     for (const item of layout.placements) {
       const occurrence = item.item.representative.occurrence;
@@ -87,8 +89,8 @@ test("V0.8: posição fixada persiste, parâmetros são validados e posições i
 test("V0.8: retorno de matriz, compósitos e instâncias sem deriva após ciclos", () => {
   const cached = new Map([...a.scene.objectByComponentId].map(([id, node]) => [id, node.matrixWorld.toArray()]));
   const pose = new KnollingPose(a);
-  const layout = layoutKnolling(items, { ...baseSettings, orientation: "longest" });
-  for (let i = 0; i < 12; i++) {
+  for (const orientation of ["longest", "largestFace", "principalAxis"]) for (let i = 0; i < 12; i++) {
+    const layout = layoutKnolling(items, { ...baseSettings, orientation });
     pose.apply(layout, 0.37);
     pose.apply(layout, 1);
     for (const item of layout.placements) {
@@ -98,6 +100,43 @@ test("V0.8: retorno de matriz, compósitos e instâncias sem deriva após ciclos
     pose.apply(layout, 0);
     for (const [id, node] of a.scene.objectByComponentId) assert.deepEqual(node.matrixWorld.toArray(), cached.get(id));
   }
+});
+
+test("Sprint A: etapas autoradas mantêm ordem, títulos repetidos continuam distintos e categorias não viram dependências", () => {
+  const draft = timeline.schedule.map(({ step }, index) => index === 0 ? { ...step, title: "Etapa 1" } : step);
+  const effective = compileAssembly(draft);
+  const renamed = { ["step:" + draft[1].id]: "Pré-montagem" };
+  const entries = catalogEntries(a, effective, new Map(), undefined, undefined, undefined, renamed, true);
+  const result = layoutKnolling(occurrenceItems(entries), { ...baseSettings, mode: "assembly" });
+  assert.match(result.groups[0].label, /^Etapa 01 — /);
+  assert.equal(result.groups[1].label, "Etapa 02 — Pré-montagem");
+  const baseline = scopeCatalog(entries, "assembly", "2 · " + draft[1].title, {});
+  assert.deepEqual(baseline.map((row) => row.occurrence.id), draft[1].elementIds);
+  const noSteps = catalogEntries(a, compileAssembly([]), new Map(), undefined, undefined, undefined, {}, true);
+  assert.equal(noSteps.find((row) => row.category === "column").stepLabel, "Pilares");
+  assert.ok(noSteps.every((row) => row.step === null));
+  assert.equal(compileAssembly(draft).total, timeline.total);
+});
+
+test("Sprint A: resumo mantém cobertura, proveniência, ocorrências e agrupamento por etapa", () => {
+  const ids = new Set(["base", "pilar-1", "pilar-2", "viga-principal-a"]);
+  const { rows, fabrication } = collectModelSummary(a, ids, defaultFabrication);
+  const totals = summarizeModel(rows, fabrication);
+  assert.equal(totals.components, 4);
+  assert.equal(totals.occurrences, 4);
+  assert.ok(totals.types > 0);
+  assert.ok(totals.area["area-triangles"].subtotal > 0);
+  assert.ok(totals.length.subtotal > 0 && totals.length.excluded > 0);
+  assert.equal(totals.mass.slicer.included, 1);
+  const groups = groupModelSummary(a, rows, fabrication, timeline, "assembly");
+  assert.ok(groups.some(({ label }) => label?.startsWith("Etapa")));
+  assert.equal(groups.reduce((sum, group) => sum + group.rows.length, 0), rows.length);
+  for (const grouping of ["category", "layer", "material", "type"]) {
+    assert.equal(groupModelSummary(a, rows, fabrication, timeline, grouping).flatMap(({ rows }) => rows).length, 4);
+  }
+  const unknown = summarizeModel([], []);
+  assert.equal(unknown.length.subtotal, null);
+  assert.equal(unknown.mass.solid.subtotal, null);
 });
 
 test("V0.8: tipos autorados preservam quantidade, repetição, variantes e autorização manual", () => {

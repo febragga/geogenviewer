@@ -208,7 +208,7 @@ export function SettingsDialog({
                 <select
                   value={display.quality}
                   onChange={(event) =>
-                    patchDisplay({ quality: event.currentTarget.value as GraphicsQuality })
+                    useAppSettings.getState().patchPreferences({ graphicsQuality: event.currentTarget.value as GraphicsQuality })
                   }
                 >
                   <option value="performance">Desempenho (DPR 1x, ideal para modelos grandes)</option>

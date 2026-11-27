@@ -1,15 +1,17 @@
 "use client";
 
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Component, useCallback, useEffect, useMemo, useRef, type ReactNode } from "react";
+import { Component, useCallback, useEffect, useLayoutEffect, useMemo, useRef, type ReactNode } from "react";
 import {
   Box3,
+  DirectionalLight,
   BufferAttribute,
   BufferGeometry,
   GridHelper,
   LineDashedMaterial,
   LineSegments,
   Object3D,
+  PCFShadowMap,
   Raycaster,
   Sphere,
   Vector2,
@@ -27,6 +29,7 @@ import { resolveOrganizationView } from "../../../lib/geogen/organization/operat
 import { useViewerStore } from "../state/viewer-store";
 import { viewportScope } from "../state/viewport-scopes";
 import { resolveVisibility } from "../state/visibility-state";
+import { defaultLighting, displayProfile, graphicBudget } from "./display-profiles";
 import { SceneDisplay } from "./display";
 import { useViewportCameras } from "./viewport-cameras";
 import {
@@ -41,6 +44,41 @@ import { type LayoutResult, type PlaneName } from "../../../lib/geogen/documenta
 import type { Revision } from "../../../lib/geogen/revisions/revision";
 import { useKnollingMotion } from "../state/documentation-store";
 import { DocumentationRenderer, type RenderDocumentationImage } from "./documentation-renderer";
+
+function ViewportLighting({ target, sphere, span }: { target: Object3D; sphere: Sphere; span: number }) {
+  const width = useThree((state) => state.size.width);
+  const settings = usePresentation((state) => state.display);
+  const layout = usePresentation((state) => state.layout);
+  const maximized = usePresentation((state) => state.maximized);
+  const lightRef = useRef<DirectionalLight>(null);
+  const budget = graphicBudget(settings.quality, layout !== "single" && maximized === null ? 2 : 1, width < 640);
+  const shadows = settings.shadows;
+  const profile = displayProfile(settings.mode);
+  const lighting = profile.lighting ?? defaultLighting;
+  const radius = profile.shadows?.radius ?? 1;
+  const shadowSize = budget.shadowSize;
+
+  useLayoutEffect(() => {
+    const light = lightRef.current;
+    return () => {
+      const shadow = light?.shadow;
+      if (!shadow) return;
+      shadow.dispose();
+      shadow.map = null;
+      shadow.mapPass = null;
+    };
+  }, [shadowSize, shadows, radius]);
+
+  return <>
+    <hemisphereLight intensity={lighting.ambient * settings.light} groundColor={lighting.groundColor} />
+    <directionalLight ref={lightRef} position={[sphere.center.x + span, sphere.center.y + span, sphere.center.z + span]}
+      intensity={lighting.key * settings.light} castShadow={shadows} shadow-mapSize={[shadowSize, shadowSize]}
+      shadow-radius={radius} shadow-camera-left={-span} shadow-camera-right={span} shadow-camera-top={span} shadow-camera-bottom={-span}
+      shadow-camera-near={span * 0.01} shadow-camera-far={span * 5} target={target} shadow-normalBias={span * 0.0001} />
+    {lighting.fill ? <directionalLight position={[sphere.center.x - span, sphere.center.y + span, sphere.center.z - span]}
+      intensity={lighting.fill * settings.light} target={target} /> : null}
+  </>;
+}
 
 export type CameraCommand = {
   kind: "fit" | "reset" | "closer" | "farther";
@@ -780,6 +818,10 @@ export default function Viewport({
   }, []);
 
   const settings = usePresentation((state) => state.display);
+  const layout = usePresentation((state) => state.layout);
+  const maximized = usePresentation((state) => state.maximized);
+  const budget = graphicBudget(settings.quality, layout !== "single" && maximized === null ? 2 : 1);
+  const profile = displayProfile(settings.mode);
   const { sphere, origin } = useMemo(() => {
     const s = controller.restSceneBounds.getBoundingSphere(new Sphere());
     return { sphere: s, origin: controller.restSceneBounds.min };
@@ -798,20 +840,14 @@ export default function Viewport({
       <Canvas
         fallback={fallback}
         frameloop="demand"
-        dpr={settings.quality === "performance" ? 1 : settings.quality === "high" ? [1, 2] : [1, 1.5]}
-        shadows={settings.shadows}
+        dpr={budget.dpr === 1 ? 1 : [1, budget.dpr]}
+        shadows={settings.shadows ? { type: PCFShadowMap } : false}
         role="region"
         aria-label="Modelo tridimensional"
       >
         <DocumentationRenderer attach={onDocumentationRenderer} />
         {comparison ? <ComparisonScene {...comparison} command={command} acceptCommand={acceptCommand} mode={mode} onContextLost={onContextLost} /> : <>
-        <hemisphereLight intensity={2.2 * settings.light} groundColor="#788698" />
-        <directionalLight position={[sphere.center.x + span, sphere.center.y + span, sphere.center.z + span]} intensity={2.6 * settings.light}
-          castShadow={settings.shadows} shadow-mapSize={[1024, 1024]}
-          shadow-camera-left={-span} shadow-camera-right={span}
-          shadow-camera-top={span} shadow-camera-bottom={-span}
-          shadow-camera-near={span * 0.01} shadow-camera-far={span * 5}
-          target={lightTarget} shadow-normalBias={span * 0.0001} />
+        <ViewportLighting target={lightTarget} sphere={sphere} span={span} />
         <primitive object={lightTarget} />
         <primitive object={scenePackage.model.scene} />
         <axesHelper visible={settings.axes} userData={{ ggInspectionHelper: "axes" }}
@@ -822,7 +858,7 @@ export default function Viewport({
           position={[sphere.center.x, origin.y - span * 0.0001, sphere.center.z]} />
         {settings.ground && <mesh rotation={[-Math.PI / 2, 0, 0]} position={[sphere.center.x, origin.y - span * 0.0002, sphere.center.z]} receiveShadow>
           <planeGeometry args={[span, span]} />
-          <meshStandardMaterial color="#9ca7ac" roughness={1} />
+          <meshStandardMaterial color={profile.groundColor ?? "#9ca7ac"} roughness={1} />
         </mesh>}
         <SceneController
           scenePackage={scenePackage}

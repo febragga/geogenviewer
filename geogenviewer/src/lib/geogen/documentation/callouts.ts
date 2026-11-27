@@ -1,3 +1,4 @@
+import { componentLabel } from "../domain/component-identity.ts";
 import { Matrix4, Vector3, type Camera, type Plane } from "three";
 import type { CatalogEntry } from "./catalog.ts";
 import type { Rect } from "./knolling.ts";
@@ -44,7 +45,7 @@ export function makeCallout(row: CatalogEntry, id: string, kind: CalloutKind = "
 }
 
 export function calloutText(entry: CatalogEntry, label: Callout, index: number, quantity?: number) {
-  const name = entry.part || entry.occurrence.record.name || entry.occurrence.id;
+  const name = componentLabel(entry.occurrence.record);
   if (label.kind === "custom") return label.text || name;
   if (label.kind === "number") return String(index + 1).padStart(2, "0");
   if (label.kind === "assembly") return entry.stepLabel ? name + " · " + entry.stepLabel : name;

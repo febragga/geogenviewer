@@ -208,7 +208,8 @@ test("V0.5: modos preservam materiais GLB e reutilizam arestas de uma geometria 
     const originals = meshes.map((mesh) => mesh.material);
     const existingChildren = meshes.map((mesh) => mesh.children.length);
     const none = new Set();
-    for (const mode of ["shaded", "clay", "technical", "wireframe", "xray", "layer", "category", "semanticMaterial", "material"]) {
+    let edgeDisposals = 0, technicalGeometries = 0;
+    for (const mode of ["shaded", "clay", "mono", "technical", "wireframe", "xray", "layer", "category", "semanticMaterial", "blueprint", "dither", "clayStudio", "material"]) {
       display.apply({ ...defaultDisplay, mode }, none, null, none, null, none);
       if (mode === "technical") {
         const edges = new Map();
@@ -218,7 +219,10 @@ test("V0.5: modos preservam materiais GLB e reutilizam arestas de uma geometria 
           if (edges.has(mesh.geometry)) assert.equal(edges.get(mesh.geometry), lines.geometry);
           edges.set(mesh.geometry, lines.geometry);
         }
+        technicalGeometries = edges.size;
+        for (const geometry of edges.values()) geometry.addEventListener("dispose", () => edgeDisposals++);
       }
+      if (mode === "wireframe") assert.equal(edgeDisposals, technicalGeometries);
     }
     meshes.forEach((mesh, index) => assert.equal(mesh.material, originals[index]));
     display.dispose();

@@ -97,6 +97,14 @@ A sprint amplia o marco de montagem anterior com gestão de vistas, filtros e mo
 - [ ] Knolling: disposição organizada sem sobreposição visual, agrupamento por tipos, retorno à montagem.
 - [ ] Callouts por peça e documentação vinculada; revisão de conteúdo e permissões.
 
+### v0.9.12 — Refinamento funcional e preparação gráfica
+
+- [x] Identidade de apresentação centralizada em GLB e manifesto com pesquisa por nomes de origem e IDs.
+- [x] Resumo do modelo com escopos, agrupamentos, cobertura e dados de fabricação.
+- [x] Knolling com rótulos persistentes, mais orientações e restauração da pose.
+- [x] Perfis e integração de Mono, Blueprint, Dither e Clay. [Handoff da Sprint B](DISPLAY_MODES_HANDOFF.md)
+- [ ] Concluir a direção artística dos modos e homologar em dispositivo físico com modelo autorizado.
+
 ### v0.9–v1.0 — Estabilização e deploy
 - [x] Product Design V0.9: marca `#3B82F6`, Home Launchpad, Cubo de Navegação 3D sólido, famílias de workspace, Organização do Usuário (`organization-v1.schema.json`), Menu de Contexto, Configurações e otimização `InstancedMesh` ([Relatório V0.9](V09_IMPLEMENTATION_REPORT.md), [Desempenho V0.9](V09_PERFORMANCE_REPORT.md)).
 - [x] Verificações automatizadas: `lint`, `typecheck`, 62 testes unitários (`tests/*.test.mjs`), `build` e 6 suítes Playwright (`test:ui`, `test:v05`..`test:v09`) com 0 violações `axe` ([Relatório de Testes](V09_TEST_REPORT.md)).

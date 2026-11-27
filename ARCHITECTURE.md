@@ -112,6 +112,16 @@ O manifesto e as matrizes de repouso permanecem nas fronteiras de importação e
 
 O renderer mantém um Canvas e decide o caminho de malha por compatibilidade. A alternativa de agrupar geometrias ou materiais apenas por semântica impediria verificar equivalência de atributos, picking e transformações. As malhas repetidas elegíveis compartilham um draw por lote. Transparência, arestas e poses incompatíveis podem manter renderizáveis originais ativos. [Revisão de arquitetura](V091_ARCHITECTURE_REVIEW.md) · [Renderização](V091_RENDERING_SPEC.md)
 
+## 7.2 Sprint A V0.9.12
+
+A importação captura rótulos de origem em `ComponentRecord.identity` e mantém `id` e `sourceObjectId` para as associações. Resolver o rótulo pela mesma função nos workspaces evita que PartIDs duplicados redefinam as chaves de seleção ou contagem. Os extras do GLB e os mapas já permitidos no manifesto são as fontes de PartID. O schema CAD permanece em 1.0.0.
+
+O Resumo usa o motor de Quantitativos e Fabricação da V0.7. A cobertura e a proveniência são computadas pelas mesmas funções dos relatórios. Os subtotais de volume geométrico e de volume informado para fabricação usam valores coletados pelo motor. A extensão do documento de Knolling é opcional e aceita configurações anteriores. Nomes de etapas se associam a IDs ou categorias. A ordem segue a timeline autorada e o agrupamento de peças sem etapa não adiciona dependências.
+
+Maior face usa áreas aproximadas de triângulos coplanares. Eixo principal usa a covariância da superfície tessellada ponderada pela área. Uma caixa orientada global poderia esconder faces dominantes em malhas inclinadas, e determinar uma caixa mínima completa aumentaria o custo em modelos grandes. A orientação usa o mesmo controlador de poses e o layout mede as caixas conservadoras após a rotação.
+
+Os perfis gráficos são aplicados como configuração derivada. Um Canvas adicional ou um compositor permanente aumentaria o custo de memória e competiria com o controle de scissor e as capturas. O rig fornece um adaptador descartável para efeitos e mantém o desenho convencional quando indisponível. [Handoff técnico](DISPLAY_MODES_HANDOFF.md)
+
 ## 8. Deploy e DNS
 
 - Repositório GitHub independente, privado inicialmente; Vercel project separado. Preview para branches e produção somente após autorização.

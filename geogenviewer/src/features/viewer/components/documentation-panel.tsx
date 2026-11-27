@@ -1,5 +1,6 @@
 "use client";
 
+import { componentLabel } from "../../../lib/geogen/domain/component-identity.ts";
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Boxes, FileText } from "lucide-react";
@@ -32,20 +33,27 @@ function ScopeControls({ scope, value, rows, change }: {
 }) {
   const values = useMemo(() => {
     if (scope === "group") return [...new Set(rows.flatMap((entry) => entry.groups))].sort();
-    if (scope === "layer" || scope === "category" || scope === "material" || scope === "type" || scope === "assembly") {
+    if (scope === "layer" || scope === "category" || scope === "material" || scope === "type") {
       return [...new Set(rows.flatMap((entry) => catalogGroup(entry, scope) ?? []))].sort();
     }
     return [];
   }, [scope, rows]);
-  const options = Object.fromEntries([["", v08.unavailable], ...values.map((item) => [item, item])]);
+  const stageOptions = scope === "assembly" ? [...new Map(rows.flatMap((row) => row.stepKey ? [[row.stepKey, row] as const] : [])).values()]
+    .sort((a, b) => (a.step ?? Infinity) - (b.step ?? Infinity)) : [];
+  const stableValue = scope === "assembly"
+    ? stageOptions.find((row) => row.stepKey === value || row.stepLabel === value || row.stepLegacyLabel === value)?.stepKey ?? ""
+    : value;
+  const options = Object.fromEntries([["", v08.unavailable], ...values.map((item) => [item, item]),
+    ...stageOptions.map((row) => [row.stepKey!, row.stepLabel!])]);
   return <>
     <Choice label={v08.scope} value={scope} options={catalogScopes} onChange={(next) => {
-      const first = next === "group" ? rows.find((entry) => entry.groups.length)?.groups[0] :
-        next === "layer" || next === "category" || next === "material" || next === "type" || next === "assembly"
+      const first = next === "assembly" ? rows.find((entry) => entry.stepKey)?.stepKey :
+        next === "group" ? rows.find((entry) => entry.groups.length)?.groups[0] :
+        next === "layer" || next === "category" || next === "material" || next === "type"
           ? rows.map((entry) => catalogGroup(entry, next)).find(Boolean) : null;
       change(next, first ?? "");
     }} />
-    {values.length > 0 && <Choice label={v08.value} value={value} options={options} onChange={(value) => change(scope, value)} />}
+    {(values.length > 0 || stageOptions.length > 0) && <Choice label={v08.value} value={stableValue} options={options} onChange={(value) => change(scope, value)} />}
   </>;
 }
 
@@ -97,7 +105,7 @@ function KnollingControls({ docs, settings, selected, onFit }: {
         {fields.map(([key, label]) => <NumericField key={key} label={label + " (" + units + ")"} value={layout[key] * scale}
           min={key === "widthM" ? 0.001 : 0} onChange={(value) => patch({ [key]: value / scale })} />)}
       </div>
-      <button type="button" className={actionClass} onClick={() => patch({ ...defaultLayout(Math.max(...(docs.revision?.scene.sceneGraph.sceneBoundsMeters ?? [1]))), overrides: layout.overrides })}>{v08.reset}</button>
+      <button type="button" className={actionClass} onClick={() => patch({ ...defaultLayout(Math.max(...(docs.revision?.scene.sceneGraph.sceneBoundsMeters ?? [1]))), overrides: layout.overrides, stepTitles: layout.stepTitles })}>{v08.reset}</button>
     </details>
     <div className="gg-v07-actions"><button type="button" className={actionClass}
       onClick={() => { useKnollingMotion.getState().set(1); onFit(); }}>{v08.generate}</button></div>
@@ -108,6 +116,18 @@ function KnollingControls({ docs, settings, selected, onFit }: {
         <label className="gg-v07-check" key={key}><input type="checkbox" checked={settings[key]}
           onChange={(event) => { const checked = event.currentTarget.checked; docs.change((old) => ({ ...old, [key]: checked })); }} />{label}</label>)}
     </div>
+    {layout.mode === "assembly" && <details>
+      <summary>{v08.renameSteps}</summary>
+      <div className="gg-v07-grid">
+        {[...new Map(docs.entries.flatMap((row) => row.stepKey ? [[row.stepKey, row] as const] : [])).values()]
+          .sort((a, b) => (a.step ?? Infinity) - (b.step ?? Infinity)).map((row) =>
+            <label className="gg-v07-field" key={row.stepKey}>{row.stepLabel}
+              <input key={row.stepTitle} maxLength={160} defaultValue={row.stepTitle} onBlur={(event) => {
+                if (event.currentTarget.value.trim() !== row.stepTitle) docs.renameStep(row.stepKey!, event.currentTarget.value);
+              }} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }} />
+            </label>)}
+      </div>
+    </details>}
     <KnollingMotion />
     {docs.layout.error && <p role="alert" className="gg-v07-alert">{docs.layout.error}</p>}
     {docs.layout.value?.warnings.map((message) => <p key={message} className="gg-v07-note">{message}</p>)}
@@ -218,7 +238,7 @@ function ItemList({ docs, revision, knolling, renderer, onSelect }: {
   const gridStyle = { gridTemplateColumns: "minmax(145px, 1.1fr) " + columns.map(() => "minmax(100px, 1fr)").join(" "),
     minWidth: 145 + columns.length * 100 };
   const render = (item: CatalogItem, index: number) => {
-    const row = item.representative, name = row.occurrence.record.name;
+    const row = item.representative, name = componentLabel(row.occurrence.record);
     const active = item.members.some((member) => selected.has(member.occurrence.id));
     const click = () => onSelect(item.members.map((member) => member.occurrence.id));
     const position = docs.byPlacement.get(row.occurrence.id);
@@ -280,7 +300,7 @@ function CalloutControls({ docs, selected, settings }: { docs: DocumentationWork
         onChange={(event) => { const labels = event.currentTarget.checked; docs.change((old) => ({ ...old, labels })); }} />{v08.showLabels}</label>
     </div>
     {labels.length > 0 && <Choice label="Callout selecionado" value={label?.id ?? ""} options={Object.fromEntries([["", v08.noSelection],
-      ...labels.map((item, index) => [item.id, (index + 1) + " · " + (docs.rows.get(item.elementId)?.occurrence.record.name ?? v08.invalid)])])}
+      ...labels.map((item, index) => [item.id, (index + 1) + " · " + (componentLabel(docs.rows.get(item.elementId)?.occurrence.record, v08.invalid))])])}
       onChange={setChosenId} />}
     {label && <div className="gg-v07-stack">
       <p>{row ? calloutText(row, label, labels.indexOf(label)) : v08.invalid}</p>
@@ -393,7 +413,7 @@ export function DocumentationPanel({ docs, peer, knolling, renderer, counterpart
     <details open={selected ? true : undefined}>
       <summary>{v08.detail}</summary>
       {selected ? <>
-        <h3>{selected.occurrence.record.name}</h3>
+        <h3>{componentLabel(selected.occurrence.record)}</h3>
         <p>{[selected.part ?? selected.occurrence.id, selected.type, revision.identity.revisionId].filter(Boolean).join(" · ")}</p>
         <dl className="gg-v07-metrics">
           {(["category", "layer", "material", "dimensions", "volume", "mass", "status"] as CatalogColumn[]).filter((column) => cell(selected, column) !== "—")
@@ -402,7 +422,7 @@ export function DocumentationPanel({ docs, peer, knolling, renderer, counterpart
           {selected.stepLabel && <div><dt>{v08.step}</dt><dd>{selected.stepLabel}</dd></div>}
           {selected.occurrence.record.cad?.fabrication?.toleranceMm != null && <div><dt>Tolerância autorada</dt>
             <dd>{formatNumber(selected.occurrence.record.cad.fabrication.toleranceMm)} mm</dd></div>}
-          {counterpart && <div><dt>{v08.otherRevision}</dt><dd>{counterpart.entry.occurrence.record.name} · {counterpart.revision.identity.revisionId}</dd></div>}
+          {counterpart && <div><dt>{v08.otherRevision}</dt><dd>{componentLabel(counterpart.entry.occurrence.record)} · {counterpart.revision.identity.revisionId}</dd></div>}
         </dl>
         <div className="gg-v07-actions">
           <button type="button" className={actionClass} onClick={() => onIsolate([selected.occurrence.id])}>{v08.isolate}</button>

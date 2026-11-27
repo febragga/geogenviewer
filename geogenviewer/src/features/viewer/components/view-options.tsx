@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { LoadedScenePackage } from "../../../lib/geogen/importers/package";
 import type { Filters } from "../../../lib/geogen/domain/visibility";
 import { type Projection, type ViewLayout, type ViewPreset } from "../scene/camera-state";
-import { preferenceKey, readLocalList, validNamedView, writeLocalList, type NamedView } from "../state/local-preferences";
+import { preferenceKey, readLocalList, restoreDisplay, validNamedView, writeLocalList, type NamedView } from "../state/local-preferences";
 import { useInspection } from "../state/inspection-store";
 import { usePresentation } from "../state/presentation-store";
 import { useViewerStore } from "../state/viewer-store";
@@ -136,13 +136,13 @@ export function ViewOptions({ loaded, comparison = false, documentation }: {
           }
           if (view.regions && access) {
             const { layout, active, maximized, poses } = view.regions;
-            usePresentation.setState({ layout, active, maximized, display: view.display });
+            usePresentation.setState({ layout, active, maximized, display: restoreDisplay(view.display) });
             const apply = () => poses.forEach((pose, slot) => { if (pose && usePresentation.getState().access === access) access.applySlot(slot, pose); });
             if (knolling) requestAnimationFrame(() => requestAnimationFrame(apply));
             else apply();
           } else {
             access?.apply(view.pose);
-            usePresentation.setState({ display: view.display });
+            usePresentation.setState({ display: restoreDisplay(view.display) });
           }
           useInspection.getState().restorePreset(view.inspection, view.name);
           const org = useOrganizationStore.getState().doc;

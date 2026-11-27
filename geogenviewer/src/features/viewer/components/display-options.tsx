@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { usePresentation, type DisplayMode, type DisplaySettings, type GraphicsQuality } from "../state/presentation-store";
+import { displayExposure } from "../scene/display-profiles";
+import { useAppSettings } from "../state/settings-store";
 import { displayModes, qualities, v05 } from "../v05-copy";
 import { downloadFile } from "./download-file";
 
@@ -12,6 +14,7 @@ export function DisplayOptions({ count, loadTime, onReset, comparison = false }:
 }) {
   const settings = usePresentation((state) => state.display);
   const patch = usePresentation((state) => state.patchDisplay);
+  const preferences = useAppSettings((state) => state.patchPreferences);
   const access = usePresentation((state) => state.access);
   const [transparent, setTransparent] = useState(false);
   const [resolution, setResolution] = useState(1920);
@@ -45,7 +48,7 @@ export function DisplayOptions({ count, loadTime, onReset, comparison = false }:
   return (
     <>
       <label>{v05.display}
-        <select value={settings.mode} onChange={(event) => patch({ mode: event.currentTarget.value as DisplayMode })}>
+        <select value={settings.mode} onChange={(event) => preferences({ displayMode: event.currentTarget.value as DisplayMode })}>
           {Object.entries(displayModes).map(([id, label]) => <option key={id} value={id}>{label}</option>)}
         </select>
       </label>
@@ -63,8 +66,12 @@ export function DisplayOptions({ count, loadTime, onReset, comparison = false }:
       <label>{v05.opacity} · {Math.round(settings.opacity * 100)}%
         <input type="range" min="0.1" max="1" step="0.05" value={settings.opacity} onChange={(event) => patch({ opacity: Number(event.currentTarget.value) })} />
       </label>
+      {settings.mode === "clayStudio" && !comparison && <label>{v05.exposure} · {Math.round(displayExposure(settings) * 100)}%
+        <input type="range" min="0.25" max="2" step="0.05" value={displayExposure(settings)} onChange={(event) =>
+          preferences({ modeOptions: { ...settings.modeOptions, clayStudio: { exposure: event.currentTarget.valueAsNumber } } })} />
+      </label>}
       <label>{v05.quality}
-        <select value={settings.quality} onChange={(event) => patch({ quality: event.currentTarget.value as GraphicsQuality })}>
+        <select value={settings.quality} onChange={(event) => preferences({ graphicsQuality: event.currentTarget.value as GraphicsQuality })}>
           {Object.entries(qualities).map(([id, title]) => <option key={id} value={id}>{title}</option>)}
         </select>
       </label>

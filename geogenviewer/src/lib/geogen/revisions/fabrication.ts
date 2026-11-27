@@ -42,13 +42,16 @@ export function analyzeFabrication(revision: Revision, rows: readonly QuantityRo
       cadMaterials.set(key, entries);
     }
   }
+  const cadById = new Map((revision.scene.manifest?.materials ?? []).map((material) => [material.id, material]));
   const scenario = settings.scenarios.find((entry) => entry.name === settings.activeScenario);
   const replacementMaterial = scenario && library.get(scenario.materialCode);
   return rows.map((row) => {
     const variant = Boolean(replacementMaterial && (scenario?.replaces === null || scenario?.replaces === row.material));
     const author = variant ? replacementMaterial : row.material ? library.get(row.material) : null;
     const candidates = row.material ? cadMaterials.get(row.material) : undefined;
-    const cad = !variant && candidates?.length === 1 ? candidates[0] : null;
+    const materialId = row.occurrence.record.materialId;
+    const cad = variant ? null : candidates?.length === 1 ? candidates[0] :
+      !row.material && materialId ? cadById.get(materialId) : null;
     const librarySource = variant ? "scenario" : "authored";
     const fromLibrary = (value: number | null | undefined): SourcedNumber | null => value != null
       ? { value, source: librarySource, detail: author!.source } : null;
@@ -80,8 +83,9 @@ export function analyzeFabrication(revision: Revision, rows: readonly QuantityRo
       if (Number.isFinite(value)) costs.push({ value, source: rate.source, currency: rate.currency, method,
         detail: entry.detail + " × " + rate.detail });
     }
-    return { id: row.occurrence.id, material: variant ? author!.code : row.material,
-      originalMaterial: row.material, density, rate, volume: row.volume, mass, costs,
+    const originalMaterial = row.material ?? cadById.get(materialId ?? "")?.name ?? null;
+    return { id: row.occurrence.id, material: variant ? author!.code : originalMaterial,
+      originalMaterial, density, rate, volume: row.volume, mass, costs,
       time: { machine: field("machine"), production: field("production"), recorded: field("recorded") } };
   });
 }

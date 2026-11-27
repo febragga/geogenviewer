@@ -11,10 +11,13 @@ import { DisplayOptions } from "./display-options";
 import { FilterOptions } from "./filter-options";
 import { NavigationCube } from "./navigation-cube";
 import { ViewOptions, type ViewDocumentation } from "./view-options";
+import { ModelSummary } from "./model-summary";
+import type { ComponentProps } from "react";
 import { ViewerPopover } from "./viewer-popover";
 
-export function ViewportTools({ loaded, loadTime, onFit, onReset, comparison = false, documentation }: {
+export function ViewportTools({ loaded, loadTime, onFit, onReset, comparison = false, documentation, summary }: {
   loaded: LoadedScenePackage; loadTime: number; onFit: (selected?: string[]) => void; onReset: () => void; comparison?: boolean; documentation?: ViewDocumentation;
+  summary?: ComponentProps<typeof ModelSummary>;
 }) {
   const layout = usePresentation((state) => state.layout);
   const active = usePresentation((state) => state.active);
@@ -45,6 +48,7 @@ export function ViewportTools({ loaded, loadTime, onFit, onReset, comparison = f
         {!comparison && <ViewerPopover label={v06.inspect} icon={<ScanLine size={15} />}>
           <InspectionTools loaded={loaded} onFit={onFit} />
         </ViewerPopover>}
+        {!comparison && summary && <ModelSummary {...summary} />}
         {!comparison && <span className="gg-projection-indicator">{projection === "perspective" ? v05.perspective : v05.orthographic}</span>}
       </div>
       <NavigationCube />

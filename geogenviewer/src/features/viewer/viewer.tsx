@@ -1,5 +1,7 @@
 "use client";
 
+import { displayProfile } from "./scene/display-profiles";
+import { componentLabel } from "../../lib/geogen/domain/component-identity.ts";
 import { Tooltip } from "@base-ui/react/tooltip";
 import dynamic from "next/dynamic";
 import {
@@ -161,6 +163,7 @@ export function Viewer() {
   const secondaryIds = quantitySecondarySelection?.key === quantityRevision?.key ? quantitySecondarySelection?.ids ?? emptyIds : emptyIds;
   const quantitySelected = ownQuantity ? selectedIds : secondaryIds;
   const background = usePresentation((s) => s.display.background);
+  const modeProfile = usePresentation((s) => displayProfile(s.display.mode));
   const effective = useEffectiveVisibility();
   const organization = useOrganizationStore((state) => state.doc);
   const docs = useDocumentationWorkspace(loaded?.revision ?? null, secondary.revision, base, comp, publication,
@@ -617,7 +620,7 @@ export function Viewer() {
         return;
       }
       select(id, options.multi ? "toggle" : "replace");
-      const compName = loaded?.scenePackage.sceneGraph.components[id]?.name ?? id;
+      const compName = componentLabel(loaded?.scenePackage.sceneGraph.components[id], id);
       setAnnouncement(`${copy.selectionAnnouncement} ${compName}`);
     },
     [clearSelection, loaded, select]
@@ -635,7 +638,7 @@ export function Viewer() {
         const label =
           targetIds.length > 1
             ? `${targetIds.length} componentes selecionados`
-            : loaded.scenePackage.sceneGraph.components[id]?.name ?? id;
+            : componentLabel(loaded.scenePackage.sceneGraph.components[id], id);
         setContextMenu({ x, y, targetIds, label });
       } else {
         setContextMenu({ x, y, targetIds: [], label: loaded.name });
@@ -846,12 +849,14 @@ export function Viewer() {
     </div>
   );
 
+  const visualMode = Boolean(loaded && !lost && !comparing && !docUsingPeer && (!quantities || ownQuantity));
   const viewportSurface = (
     <div
       className={`gg-viewport ${
         isDraggingFile ? "gg-viewport--dragging" : ""
       }`}
       data-background={background}
+      data-mode-background={visualMode && background === "theme" ? modeProfile.background : undefined}
       aria-busy={Boolean(status)}
       onDragEnter={handleDragEnter}
       onDragOver={handleDragOver}
@@ -1053,6 +1058,8 @@ export function Viewer() {
         <ViewportTools key={"tools-" + loaded.id} loaded={loaded.scenePackage} loadTime={loaded.loadTime}
           onFit={handleFrameIds} onReset={() => issueCommand({ kind: "reset" })}
           comparison={Boolean(base && compared && (comparing || (quantities && !ownQuantity) || docUsingPeer))}
+          summary={{ revision: loaded.revision, visible: publication === "knolling" ? Array.from(docs.mask) : effective.visible,
+            selected: selectedIds, settings: analysisConfigs[loaded.revision.key]?.settings, stepTitles: docs.settings?.layout.stepTitles }}
           documentation={docs.isPrimary && docs.revision && docs.settings ? { revision: docs.revision, settings: docs.settings, apply: docs.change } : undefined} />
       )}
 
@@ -1114,6 +1121,7 @@ export function Viewer() {
   return (
     <Tooltip.Provider delay={300}>
       <div className={`gg-app ${focusMode ? "gg-app--focus" : ""} ${workspace === "assembly" && loaded && !focusMode ? "gg-app--assembly" : ""}`}
+        data-graphics-theme={visualMode ? modeProfile.theme : undefined}
         data-analytics={analytics && !focusMode || undefined}>
         {!focusMode && (
           <ViewerTopbar
