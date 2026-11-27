@@ -106,6 +106,7 @@ export async function capturePng(renderer: WebGLRenderer, source: ViewCamera, op
   const pixels = new Uint8Array(width * height * 4);
   try {
     renderer.setRenderTarget(target);
+    renderer.setViewport(0, 0, width, height);
     renderer.setScissorTest(false);
     renderer.setClearAlpha(0);
     renderer.clear();
@@ -375,6 +376,7 @@ function createRig(
       const runtime = inspector.current;
       const settings = options.technical;
       const render = () => {
+        beforeDraw(index, options.technical?.selection);
         if (!displayPipeline) return gl.render(scene, camera);
         const target = gl.getRenderTarget();
         displayPipeline.draw(camera, usePresentation.getState().display, {

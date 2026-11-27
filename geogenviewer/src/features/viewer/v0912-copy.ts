@@ -2,6 +2,7 @@ export const summaryCopy = {
   title: "Resumo", scope: "Escopo", group: "Agrupar por", groupValue: "Grupo",
   scopes: { all: "Modelo completo", visible: "Componentes visíveis", selected: "Componentes selecionados" },
   groups: { category: "Categoria", layer: "Camada CAD", material: "Material", type: "Tipo de componente", assembly: "Etapa de montagem" },
+  sections: { identity: "Identificação", geometry: "Geometria", fabrication: "Fabricação" },
   allGroups: "Todos os grupos", unknown: "Sem classificação", empty: "Nenhum componente neste escopo.",
   components: "Componentes", occurrences: "Ocorrências", types: "Tipos identificados",
   length: "Comprimento autorado", area: "Área superficial", volume: "Volume geométrico",

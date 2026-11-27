@@ -5,6 +5,7 @@ import {
   Group,
   InstancedMesh,
   Matrix4,
+  MeshBasicMaterial,
   MeshStandardMaterial,
   type BufferGeometry,
   type Intersection,
@@ -208,6 +209,7 @@ export class InstancedBatchManager {
     opacity: number;
     shadows: boolean;
     edges?: boolean;
+    unlit?: boolean;
     selected: ReadonlySet<string>;
     hovered: string | null;
     hidden: ReadonlySet<string>;
@@ -225,6 +227,7 @@ export class InstancedBatchManager {
       mode,
       opacity,
       shadows,
+      unlit = false,
       selected,
       hovered,
       hidden,
@@ -252,7 +255,7 @@ export class InstancedBatchManager {
     let overlayActiveCount = 0;
 
     for (const batch of this.batches) {
-      const materialKey = `${mode}:${opacity.toFixed(2)}:${usePerInstanceColor ? "inst" : "flat"}`;
+      const materialKey = `${mode}:${unlit ? "u" : "l"}:${clayColor.getHexString()}:${roughness.toFixed(2)}:${opacity.toFixed(2)}:${usePerInstanceColor ? "inst" : "flat"}`;
       let mat = batch.customMaterials.get(materialKey);
       if (!mat) {
         if (mode === "material" && opacity >= 1) {
@@ -265,16 +268,26 @@ export class InstancedBatchManager {
               : uniformSurface(mode)
                 ? clayColor
                 : base.color ?? clayColor;
-          mat = new MeshStandardMaterial({
-            color: baseColor,
-            roughness,
-            side: base.side,
-            opacity: base.opacity * opacity * (mode === "xray" ? 0.28 : 1),
-            transparent: base.transparent || mode === "xray" || opacity < 1,
-            depthWrite: base.depthWrite && mode !== "xray" && opacity >= 1,
-            alphaTest: base.alphaTest,
-            wireframe: mode === "wireframe",
-          });
+          mat = unlit
+            ? new MeshBasicMaterial({
+                color: baseColor,
+                side: base.side,
+                opacity: base.opacity * opacity,
+                transparent: base.transparent || opacity < 1,
+                depthWrite: base.depthWrite && opacity >= 1,
+                alphaTest: base.alphaTest,
+              })
+            : new MeshStandardMaterial({
+                color: baseColor,
+                roughness,
+                metalness: 0,
+                side: base.side,
+                opacity: base.opacity * opacity * (mode === "xray" ? 0.28 : 1),
+                transparent: base.transparent || mode === "xray" || opacity < 1,
+                depthWrite: base.depthWrite && mode !== "xray" && opacity >= 1,
+                alphaTest: base.alphaTest,
+                wireframe: mode === "wireframe",
+              });
           batch.customMaterials.set(materialKey, mat);
         }
       }

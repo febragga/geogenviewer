@@ -8,7 +8,9 @@
 
 ## Estado
 
-A Sprint A centraliza rótulos de componentes, acrescenta o Resumo à viewport e amplia a orientação e os títulos do Knolling. Mono preserva a visualização monocromática legada. Blueprint, Dither e Clay já têm perfis no pipeline do Canvas único. Dither usa renderização convencional enquanto o passe especializado está reservado à Sprint B. [Handoff dos modos gráficos](DISPLAY_MODES_HANDOFF.md)
+A Sprint B conclui os quatro modos gráficos no visualizador (`Mono 2.0`, `Blueprint` com tema dedicado da UI, `Dither` em shader Bayer `4×4`/`8×8` e `Clay` com iluminação de estúdio e `GTAOPass` sensível à escala), além do refinamento do menu **Exibição**, do **Resumo** tabular agrupado, dos cabeçalhos/callouts do **Knolling** e do viewport offscreen de exportação PNG. [Relatório Sprint B](SPRINT_B_DISPLAY_MODES_REPORT.md) · [Handoff dos modos gráficos](DISPLAY_MODES_HANDOFF.md)
+
+A Sprint A centraliza rótulos de componentes, acrescenta o Resumo à viewport e amplia a orientação e os títulos do Knolling, mantendo a migração de vistas legadas (`clay` → `mono`) e o contrato CAD JSON `1.0.0`.
 
 A V0.9.11 remove os links públicos do GitHub da navegação da Home e da aba **Sobre** nas Configurações. A referência técnica `GEOGEN_REPO_URL` continua disponível e o contrato CAD JSON segue na versão `1.0.0`.
 
@@ -19,6 +21,8 @@ A V0.9.1 preserva a home, o cubo SVG e o sistema visual anterior. Corrige domín
 - [Entrega do Gemini](V09_IMPLEMENTATION_REPORT.md) · [Guia da V0.9](V09_USER_GUIDE.md)
 
 ## Verificação local
+
+Na Sprint B, passaram `lint`, `typecheck`, `test` (`79/79` testes unitários), `build`, `verify-sprint-b.mjs` (capturas comparativas em `test-results/sprint-b/`, PNG 1920 px opaco/transparente, Axe WCAG A/AA sem violações) e todas as suítes Playwright existentes (`test:ui`, `test:v05` a `test:v0912`). [Relatório Sprint B](SPRINT_B_DISPLAY_MODES_REPORT.md)
 
 Na Sprint A, `lint`, `typecheck`, `test` (79 testes) e `build` passaram. O smoke test direcionado verifica importação, escopos do Resumo, preferência gráfica, exportação PNG e renomeação de etapas. [Regressões e limitações da V0.9.12](V0912_REGRESSION_REPORT.md)
 

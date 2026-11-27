@@ -1,6 +1,6 @@
 import { Color, Vector4, type Camera, type Scene, type WebGLRenderer } from "three";
 import type { DisplaySettings } from "../state/presentation-store.ts";
-import { displayExposure, displayProfile, graphicBudget, type DisplayProfile, type ModeEffect } from "./display-profiles.ts";
+import { displayExposure, graphicBudget, resolveDisplayProfile, type DisplayProfile, type ModeEffect } from "./display-profiles.ts";
 
 export interface EffectFrame {
   renderer: WebGLRenderer;
@@ -42,9 +42,11 @@ export function createDisplayPipeline(renderer: WebGLRenderer, scene: Scene) {
   function draw(camera: Camera, settings: DisplaySettings, frame: {
     width: number; height: number; regions: number; compact: boolean; capture?: boolean; transparent?: boolean; technical?: boolean; clipping?: boolean;
   }) {
-    const profile = displayProfile(settings.mode);
+    const profile = resolveDisplayProfile(settings);
     const budget = graphicBudget(settings.quality, frame.regions, frame.compact);
-    const effectId = budget.secondary && !frame.technical && !frame.clipping ? profile.effect : undefined;
+    const effectId = !frame.technical && !frame.clipping
+      ? (profile.effect === "dither" ? "dither" : budget.secondary ? profile.effect : undefined)
+      : undefined;
     const nextKey = effectId ? [settings.mode, effectId, settings.quality].join(":") : "";
     const render = () => renderer.render(scene, camera);
     const exposure = renderer.toneMappingExposure;
@@ -69,8 +71,9 @@ export function createDisplayPipeline(renderer: WebGLRenderer, scene: Scene) {
       renderer.getClearColor(clearColor);
       let rendered = false;
       try {
+        const scale = effectId === "dither" ? 1 : budget.effectScale;
         rendered = effect.render({ renderer, scene, camera, profile, width: frame.width, height: frame.height,
-          scale: budget.effectScale, capture: frame.capture ?? false, transparent: frame.transparent ?? false, render });
+          scale, capture: frame.capture ?? false, transparent: frame.transparent ?? false, render });
       } catch {
         releaseEffect();
       } finally {

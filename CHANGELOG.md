@@ -1,11 +1,15 @@
 # Changelog
 
-## [0.9.12] · 26/11/2026 — Sprint A
+## [0.9.12] · 26/11/2026 — Sprint A + Sprint B
 
-- PartID preferencial na apresentação, na pesquisa e nos relatórios, com IDs internos e nomes de origem preservados.
-- Knolling com etapas e categorias renomeáveis, orientação pela maior face ou pelo eixo principal e cálculo de espaços após a orientação.
-- Resumo no viewport com escopo, agrupamentos, cobertura, medidas e estimativas de fabricação.
-- Infraestrutura de Mono, Blueprint, Dither e Clay com migração de vistas legadas, orçamento de qualidade e integração com PNG.
+- **Sprint B (Modos gráficos e identidade):**
+  - **Mono 2.0:** superfícies unlit (`#151515`), arestas construtivas ocluídas (`#F5F5F5`) com espessura configurável via `LineSegments2`, fundo `#FAFAF8`, inversão B/W e cores personalizáveis.
+  - **Blueprint + Tema UI:** cena técnica (`#102E50` / `#234B70` / `#BCDFFF`), seleção ciano `#54E6FF`, grade dedicada e tema completo da interface (`#0B1D30`) com sincronização opcional e restauração do tema prévio.
+  - **Dither:** shader Bayer `4×4` e `8×8` isolado da UI (`#F3F1EB` / `#202020`), controles de intensidade/contraste/escala/inversão/arestas e preservação de transparência em PNG.
+  - **Clay:** estúdio de maquete (`#D9D4CB` / `#EEECE7` / `#E5E2DC`), rig com rim light, `GTAOPass` sensível à escala em `displayEffectFactories.studio`, exposição/AO ajustáveis e fallback por orçamento.
+  - Refinamento do menu **Exibição** (cards de preset + ajustes contextuais), **Resumo** tabular agrupado e **Knolling** com cabeçalhos acima dos grupos e paleta adaptativa.
+  - [Relatório Sprint B](SPRINT_B_DISPLAY_MODES_REPORT.md)
+- **Sprint A:** PartID preferencial, Knolling com orientação/títulos, Resumo na viewport e infraestrutura de modos gráficos.
 - [Handoff dos modos gráficos](DISPLAY_MODES_HANDOFF.md) · [Regressões e limitações](V0912_REGRESSION_REPORT.md)
 
 ## [0.9.11] · 26/11/2026 — Apresentação pública

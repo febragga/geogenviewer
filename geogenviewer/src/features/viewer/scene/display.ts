@@ -1,16 +1,17 @@
 import {
-  Color, EdgesGeometry, LineBasicMaterial, LineSegments, MeshStandardMaterial,
+  Color, EdgesGeometry, LineBasicMaterial, LineSegments, MeshBasicMaterial, MeshStandardMaterial,
   type BufferGeometry, type Intersection, type Material, type Mesh, type Object3D, type Raycaster,
 } from "three";
+import { LineMaterial } from "three/addons/lines/LineMaterial.js";
+import { LineSegments2 } from "three/addons/lines/LineSegments2.js";
+import { LineSegmentsGeometry } from "three/addons/lines/LineSegmentsGeometry.js";
 import type { LoadedScenePackage } from "../../../lib/geogen/importers/package";
 import type { ResolvedOrganizationView } from "../../../lib/geogen/organization/model";
 import type { DisplaySettings } from "../state/presentation-store";
-import { defaultEdges, displayProfile, legacySurface, uniformSurface } from "./display-profiles.ts";
+import { defaultEdges, defaultSelectionColors, legacySurface, resolveDisplayProfile, uniformSurface } from "./display-profiles.ts";
 import { InstancedBatchManager, DEFAULT_MIN_BATCH_SIZE } from "./instancing.ts";
 
 const defaultSurface = new Color(legacySurface.color);
-const selection = new Color("#5cb3e8");
-const hover = new Color("#89c9ee");
 
 function palette(key: string) {
   let hash = 0;
@@ -18,12 +19,12 @@ function palette(key: string) {
   return new Color().setHSL(((hash >>> 0) % 360) / 360, 0.34, 0.58);
 }
 
-function tinted(base: Material, tint: Color | null, opacity: number, translucent: boolean) {
+function tinted(base: Material, tint: Color | null, isSelected: boolean, opacity: number, translucent: boolean) {
   const clone = base.clone() as Material & { color?: Color; emissive?: Color; emissiveIntensity?: number };
   if (tint) {
     if (clone.emissive) {
       clone.emissive.copy(tint);
-      clone.emissiveIntensity = tint === selection ? 0.5 : 0.24;
+      clone.emissiveIntensity = isSelected ? 0.5 : 0.24;
     } else clone.color?.lerp(tint, 0.55);
   }
   clone.opacity *= opacity;
@@ -39,7 +40,7 @@ interface Renderable {
   original: Material | Material[];
   visible: boolean;
   shadows: [boolean, boolean];
-  edges?: LineSegments;
+  edges?: LineSegments | LineSegments2;
   key?: string;
 }
 
@@ -48,11 +49,26 @@ export class SceneDisplay {
   private readonly pickables: Object3D[] = [];
   private readonly variants = new Map<string, Material>();
   private readonly edges = new Map<BufferGeometry, EdgesGeometry>();
+  private readonly fatEdges = new Map<BufferGeometry, LineSegmentsGeometry>();
   private edgesActive = false;
+  private edgeModeKey = "";
+  private baseEdgeWidth = 1;
   private readonly edgeMaterial = new LineBasicMaterial({ ...defaultEdges, transparent: true });
+  private readonly fatEdgeMaterial = new LineMaterial({
+    color: defaultEdges.color,
+    opacity: defaultEdges.opacity,
+    transparent: true,
+    linewidth: 1.25,
+    depthTest: true,
+    depthWrite: false,
+    clipping: true,
+  });
   private materialKey: string | null = null;
   private surface = defaultSurface;
   private roughness = legacySurface.roughness;
+  private unlit = false;
+  private selectionColor = new Color(defaultSelectionColors.selected);
+  private hoverColor = new Color(defaultSelectionColors.hover);
   private readonly loaded: LoadedScenePackage;
   private readonly batches: InstancedBatchManager | null = null;
 
@@ -104,32 +120,58 @@ export class SceneDisplay {
     this.batches?.syncTransforms();
   }
 
+  syncEdgeResolution(width: number, height: number, scale = 1): void {
+    if (!this.edgesActive) return;
+    this.fatEdgeMaterial.resolution.set(Math.max(1, width), Math.max(1, height));
+    this.fatEdgeMaterial.linewidth = this.baseEdgeWidth * Math.max(1, scale);
+  }
+
   apply(settings: DisplaySettings, selected: ReadonlySet<string>, hovered: string | null, hidden: ReadonlySet<string>, isolated: ReadonlySet<string> | null, ghosts: ReadonlySet<string>, overrides?: ReadonlyMap<string, Color>, organization?: ResolvedOrganizationView | null) {
-    const profile = displayProfile(settings.mode);
+    const profile = resolveDisplayProfile(settings);
     const material = profile.material ?? legacySurface;
-    const materialKey = [profile.surface, material.color, material.roughness, settings.opacity].join(":");
+    const unlit = Boolean(profile.unlit);
+    const edges = profile.edges ?? defaultEdges;
+    const showProfileEdges = Boolean(settings.edges || edges.force || profile.surface === "technical");
+    const edgeWidth = edges.width ?? 1;
+    const edgeThreshold = edges.threshold ?? defaultEdges.threshold;
+    const useFatEdges = showProfileEdges && edgeWidth > 1.05 && settings.mode !== "technical";
+    const selectionPalette = profile.selection ?? defaultSelectionColors;
+    const materialKey = [
+      profile.surface, unlit ? "u" : "l", material.color, material.roughness,
+      settings.opacity, showProfileEdges ? "e" : "n", selectionPalette.selected, selectionPalette.hover,
+    ].join(":");
     const settingsKey = [materialKey, organization?.source ?? "cad"].join(":");
     const mode = profile.surface;
+
     if (materialKey !== this.materialKey) {
       for (const entry of this.objects) {
         entry.object.material = entry.original;
         entry.key = undefined;
       }
-      for (const material of this.variants.values()) material.dispose();
+      for (const mat of this.variants.values()) mat.dispose();
       this.variants.clear();
       this.batches?.resetDisplayMaterials();
       this.materialKey = materialKey;
       this.surface = material === legacySurface ? defaultSurface : new Color(material.color);
       this.roughness = material.roughness;
+      this.unlit = unlit;
+      this.selectionColor.set(selectionPalette.selected);
+      this.hoverColor.set(selectionPalette.hover);
     }
 
-    const edges = profile.edges ?? defaultEdges;
-    const showProfileEdges = settings.edges || mode === "technical";
-    if (!showProfileEdges && this.edgesActive) this.clearEdges();
+    const nextEdgeKey = showProfileEdges ? `${useFatEdges ? "fat" : "thin"}:${edgeThreshold}` : "";
+    if ((!showProfileEdges || (this.edgeModeKey && this.edgeModeKey !== nextEdgeKey)) && this.edgesActive) {
+      this.clearEdges();
+    }
     this.edgesActive = showProfileEdges;
+    this.edgeModeKey = nextEdgeKey;
+    this.baseEdgeWidth = edgeWidth;
     if (showProfileEdges) {
       this.edgeMaterial.color.set(edges.color);
       this.edgeMaterial.opacity = edges.opacity;
+      this.fatEdgeMaterial.color.set(edges.color);
+      this.fatEdgeMaterial.opacity = edges.opacity;
+      this.fatEdgeMaterial.linewidth = edgeWidth;
     }
 
     const batchActive = Boolean(this.batches?.active);
@@ -137,8 +179,9 @@ export class SceneDisplay {
       this.batches.applyDisplayAndVisibility({
         mode,
         opacity: settings.opacity,
-        shadows: settings.shadows,
-        edges: settings.edges,
+        shadows: settings.shadows && !unlit,
+        edges: showProfileEdges,
+        unlit,
         selected,
         hovered,
         hidden,
@@ -148,8 +191,8 @@ export class SceneDisplay {
         overrideColors: overrides,
         clayColor: this.surface,
         roughness: this.roughness,
-        selectionColor: selection,
-        hoverColor: hover,
+        selectionColor: this.selectionColor,
+        hoverColor: this.hoverColor,
       });
     }
 
@@ -168,7 +211,7 @@ export class SceneDisplay {
       const color = (id ? overrides?.get(id) : undefined) ?? this.semanticColor(id, mode, organization);
       const key = [settingsKey, highlight, future, color?.getHexString()].join(":");
       if (key !== entry.key && object.visible) {
-        const map = (material: Material) => this.variant(material, object.isMesh, mode, settings.opacity, color, highlight, future, key);
+        const map = (mat: Material) => this.variant(mat, object.isMesh, mode, settings.opacity, color, highlight, future, key, showProfileEdges);
         object.material = Array.isArray(original) ? original.map(map) : map(original);
         entry.key = key;
       }
@@ -178,18 +221,32 @@ export class SceneDisplay {
         const geometry = object.geometry;
         let edge = this.edges.get(geometry);
         if (!edge) {
-          edge = new EdgesGeometry(geometry, 22);
+          edge = new EdgesGeometry(geometry, edgeThreshold);
           this.edges.set(geometry, edge);
         }
-        const lines = new LineSegments(edge, this.edgeMaterial);
-        lines.raycast = () => {};
-        object.add(lines);
-        entry.edges = lines;
+        if (useFatEdges) {
+          let fatGeom = this.fatEdges.get(geometry);
+          if (!fatGeom) {
+            fatGeom = new LineSegmentsGeometry().fromEdgesGeometry(edge);
+            this.fatEdges.set(geometry, fatGeom);
+          }
+          const lines = new LineSegments2(fatGeom, this.fatEdgeMaterial);
+          lines.renderOrder = 1;
+          lines.raycast = () => {};
+          object.add(lines);
+          entry.edges = lines;
+        } else {
+          const lines = new LineSegments(edge, this.edgeMaterial);
+          lines.renderOrder = 1;
+          lines.raycast = () => {};
+          object.add(lines);
+          entry.edges = lines;
+        }
       }
       if (entry.edges) entry.edges.visible = showEdges;
       if (object.isMesh && !isManagedBatch) {
-        object.castShadow = object.visible && !future && settings.shadows;
-        object.receiveShadow = settings.shadows;
+        object.castShadow = object.visible && !future && settings.shadows && !unlit;
+        object.receiveShadow = settings.shadows && !unlit;
       }
     }
 
@@ -201,11 +258,11 @@ export class SceneDisplay {
           entry.key = undefined;
         }
         const materials = Array.isArray(entry.object.material) ? entry.object.material : [entry.object.material];
-        for (const material of materials) inUse.add(material);
+        for (const mat of materials) inUse.add(mat);
       }
-      for (const [key, material] of this.variants) {
-        if (inUse.has(material)) continue;
-        material.dispose();
+      for (const [key, mat] of this.variants) {
+        if (inUse.has(mat)) continue;
+        mat.dispose();
         this.variants.delete(key);
       }
     }
@@ -236,8 +293,8 @@ export class SceneDisplay {
     return null;
   }
 
-  private variant(base: Material, mesh: boolean, mode: DisplaySettings["mode"], baseOpacity: number, color: Color | null, highlight: Highlight, ghost: boolean, styleKey: string) {
-    const tint = highlight === "selected" ? selection : highlight === "hovered" ? hover : null;
+  private variant(base: Material, mesh: boolean, mode: DisplaySettings["mode"], baseOpacity: number, color: Color | null, highlight: Highlight, ghost: boolean, styleKey: string, hasEdges: boolean) {
+    const tint = highlight === "selected" ? this.selectionColor : highlight === "hovered" ? this.hoverColor : null;
     const opacity = baseOpacity * (ghost ? 0.17 : mode === "xray" ? 0.28 : 1);
     const translucent = ghost || mode === "xray" || baseOpacity < 1;
     if ((!mesh || mode === "material") && !tint && !translucent) return base;
@@ -250,16 +307,41 @@ export class SceneDisplay {
     const existing = this.variants.get(key);
     if (existing) return existing;
     let variant: Material;
-    if (useBase) variant = tinted(base, tint, opacity, translucent);
+    if (useBase) variant = tinted(base, tint, highlight === "selected", opacity, translucent);
     else {
       const source = base as Material & { color?: Color };
-      variant = new MeshStandardMaterial({
-        color: color ?? (uniformSurface(mode) ? this.surface : source.color ?? this.surface),
-        roughness: this.roughness, side: base.side, opacity: base.opacity * opacity,
-        transparent: base.transparent || translucent, depthWrite: base.depthWrite && !translucent,
-        alphaTest: base.alphaTest, wireframe: mode === "wireframe",
-        emissive: tint ?? 0x000000, emissiveIntensity: tint === selection ? 0.5 : 0.24,
-      });
+      const baseColor = color ?? (uniformSurface(mode) ? this.surface : source.color ?? this.surface);
+      if (this.unlit) {
+        const finalColor = tint ? baseColor.clone().lerp(tint, highlight === "selected" ? 0.65 : 0.4) : baseColor;
+        variant = new MeshBasicMaterial({
+          color: finalColor,
+          side: base.side,
+          opacity: base.opacity * opacity,
+          transparent: base.transparent || translucent,
+          depthWrite: base.depthWrite && !translucent,
+          alphaTest: base.alphaTest,
+          polygonOffset: hasEdges && !translucent,
+          polygonOffsetFactor: hasEdges && !translucent ? 1 : 0,
+          polygonOffsetUnits: hasEdges && !translucent ? 1 : 0,
+        });
+      } else {
+        variant = new MeshStandardMaterial({
+          color: baseColor,
+          roughness: this.roughness,
+          metalness: 0,
+          side: base.side,
+          opacity: base.opacity * opacity,
+          transparent: base.transparent || translucent,
+          depthWrite: base.depthWrite && !translucent,
+          alphaTest: base.alphaTest,
+          wireframe: mode === "wireframe",
+          emissive: tint ?? 0x000000,
+          emissiveIntensity: tint === this.selectionColor ? 0.5 : 0.24,
+          polygonOffset: hasEdges && !translucent,
+          polygonOffsetFactor: hasEdges && !translucent ? 1 : 0,
+          polygonOffsetUnits: hasEdges && !translucent ? 1 : 0,
+        });
+      }
     }
     this.variants.set(key, variant);
     return variant;
@@ -272,7 +354,11 @@ export class SceneDisplay {
     }
     for (const geometry of this.edges.values()) geometry.dispose();
     this.edges.clear();
+    for (const geometry of this.fatEdges.values()) geometry.dispose();
+    this.fatEdges.clear();
     this.edgeMaterial.dispose();
+    this.fatEdgeMaterial.dispose();
+    this.edgeModeKey = "";
   }
 
   dispose() {

@@ -1,8 +1,13 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { Color, Vector3, type Camera } from "three";
-import { drawCallouts, projectCallouts, type annotationModel } from "../../../lib/geogen/documentation/callouts";
+import { Vector3, type Camera } from "three";
+import {
+  drawCallouts,
+  projectCallouts,
+  resolveCalloutPalette,
+  type annotationModel,
+} from "../../../lib/geogen/documentation/callouts";
 import { planeBasis, type LayoutResult, type PlaneName, type Rect } from "../../../lib/geogen/documentation/knolling";
 import type { Revision } from "../../../lib/geogen/revisions/revision";
 import { activeClipping } from "../scene/inspection-scene";
@@ -22,26 +27,75 @@ function measureCachedText(ctx: CanvasRenderingContext2D, text: string): number 
   return w;
 }
 
-export function drawPublication(ctx: CanvasRenderingContext2D, width: number, height: number, camera: Camera, slot: number,
-  revision: Revision, annotations: AnnotationModel, mask: ReadonlySet<string> | null, dark: boolean, leaders: boolean, groups?: GroupMarkers) {
+function resolveOverlayAppearance(viewport: Element | null, darkScheme: boolean): { dark: boolean; mode?: "blueprint" | "mono" } {
+  const modeBg = viewport?.getAttribute("data-mode-background");
+  const bgOverride = viewport?.getAttribute("data-background");
+  if (bgOverride === "white") return { dark: false };
+  if (bgOverride === "dark") return { dark: true };
+  if (modeBg === "blueprint") return { dark: true, mode: "blueprint" };
+  if (modeBg === "mono") return { dark: false, mode: "mono" };
+  if (modeBg === "neutral" || modeBg === "dither") return { dark: false };
+  return { dark: darkScheme };
+}
+
+export function drawPublication(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  camera: Camera,
+  slot: number,
+  revision: Revision,
+  annotations: AnnotationModel,
+  mask: ReadonlySet<string> | null,
+  dark: boolean,
+  leaders: boolean,
+  groups?: GroupMarkers,
+  mode?: "blueprint" | "mono",
+) {
   ctx.font = "12px system-ui, sans-serif";
+  const palette = resolveCalloutPalette(dark, mode);
   const assembly = useViewerStore.getState().workspace === "assembly" ? useAssembly.getState() : null;
   const reserved: Rect[] = [];
   if (groups) {
     const [u, v] = planeBasis(groups.plane);
-    const point = new Vector3(), stroke = new Color(dark ? "#9caebb" : "#405e76");
+    const pointA = new Vector3();
+    const pointB = new Vector3();
     ctx.save();
-    ctx.font = "bold 12px system-ui, sans-serif"; ctx.fillStyle = "#" + stroke.getHexString();
-    ctx.strokeStyle = ctx.fillStyle;
+    ctx.font = "600 11.5px system-ui, sans-serif";
+    ctx.textBaseline = "middle";
     for (const { label, count, rect } of groups.result.groups.slice(0, 80)) {
       if (!label || !(rect.w > 0)) continue;
-      point.copy(u).multiplyScalar(rect.x).addScaledVector(v, rect.y).project(camera);
-      if (Math.abs(point.x) > 1 || Math.abs(point.y) > 1) continue;
-      const x = (1 + point.x) * width / 2, y = (1 - point.y) * height / 2;
+      pointA.copy(u).multiplyScalar(rect.x).addScaledVector(v, rect.y).project(camera);
+      pointB.copy(u).multiplyScalar(rect.x).addScaledVector(v, rect.y + Math.max(rect.h, 0)).project(camera);
+      if (Math.abs(pointA.x) > 1.2 || Math.abs(pointA.y) > 1.2) continue;
+      const ax = (1 + pointA.x) * width / 2;
+      const ay = (1 - pointA.y) * height / 2;
+      const bx = (1 + pointB.x) * width / 2;
+      const by = (1 - pointB.y) * height / 2;
+      const x = Math.max(6, Math.min(ax, bx));
+      const topY = Math.min(ay, by);
       const title = label + (groups.quantities ? " · " + count : "");
-      const max = Math.max(30, width - x);
-      ctx.fillText(title, x, y - 6, max);
-      reserved.push({ x, y: y - 20, w: Math.min(max, measureCachedText(ctx, title)) + 5, h: 17 });
+      const maxW = Math.max(40, width - x - 8);
+      const badgeW = Math.min(maxW, measureCachedText(ctx, title) + 18);
+      const badgeH = 20;
+      const badgeY = Math.max(4, topY - badgeH - 6);
+      ctx.fillStyle = palette.fill;
+      ctx.fillRect(x, badgeY, badgeW, badgeH);
+      ctx.strokeStyle = palette.stroke;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x + 0.5, badgeY + 0.5, badgeW - 1, badgeH - 1);
+      if (palette.accent) {
+        ctx.fillStyle = palette.accent;
+        ctx.fillRect(x + 1, badgeY + 1, 3, badgeH - 2);
+      }
+      ctx.fillStyle = palette.text;
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(x + 8, badgeY, Math.max(0, badgeW - 14), badgeH);
+      ctx.clip();
+      ctx.fillText(title, x + 8, badgeY + badgeH / 2);
+      ctx.restore();
+      reserved.push({ x, y: badgeY, w: badgeW + 4, h: badgeH + 4 });
     }
     ctx.restore();
   }
@@ -53,7 +107,7 @@ export function drawPublication(ctx: CanvasRenderingContext2D, width: number, he
     if (!node || (!node.visible && "material" in node)) return undefined;
     return node.matrixWorld;
   }, activeClipping(slot), (text) => measureCachedText(ctx, text), 80, reserved);
-  drawCallouts(ctx, labels, dark, leaders);
+  drawCallouts(ctx, labels, dark, leaders, palette);
 }
 
 export function DocumentationOverlay({ revision, annotations, mask, groups }: {
@@ -67,15 +121,16 @@ export function DocumentationOverlay({ revision, annotations, mask, groups }: {
     const context = target.getContext("2d");
     if (!context) return;
     let lastSignature = "";
-    let cachedDark = document.querySelector('meta[name="color-scheme"]')?.getAttribute("content") === "dark";
     const meta = document.querySelector('meta[name="color-scheme"]');
-    const observer = meta
-      ? new MutationObserver(() => {
-          cachedDark = meta.getAttribute("content") === "dark";
-          lastSignature = "";
-        })
-      : null;
-    if (meta && observer) observer.observe(meta, { attributes: true, attributeFilter: ["content"] });
+    let cachedAppearance = resolveOverlayAppearance(parent, meta?.getAttribute("content") === "dark");
+    const invalidateSig = () => {
+      cachedAppearance = resolveOverlayAppearance(parent, meta?.getAttribute("content") === "dark");
+      lastSignature = "";
+    };
+    const metaObserver = meta ? new MutationObserver(invalidateSig) : null;
+    if (meta && metaObserver) metaObserver.observe(meta, { attributes: true, attributeFilter: ["content"] });
+    const viewportObserver = new MutationObserver(invalidateSig);
+    viewportObserver.observe(parent, { attributes: true, attributeFilter: ["data-background", "data-mode-background"] });
 
     const update = (event: Event) => {
       const { camera, slot, region } = (event as CustomEvent<{ camera: Camera; slot: number; region?: { x: number; y: number; width: number; height: number } }>).detail;
@@ -83,7 +138,7 @@ export function DocumentationOverlay({ revision, annotations, mask, groups }: {
       const { clientWidth: width, clientHeight: height } = target;
       const m = camera.matrixWorldInverse.elements;
       const p = camera.projectionMatrix.elements;
-      const sig = `${width}x${height}:${slot}:${cachedDark}:${m[0].toFixed(3)},${m[4].toFixed(3)},${m[8].toFixed(3)},${m[12].toFixed(3)},${m[13].toFixed(3)},${m[14].toFixed(3)}:${p[0].toFixed(3)},${p[5].toFixed(3)}`;
+      const sig = `${width}x${height}:${slot}:${cachedAppearance.dark}:${cachedAppearance.mode ?? ""}:${m[0].toFixed(3)},${m[4].toFixed(3)},${m[8].toFixed(3)},${m[12].toFixed(3)},${m[13].toFixed(3)},${m[14].toFixed(3)}:${p[0].toFixed(3)},${p[5].toFixed(3)}`;
       if (sig === lastSignature) return;
       lastSignature = sig;
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -97,12 +152,26 @@ export function DocumentationOverlay({ revision, annotations, mask, groups }: {
         context.translate(region.x, region.y);
         context.beginPath(); context.rect(0, 0, region.width, region.height); context.clip();
       }
-      drawPublication(context, region?.width ?? width, region?.height ?? height, camera, slot, revision, annotations, mask, cachedDark, true, groups);
+      drawPublication(
+        context,
+        region?.width ?? width,
+        region?.height ?? height,
+        camera,
+        slot,
+        revision,
+        annotations,
+        mask,
+        cachedAppearance.dark,
+        true,
+        groups,
+        cachedAppearance.mode,
+      );
       context.restore();
     };
     parent.addEventListener("geogen-camera-frame", update);
     return () => {
-      observer?.disconnect();
+      metaObserver?.disconnect();
+      viewportObserver.disconnect();
       parent.removeEventListener("geogen-camera-frame", update);
     };
   }, [revision, annotations, mask, groups]);

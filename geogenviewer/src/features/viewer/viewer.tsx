@@ -1,6 +1,6 @@
 "use client";
 
-import { displayProfile } from "./scene/display-profiles";
+import { resolveDisplayProfile } from "./scene/display-profiles";
 import { componentLabel } from "../../lib/geogen/domain/component-identity.ts";
 import { Tooltip } from "@base-ui/react/tooltip";
 import dynamic from "next/dynamic";
@@ -11,6 +11,7 @@ import {
   useRef,
   useState,
   useSyncExternalStore,
+  type CSSProperties,
   type DragEvent,
 } from "react";
 import { Group, Panel, Separator } from "react-resizable-panels";
@@ -163,7 +164,8 @@ export function Viewer() {
   const secondaryIds = quantitySecondarySelection?.key === quantityRevision?.key ? quantitySecondarySelection?.ids ?? emptyIds : emptyIds;
   const quantitySelected = ownQuantity ? selectedIds : secondaryIds;
   const background = usePresentation((s) => s.display.background);
-  const modeProfile = usePresentation((s) => displayProfile(s.display.mode));
+  const displaySettings = usePresentation((s) => s.display);
+  const modeProfile = useMemo(() => resolveDisplayProfile(displaySettings), [displaySettings]);
   const effective = useEffectiveVisibility();
   const organization = useOrganizationStore((state) => state.doc);
   const docs = useDocumentationWorkspace(loaded?.revision ?? null, secondary.revision, base, comp, publication,
@@ -857,6 +859,11 @@ export function Viewer() {
       }`}
       data-background={background}
       data-mode-background={visualMode && background === "theme" ? modeProfile.background : undefined}
+      style={
+        visualMode && background === "theme" && modeProfile.backgroundColor
+          ? ({ "--gg-viewport-mode-bg": modeProfile.backgroundColor } as CSSProperties)
+          : undefined
+      }
       aria-busy={Boolean(status)}
       onDragEnter={handleDragEnter}
       onDragOver={handleDragOver}
